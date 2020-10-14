@@ -1,3 +1,3 @@
-module github.com/asnyder/othelgo
+module github.com/armsnyder/othelgo
 
 go 1.15
