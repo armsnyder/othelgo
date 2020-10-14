@@ -1,6 +1,7 @@
 package main
 
 import (
+	"time"
 	"log"
 
 	"github.com/nsf/termbox-go"
@@ -12,12 +13,15 @@ func main() {
 	if err := termbox.Init(); err != nil {
 		log.Fatal(err)
 	}
+	defer termbox.Close()
 
 	drawBoard()
 
 	if err := termbox.Flush(); err != nil {
 		log.Fatal(err)
 	}
+
+	time.Sleep(5*time.Second)
 }
 
 func drawBoard() {
