@@ -20,3 +20,8 @@
 # Oops I compiled the program
 othelgo
 
+# Secrets
+aws-creds.sh
+
+# Compiled code
+bin
