@@ -1,0 +1,30 @@
+name: Push Main
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+
+  deploy-server:
+    name: Deploy Server
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: Set up Go 1.x
+        uses: actions/setup-go@v2
+        with:
+          go-version: ^1.13
+        id: go
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+      - name: Check out code
+        uses: actions/checkout@v2
+
+      - name: Deploy
+        run: ./scripts/deploy_server.sh
