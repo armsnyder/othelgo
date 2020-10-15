@@ -1,9 +1,13 @@
-package messages
+package common
 
 const (
 	PlaceDiskAction   = "placeDisk"
 	UpdateBoardAction = "updateBoard"
 )
+
+const BoardSize = 8
+
+type Board [BoardSize][BoardSize]int
 
 type (
 	BaseMessage struct {
@@ -18,7 +22,7 @@ type (
 	}
 
 	UpdateBoardMessage struct {
-		Action string  `json:"action"`
-		Board  [][]int `json:"board"`
+		Action string `json:"action"`
+		Board  Board  `json:"board"`
 	}
 )
