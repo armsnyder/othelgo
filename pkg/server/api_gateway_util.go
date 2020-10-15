@@ -1,6 +1,7 @@
 package server
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 
@@ -10,18 +11,23 @@ import (
 	"github.com/aws/aws-sdk-go/service/apigatewaymanagementapi"
 )
 
-func sendMessage(reqCtx events.APIGatewayWebsocketProxyRequestContext, connID, message string) error {
+func sendMessage(reqCtx events.APIGatewayWebsocketProxyRequestContext, connID string, message interface{}) error {
 	if connID == "" {
 		connID = reqCtx.ConnectionID
+	}
+
+	data, err := json.Marshal(message)
+	if err != nil {
+		return err
 	}
 
 	log.Printf("Sending message to connection %q", connID)
 
 	client := newManagementAPIClient(reqCtx)
 
-	_, err := client.PostToConnection(&apigatewaymanagementapi.PostToConnectionInput{
+	_, err = client.PostToConnection(&apigatewaymanagementapi.PostToConnectionInput{
 		ConnectionId: aws.String(reqCtx.ConnectionID),
-		Data:         []byte(message),
+		Data:         data,
 	})
 
 	return err
