@@ -1,6 +1,8 @@
 package client
 
 import (
+	"log"
+
 	"github.com/gorilla/websocket"
 	"github.com/nsf/termbox-go"
 
@@ -28,6 +30,8 @@ func Run() error {
 	terminalEvents := make(chan termbox.Event)
 	go receiveTerminalEvents(terminalEvents)
 
+	messageQueue := make(chan common.UpdateBoardMessage)
+
 	var drawData drawData
 	curPlayer := 1
 
@@ -35,25 +39,39 @@ func Run() error {
 		return err
 	}
 
-	for event := range terminalEvents {
-		if shouldInterrupt(event) {
-			termbox.Interrupt()
-		}
+	for {
+		select {
+		case event := <-terminalEvents:
+			if shouldInterrupt(event) {
+				termbox.Interrupt()
+				return nil
+			}
 
-		updateSelection(event, &drawData)
+			updateSelection(event, &drawData)
 
-		if event.Key == termbox.KeyEnter {
-			drawData.board[drawData.curSquareX][drawData.curSquareY] = curPlayer
-			curPlayer %= 2
-			curPlayer++
-		}
+			if event.Key == termbox.KeyEnter {
+				drawData.board[drawData.curSquareX][drawData.curSquareY] = curPlayer
+				err := c.WriteJSON(common.PlaceDiskMessage{
+					Action: common.PlaceDiskAction,
+					Player: curPlayer,
+					X:      drawData.curSquareX,
+					Y:      drawData.curSquareY,
+				})
+				if err != nil {
+					return err
+				}
+				curPlayer %= 2
+				curPlayer++
+			}
 
-		if err := draw(drawData); err != nil {
-			return err
+			if err := draw(drawData); err != nil {
+				return err
+			}
+
+		case m := <-messageQueue:
+			receiveMessage(m)
 		}
 	}
-
-	return nil
 }
 
 func receiveTerminalEvents(ch chan<- termbox.Event) {
@@ -66,6 +84,12 @@ func receiveTerminalEvents(ch chan<- termbox.Event) {
 		default:
 			ch <- event
 		}
+	}
+}
+
+func receiveMessage(m common.UpdateBoardMessage) error {
+	for {
+		log.Println("i received a message!")
 	}
 }
 
