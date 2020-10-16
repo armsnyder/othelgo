@@ -1,8 +1,6 @@
 package client
 
 import (
-	"log"
-
 	"github.com/gorilla/websocket"
 	"github.com/nsf/termbox-go"
 
@@ -31,6 +29,7 @@ func Run() error {
 	go receiveTerminalEvents(terminalEvents)
 
 	messageQueue := make(chan common.UpdateBoardMessage)
+	go receiveMessage(c, messageQueue)
 
 	var drawData drawData
 	curPlayer := 1
@@ -64,12 +63,12 @@ func Run() error {
 				curPlayer++
 			}
 
-			if err := draw(drawData); err != nil {
-				return err
-			}
-
 		case m := <-messageQueue:
-			receiveMessage(m)
+			drawData.board = m.Board
+		}
+
+		if err := draw(drawData); err != nil {
+			return err
 		}
 	}
 }
@@ -87,9 +86,13 @@ func receiveTerminalEvents(ch chan<- termbox.Event) {
 	}
 }
 
-func receiveMessage(m common.UpdateBoardMessage) error {
+func receiveMessage(c *websocket.Conn, messageQueue chan common.UpdateBoardMessage) error {
+	var message common.UpdateBoardMessage
 	for {
-		log.Println("i received a message!")
+		if err := c.ReadJSON(&message); err != nil {
+			return err
+		}
+		messageQueue <- message
 	}
 }
 
