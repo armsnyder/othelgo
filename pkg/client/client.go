@@ -179,12 +179,19 @@ func draw(drawData drawData) error {
 			cellX := squareWidth/2 + squareWidth*x
 			cellY := squareHeight/2 + squareHeight*y
 
+			var color termbox.Attribute
+
 			switch drawData.board[x][y] {
 			case 1:
-				termbox.SetCell(cellX, cellY, '⬤', termbox.ColorMagenta, termbox.ColorDefault)
+				color = termbox.ColorMagenta
 			case 2:
-				termbox.SetCell(cellX, cellY, '⬤', termbox.ColorGreen, termbox.ColorDefault)
+				color = termbox.ColorGreen
+			default:
+				continue
 			}
+
+			termbox.SetCell(cellX, cellY, '⬤', color, termbox.ColorDefault)
+			termbox.SetCell(cellX+1, cellY, ' ', color, termbox.ColorDefault) // Prevent half-circle on some terminals.
 		}
 	}
 
