@@ -97,13 +97,7 @@ func Run() error {
 func receiveTerminalEvents(ch chan<- termbox.Event) {
 	for {
 		event := termbox.PollEvent()
-
-		switch event.Type {
-		case termbox.EventError, termbox.EventInterrupt:
-			close(ch)
-		default:
-			ch <- event
-		}
+		ch <- event
 	}
 }
 
