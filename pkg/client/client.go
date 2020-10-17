@@ -1,6 +1,8 @@
 package client
 
 import (
+	"unicode"
+
 	"github.com/gorilla/websocket"
 	"github.com/nsf/termbox-go"
 
@@ -97,7 +99,7 @@ func receiveMessage(c *websocket.Conn, messageQueue chan common.UpdateBoardMessa
 }
 
 func shouldInterrupt(event termbox.Event) bool {
-	return event.Ch == 'q' || event.Key == termbox.KeyCtrlC || event.Key == termbox.KeyEsc
+	return unicode.ToLower(event.Ch) == 'q' || event.Key == termbox.KeyCtrlC || event.Key == termbox.KeyEsc
 }
 
 func updateSelection(event termbox.Event, drawData *drawData) {
@@ -114,14 +116,14 @@ func updateSelection(event termbox.Event, drawData *drawData) {
 		dy = 1
 	}
 
-	switch event.Ch {
-	case 'a', 'A':
+	switch unicode.ToLower(event.Ch) {
+	case 'a':
 		dx = -1
-	case 'd', 'D':
+	case 'd':
 		dx = 1
-	case 'w', 'W':
+	case 'w':
 		dy = -1
-	case 's', 'S':
+	case 's':
 		dy = 1
 	}
 
