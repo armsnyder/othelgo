@@ -54,7 +54,19 @@ func handlePlaceDisk(ctx context.Context, req events.APIGatewayWebsocketProxyReq
 
 	log.Printf("Player %d placed a disk at (%d, %d)", message.Player, message.X, message.Y)
 
-	boardMessage := messages.NewUpdateBoardMessage(messages.Board{{1, 0, 0}, {0, 1, 2}, {2, 2, 2}})
+	board, err := loadBoard(ctx)
+	if err != nil {
+		return err
+	}
+
+	board[message.X][message.Y] = message.Player
+
+	err = saveBoard(ctx, board)
+	if err != nil {
+		return err
+	}
+
+	boardMessage := messages.NewUpdateBoardMessage(board)
 
 	return broadcastMessage(ctx, req.RequestContext, boardMessage)
 }

@@ -2,17 +2,22 @@ package server
 
 import (
 	"context"
+	"encoding/json"
 	"os"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
+
+	"github.com/armsnyder/othelgo/pkg/messages"
 )
 
 var (
 	tableName            = aws.String("othelgo")
 	connectionsKey       = makeKey("connections")
+	boardKey             = makeKey("board")
 	connectionsAttribute = "connections"
+	boardAttribute       = "board"
 )
 
 func getAllConnectionIDs(ctx context.Context) ([]string, error) {
@@ -57,6 +62,37 @@ func forgetConnection(ctx context.Context, connectionID string) error {
 		},
 		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
 			":v": {SS: aws.StringSlice([]string{connectionID})},
+		},
+	})
+	return err
+}
+
+func loadBoard(ctx context.Context) (messages.Board, error) {
+	var board messages.Board
+	output, err := dynamoClient().GetItemWithContext(ctx, &dynamodb.GetItemInput{
+		TableName: tableName,
+		Key:       boardKey,
+	})
+	if err != nil {
+		return board, err
+	}
+	if output.Item == nil {
+		return board, nil
+	}
+	err = json.Unmarshal(output.Item[boardAttribute].B, &board)
+	return board, err
+}
+
+func saveBoard(ctx context.Context, board messages.Board) error {
+	b, err := json.Marshal(board)
+	if err != nil {
+		return err
+	}
+	_, err = dynamoClient().PutItemWithContext(ctx, &dynamodb.PutItemInput{
+		TableName: tableName,
+		Item: map[string]*dynamodb.AttributeValue{
+			"id":           boardKey["id"],
+			boardAttribute: {B: b},
 		},
 	})
 	return err
