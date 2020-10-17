@@ -8,7 +8,7 @@ import (
 
 	"github.com/aws/aws-lambda-go/events"
 
-	"github.com/armsnyder/othelgo/pkg/common"
+	"github.com/armsnyder/othelgo/pkg/messages"
 )
 
 func Handler(ctx context.Context, req events.APIGatewayWebsocketProxyRequest) (resp events.APIGatewayProxyResponse, err error) {
@@ -29,7 +29,7 @@ func Handler(ctx context.Context, req events.APIGatewayWebsocketProxyRequest) (r
 }
 
 func handleMessage(ctx context.Context, req events.APIGatewayWebsocketProxyRequest) error {
-	var message common.BaseMessage
+	var message messages.BaseMessage
 
 	if err := json.Unmarshal([]byte(req.Body), &message); err != nil {
 		return err
@@ -38,7 +38,7 @@ func handleMessage(ctx context.Context, req events.APIGatewayWebsocketProxyReque
 	log.Printf("Handling message action %q", message.Action)
 
 	switch message.Action {
-	case common.PlaceDiskAction:
+	case messages.PlaceDiskAction:
 		return handlePlaceDisk(ctx, req)
 	default:
 		return fmt.Errorf("unrecognized message action %q", message.Action)
@@ -46,7 +46,7 @@ func handleMessage(ctx context.Context, req events.APIGatewayWebsocketProxyReque
 }
 
 func handlePlaceDisk(ctx context.Context, req events.APIGatewayWebsocketProxyRequest) error {
-	var message common.PlaceDiskMessage
+	var message messages.PlaceDiskMessage
 
 	if err := json.Unmarshal([]byte(req.Body), &message); err != nil {
 		return err
@@ -54,8 +54,7 @@ func handlePlaceDisk(ctx context.Context, req events.APIGatewayWebsocketProxyReq
 
 	log.Printf("Player %d placed a disk at (%d, %d)", message.Player, message.X, message.Y)
 
-	return broadcastMessage(ctx, req.RequestContext, &common.UpdateBoardMessage{
-		Action: common.UpdateBoardAction,
-		Board:  common.Board{{1, 0, 0}, {0, 1, 2}, {2, 2, 2}},
-	})
+	boardMessage := messages.NewUpdateBoardMessage(messages.Board{{1, 0, 0}, {0, 1, 2}, {2, 2, 2}})
+
+	return broadcastMessage(ctx, req.RequestContext, boardMessage)
 }

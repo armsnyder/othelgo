@@ -1,18 +1,19 @@
 package client
 
 import (
+	"fmt"
 	"unicode"
 
 	"github.com/gorilla/websocket"
 	"github.com/nsf/termbox-go"
 
-	"github.com/armsnyder/othelgo/pkg/common"
+	"github.com/armsnyder/othelgo/pkg/messages"
 )
 
 type drawData struct {
 	curSquareX int
 	curSquareY int
-	board      common.Board
+	board      messages.Board
 }
 
 func Run() error {
@@ -30,8 +31,9 @@ func Run() error {
 	terminalEvents := make(chan termbox.Event)
 	go receiveTerminalEvents(terminalEvents)
 
-	messageQueue := make(chan common.UpdateBoardMessage)
-	go receiveMessage(c, messageQueue)
+	messageQueue := make(chan messages.AnyMessage)
+	messageErrors := make(chan error)
+	go receiveMessages(c, messageQueue, messageErrors)
 
 	var drawData drawData
 	curPlayer := 1
@@ -52,21 +54,26 @@ func Run() error {
 
 			if event.Key == termbox.KeyEnter {
 				drawData.board[drawData.curSquareX][drawData.curSquareY] = curPlayer
-				err := c.WriteJSON(common.PlaceDiskMessage{
-					Action: common.PlaceDiskAction,
-					Player: curPlayer,
-					X:      drawData.curSquareX,
-					Y:      drawData.curSquareY,
-				})
-				if err != nil {
+
+				message := messages.NewPlaceDiskMessage(curPlayer, drawData.curSquareX, drawData.curSquareY)
+				if err := c.WriteJSON(message); err != nil {
 					return err
 				}
-				curPlayer %= 2
-				curPlayer++
+
+				curPlayer = curPlayer%2 + 1
 			}
 
-		case m := <-messageQueue:
-			drawData.board = m.Board
+		case anyMessage := <-messageQueue:
+			switch m := anyMessage.Message.(type) {
+			case *messages.UpdateBoardMessage:
+				drawData.board = m.Board
+
+			default:
+				return fmt.Errorf("unhandled message type %T", m)
+			}
+
+		case err := <-messageErrors:
+			return err
 		}
 
 		if err := draw(drawData); err != nil {
@@ -88,11 +95,11 @@ func receiveTerminalEvents(ch chan<- termbox.Event) {
 	}
 }
 
-func receiveMessage(c *websocket.Conn, messageQueue chan common.UpdateBoardMessage) error {
-	var message common.UpdateBoardMessage
+func receiveMessages(c *websocket.Conn, messageQueue chan<- messages.AnyMessage, messageErrors chan<- error) {
 	for {
+		var message messages.AnyMessage
 		if err := c.ReadJSON(&message); err != nil {
-			return err
+			messageErrors <- err
 		}
 		messageQueue <- message
 	}
@@ -127,8 +134,8 @@ func updateSelection(event termbox.Event, drawData *drawData) {
 		dy = 1
 	}
 
-	drawData.curSquareX = clamp(drawData.curSquareX+dx, 0, common.BoardSize)
-	drawData.curSquareY = clamp(drawData.curSquareY+dy, 0, common.BoardSize)
+	drawData.curSquareX = clamp(drawData.curSquareX+dx, 0, messages.BoardSize)
+	drawData.curSquareY = clamp(drawData.curSquareY+dy, 0, messages.BoardSize)
 }
 
 func clamp(val, min, max int) int {
@@ -151,8 +158,8 @@ func draw(drawData drawData) error {
 	squareWidth := 5
 
 	// Outline
-	for x := 0; x < common.BoardSize*squareWidth+1; x++ {
-		for y := 0; y < common.BoardSize*squareHeight+1; y++ {
+	for x := 0; x < messages.BoardSize*squareWidth+1; x++ {
+		for y := 0; y < messages.BoardSize*squareHeight+1; y++ {
 			var value rune
 			switch {
 			case y%squareHeight == 0 && x%squareWidth == 0:
@@ -167,8 +174,8 @@ func draw(drawData drawData) error {
 	}
 
 	// Pieces
-	for x := 0; x < common.BoardSize; x++ {
-		for y := 0; y < common.BoardSize; y++ {
+	for x := 0; x < messages.BoardSize; x++ {
+		for y := 0; y < messages.BoardSize; y++ {
 			cellX := squareWidth/2 + squareWidth*x
 			cellY := squareHeight/2 + squareHeight*y
 
