@@ -40,6 +40,10 @@ func handleMessage(ctx context.Context, req events.APIGatewayWebsocketProxyReque
 	switch message.Action {
 	case messages.PlaceDiskAction:
 		return handlePlaceDisk(ctx, req)
+	case messages.NewGameAction:
+		return handleNewGame(ctx, req)
+	case messages.JoinGameAction:
+		return handleJoinGame(ctx, req)
 	default:
 		return fmt.Errorf("unrecognized message action %q", message.Action)
 	}
@@ -61,12 +65,28 @@ func handlePlaceDisk(ctx context.Context, req events.APIGatewayWebsocketProxyReq
 
 	board[message.X][message.Y] = message.Player
 
-	err = saveBoard(ctx, board)
+	if err := saveBoard(ctx, board); err != nil {
+		return err
+	}
+
+	return broadcastMessage(ctx, req.RequestContext, messages.NewUpdateBoardMessage(board))
+}
+
+func handleNewGame(ctx context.Context, req events.APIGatewayWebsocketProxyRequest) error {
+	var board messages.Board
+
+	if err := saveBoard(ctx, board); err != nil {
+		return err
+	}
+
+	return broadcastMessage(ctx, req.RequestContext, messages.NewUpdateBoardMessage(board))
+}
+
+func handleJoinGame(ctx context.Context, req events.APIGatewayWebsocketProxyRequest) error {
+	board, err := loadBoard(ctx)
 	if err != nil {
 		return err
 	}
 
-	boardMessage := messages.NewUpdateBoardMessage(board)
-
-	return broadcastMessage(ctx, req.RequestContext, boardMessage)
+	return reply(ctx, req.RequestContext, messages.NewUpdateBoardMessage(board))
 }

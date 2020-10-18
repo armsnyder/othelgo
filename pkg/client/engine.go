@@ -47,7 +47,10 @@ func Run() error {
 		}
 
 		currentScene = nextScene
-		currentScene.Setup(changeScene, c.WriteJSON, sceneContext)
+
+		if err := currentScene.Setup(changeScene, c.WriteJSON, sceneContext); err != nil {
+			return err
+		}
 
 		return drawAndFlush(currentScene)
 	}

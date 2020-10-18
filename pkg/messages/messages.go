@@ -9,11 +9,15 @@ import (
 const (
 	PlaceDiskAction   = "placeDisk"
 	UpdateBoardAction = "updateBoard"
+	NewGameAction     = "newGame"
+	JoinGameAction    = "joinGame"
 )
 
 var actionToMessage = map[string]interface{}{
 	PlaceDiskAction:   PlaceDiskMessage{},
 	UpdateBoardAction: UpdateBoardMessage{},
+	NewGameAction:     NewGameMessage{},
+	JoinGameAction:    JoinGameMessage{},
 }
 
 const BoardSize = 8
@@ -50,6 +54,18 @@ func NewUpdateBoardMessage(board Board) UpdateBoardMessage {
 		Action: UpdateBoardAction,
 		Board:  board,
 	}
+}
+
+type NewGameMessage BaseMessage
+
+func NewNewGameMessage() NewGameMessage {
+	return NewGameMessage{Action: NewGameAction}
+}
+
+type JoinGameMessage BaseMessage
+
+func NewJoinGameMessage() JoinGameMessage {
+	return JoinGameMessage{Action: JoinGameAction}
 }
 
 type AnyMessage struct {

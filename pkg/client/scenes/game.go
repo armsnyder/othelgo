@@ -1,8 +1,6 @@
 package scenes
 
 import (
-	"fmt"
-
 	"github.com/nsf/termbox-go"
 
 	"github.com/armsnyder/othelgo/pkg/messages"
@@ -16,18 +14,26 @@ type Game struct {
 	board      messages.Board
 }
 
-func (g *Game) Setup(changeScene ChangeScene, sendMessage SendMessage, setupContext SceneContext) {
-	g.scene.Setup(changeScene, sendMessage, setupContext)
+func (g *Game) Setup(changeScene ChangeScene, sendMessage SendMessage, setupContext SceneContext) error {
+	if err := g.scene.Setup(changeScene, sendMessage, setupContext); err != nil {
+		return err
+	}
+
 	g.player = setupContext["player"].(int)
+
+	var message interface{}
+	if g.player == 1 {
+		message = messages.NewNewGameMessage()
+	} else {
+		message = messages.NewJoinGameMessage()
+	}
+
+	return sendMessage(message)
 }
 
 func (g *Game) OnMessage(message messages.AnyMessage) error {
-	switch m := message.Message.(type) {
-	case *messages.UpdateBoardMessage:
+	if m, ok := message.Message.(*messages.UpdateBoardMessage); ok {
 		g.board = m.Board
-
-	default:
-		return fmt.Errorf("unhandled message type %T", m)
 	}
 
 	return nil

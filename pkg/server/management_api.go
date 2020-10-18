@@ -38,6 +38,17 @@ func broadcastMessage(ctx context.Context, reqCtx events.APIGatewayWebsocketProx
 	return group.Wait()
 }
 
+func reply(ctx context.Context, reqCtx events.APIGatewayWebsocketProxyRequestContext, message interface{}) error {
+	data, err := json.Marshal(message)
+	if err != nil {
+		return err
+	}
+
+	client := newManagementAPIClient(reqCtx)
+
+	return sendMessage(ctx, client, reqCtx.ConnectionID, data)()
+}
+
 func newManagementAPIClient(reqCtx events.APIGatewayWebsocketProxyRequestContext) *apigatewaymanagementapi.ApiGatewayManagementApi {
 	endpoint := fmt.Sprintf("https://%s/%s/", reqCtx.DomainName, reqCtx.Stage)
 	return apigatewaymanagementapi.New(session.Must(session.NewSession(aws.NewConfig().WithEndpoint(endpoint))))
