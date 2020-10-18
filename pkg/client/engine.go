@@ -7,18 +7,17 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/nsf/termbox-go"
 
+	"github.com/armsnyder/othelgo/pkg/client/scenes"
+
 	"github.com/armsnyder/othelgo/pkg/messages"
 )
 
-var allScenes = map[string]scene{
-	"game": gameScene,
+var allScenes = map[string]scenes.Scene{
+	"menu": new(scenes.Menu),
+	"game": new(scenes.Game),
 }
 
-const firstScene = "game"
-
-// scene is responsible for the logic and view of a particular page of the application.
-// It can handle websocket messages and terminal events.
-type scene func(changeScene func(string), sendMessage func(interface{}), onError func(error)) (onMessage func(messages.AnyMessage), onEvent func(termbox.Event))
+const firstScene = "menu"
 
 func Run() error {
 	// Setup websocket.
@@ -34,38 +33,29 @@ func Run() error {
 	}
 	defer termbox.Close()
 
-	// Setup handlers for scenes to use.
+	// Setup handler for changing scenes.
 
 	var (
-		changeScene func(nextScene string)
-		sendMessage func(interface{})
-		onError     func(error)
-		onMessage   func(messages.AnyMessage)
-		onEvent     func(termbox.Event)
+		currentScene scenes.Scene
+		changeScene  scenes.ChangeScene
 	)
 
-	errors := make(chan error)
-
-	onError = func(err error) {
-		errors <- err
-	}
-
-	changeScene = func(name string) {
-		if nextScene, ok := allScenes[name]; ok {
-			onMessage, onEvent = nextScene(changeScene, sendMessage, onError)
-		} else {
-			onError(fmt.Errorf("no scene with name %q", name))
+	changeScene = func(name string, sceneContext scenes.SceneContext) error {
+		nextScene, ok := allScenes[name]
+		if !ok {
+			return fmt.Errorf("no scene with name %q", name)
 		}
-	}
 
-	sendMessage = func(v interface{}) {
-		if err := c.WriteJSON(v); err != nil {
-			onError(err)
-		}
+		currentScene = nextScene
+		currentScene.Setup(changeScene, c.WriteJSON, sceneContext)
+
+		return drawAndFlush(currentScene)
 	}
 
 	// Set the first scene.
-	changeScene(firstScene)
+	if err := changeScene(firstScene, nil); err != nil {
+		return err
+	}
 
 	// Listen for terminal events.
 	terminalEvents := make(chan termbox.Event)
@@ -73,9 +63,10 @@ func Run() error {
 
 	// Listen for websocket messages.
 	messageQueue := make(chan messages.AnyMessage)
-	go receiveMessages(c, messageQueue, errors)
+	messageErrors := make(chan error)
+	go receiveMessages(c, messageQueue, messageErrors)
 
-	// Run an event loop and call the current handlers configured by the current scene.
+	// Run an event loop and call handlers on the current scene.
 	for {
 		select {
 		case event := <-terminalEvents:
@@ -83,12 +74,25 @@ func Run() error {
 				termbox.Interrupt()
 				return nil
 			}
-			onEvent(event)
 
-		case anyMessage := <-messageQueue:
-			onMessage(anyMessage)
+			if err := currentScene.OnTerminalEvent(event); err != nil {
+				return err
+			}
 
-		case err := <-errors:
+			if err := drawAndFlush(currentScene); err != nil {
+				return err
+			}
+
+		case message := <-messageQueue:
+			if err := currentScene.OnMessage(message); err != nil {
+				return err
+			}
+
+			if err := drawAndFlush(currentScene); err != nil {
+				return err
+			}
+
+		case err := <-messageErrors:
 			return err
 		}
 	}
@@ -113,4 +117,14 @@ func receiveMessages(c *websocket.Conn, messageQueue chan<- messages.AnyMessage,
 
 func shouldInterrupt(event termbox.Event) bool {
 	return unicode.ToLower(event.Ch) == 'q' || event.Key == termbox.KeyCtrlC || event.Key == termbox.KeyEsc
+}
+
+func drawAndFlush(scene scenes.Scene) error {
+	if err := termbox.Clear(termbox.ColorDefault, termbox.ColorDefault); err != nil {
+		return err
+	}
+
+	scene.Draw()
+
+	return termbox.Flush()
 }
