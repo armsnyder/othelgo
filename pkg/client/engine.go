@@ -156,7 +156,7 @@ func receiveMessages(c *websocket.Conn, messageQueue chan<- messages.AnyMessage,
 	for {
 		var message messages.AnyMessage
 		if err := c.ReadJSON(&message); err != nil {
-			messageErrors <- err
+			messageErrors <- fmt.Errorf("failed to read message from websocket: %w", err)
 		}
 		messageQueue <- message
 	}

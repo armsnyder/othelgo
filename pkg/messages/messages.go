@@ -79,6 +79,10 @@ func (u *AnyMessage) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
+	if base.Action == "" {
+		return fmt.Errorf("invalid message %q", string(data))
+	}
+
 	prototype, ok := actionToMessage[base.Action]
 	if !ok {
 		return fmt.Errorf("unsupported message action %q", base.Action)
