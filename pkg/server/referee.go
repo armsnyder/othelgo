@@ -55,6 +55,28 @@ func ExpandVector(board *messages.Board, x int, y int, player int, v [2]int) boo
 		(*board)[x][y] = player
 		return true
 	default:
-		return ExpandVector(board, nextX, nextY, player, v)
+		if ExpandVector(board, nextX, nextY, player, v) {
+			(*board)[x][y] = player
+			return true
+		}
+		return false
 	}
 }
+
+// func KeepScore(board messages.Board) (int, int) {
+// 	p1, p2 := 0, 0
+// 	for i := 0; i < messages.BoardSize; i++ {
+// 		for j := 0; j < messages.BoardSize; j++ {
+// 			switch board[i][j] {
+// 			case 1:
+// 				p1++
+// 			case 2:
+// 				p2++
+// 			}
+// 		}
+// 	}
+// 	if p1+p2 == messages.BoardSize**2 {
+// 		// TODO
+// 	}
+// 	return p1, p2
+// }
