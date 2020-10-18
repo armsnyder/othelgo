@@ -25,3 +25,6 @@ aws-creds.sh
 
 # Compiled code
 bin
+
+# Client log file
+othelgo.log

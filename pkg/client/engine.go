@@ -2,6 +2,9 @@ package client
 
 import (
 	"fmt"
+	"log"
+	"os"
+	"reflect"
 	"unicode"
 
 	"github.com/gorilla/websocket"
@@ -19,15 +22,43 @@ var allScenes = map[string]scenes.Scene{
 
 const firstScene = "menu"
 
-func Run() error {
+func Run() (err error) {
+	// Setup log file.
+
+	logFile, err := os.Create("othelgo.log")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer logFile.Close()
+
+	log.SetOutput(logFile)
+	log.SetFlags(log.Lmicroseconds | log.Lshortfile | log.Lmsgprefix)
+
+	defer func() {
+		log.SetPrefix("")
+
+		if err != nil {
+			log.Printf("Exiting with error: %v", err)
+		} else {
+			log.Println("Exiting OK")
+		}
+
+		// Reset logger.
+		log.SetOutput(os.Stderr)
+		log.SetFlags(log.LstdFlags)
+	}()
+
 	// Setup websocket.
-	c, _, err := websocket.DefaultDialer.Dial("wss://1y9vcb5geb.execute-api.us-west-2.amazonaws.com/development", nil)
+	addr := "wss://1y9vcb5geb.execute-api.us-west-2.amazonaws.com/development"
+	log.Printf("Dialing websocket %q", addr)
+	c, _, err := websocket.DefaultDialer.Dial(addr, nil)
 	if err != nil {
 		return err
 	}
 	defer c.Close()
 
 	// Setup terminal.
+	log.Println("Initializing terminal")
 	if err := termbox.Init(); err != nil {
 		return err
 	}
@@ -41,14 +72,23 @@ func Run() error {
 	)
 
 	changeScene = func(name string, sceneContext scenes.SceneContext) error {
+		log.Printf("Changing scene to %q", name)
+
 		nextScene, ok := allScenes[name]
 		if !ok {
 			return fmt.Errorf("no scene with name %q", name)
 		}
 
 		currentScene = nextScene
+		log.SetPrefix(fmt.Sprintf("[%s] ", name))
 
-		if err := currentScene.Setup(changeScene, c.WriteJSON, sceneContext); err != nil {
+		sendMessage := func(v interface{}) error {
+			action := reflect.ValueOf(v).FieldByName("Action").String()
+			log.Printf("Sending message (action=%q)", action)
+			return c.WriteJSON(v)
+		}
+
+		if err := currentScene.Setup(changeScene, sendMessage, sceneContext); err != nil {
 			return err
 		}
 
@@ -73,7 +113,10 @@ func Run() error {
 	for {
 		select {
 		case event := <-terminalEvents:
+			log.Printf("Received terminal event (type=%d)", event.Type)
+
 			if shouldInterrupt(event) {
+				log.Println("Interrupting terminal")
 				termbox.Interrupt()
 				return nil
 			}
@@ -87,6 +130,7 @@ func Run() error {
 			}
 
 		case message := <-messageQueue:
+			log.Printf("Received message (action=%q)", message.Action)
 			if err := currentScene.OnMessage(message); err != nil {
 				return err
 			}
@@ -123,6 +167,8 @@ func shouldInterrupt(event termbox.Event) bool {
 }
 
 func drawAndFlush(scene scenes.Scene) error {
+	log.Println("Drawing")
+
 	if err := termbox.Clear(termbox.ColorDefault, termbox.ColorDefault); err != nil {
 		return err
 	}

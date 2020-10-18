@@ -69,6 +69,7 @@ func NewJoinGameMessage() JoinGameMessage {
 }
 
 type AnyMessage struct {
+	Action  string
 	Message interface{}
 }
 
@@ -89,6 +90,7 @@ func (u *AnyMessage) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
+	u.Action = base.Action
 	u.Message = message
 
 	return nil
