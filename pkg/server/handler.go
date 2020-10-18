@@ -63,17 +63,24 @@ func handlePlaceDisk(ctx context.Context, req events.APIGatewayWebsocketProxyReq
 		return err
 	}
 
-	board[message.X][message.Y] = message.Player
+	board, updated := ApplyMove(board, message.X, message.Y, message.Player)
 
-	if err := saveBoard(ctx, board); err != nil {
-		return err
+	if updated {
+		if err := saveBoard(ctx, board); err != nil {
+			return err
+		}
+		return broadcastMessage(ctx, req.RequestContext, messages.NewUpdateBoardMessage(board))
 	}
-
-	return broadcastMessage(ctx, req.RequestContext, messages.NewUpdateBoardMessage(board))
+	return reply(ctx, req.RequestContext, messages.NewUpdateBoardMessage(board))
 }
 
 func handleNewGame(ctx context.Context, req events.APIGatewayWebsocketProxyRequest) error {
 	var board messages.Board
+
+	board[3][3] = 1
+	board[3][4] = 2
+	board[4][3] = 2
+	board[4][4] = 1
 
 	if err := saveBoard(ctx, board); err != nil {
 		return err
