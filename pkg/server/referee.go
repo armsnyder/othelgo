@@ -16,12 +16,16 @@ func ApplyMove(board messages.Board, x int, y int, player int) (messages.Board, 
 	// choose vectors
 	updated := false
 	for _, v := range [][2]int{{-1, -1}, {-1, 0}, {-1, 1}, {0, -1}, {0, 1}, {1, -1}, {1, 0}, {1, 1}} {
-		if v[0]+x < 0 || v[0]+x >= messages.BoardSize || v[1]+y < 0 || v[1]+y >= messages.BoardSize {
+		nextX := v[0] + x
+		nextY := v[1] + y
+		if nextX < 0 || nextX >= messages.BoardSize || nextY < 0 || nextY >= messages.BoardSize {
 			continue
 		}
-		if board[v[0]+x][v[1]+y] == player%2+1 {
+
+		if board[nextX][nextY] == player%2+1 {
 			// expand and aggregate vectors
-			if ExpandVector(&board, x, y, player, v) {
+			if ExpandVector(&board, nextX, nextY, player, v) {
+				board[x][y] = player
 				updated = true
 			}
 		}
@@ -30,6 +34,27 @@ func ApplyMove(board messages.Board, x int, y int, player int) (messages.Board, 
 }
 
 func ExpandVector(board *messages.Board, x int, y int, player int, v [2]int) bool {
-	board[x][y] = player
-	return true
+	// By the time ExpandVector is called, we have already chosen a vector from the position of the
+	// placed disk that contains at least one of the opposing player's disks. Therefore, we need to
+	// search along the vector for the next disk belonging to the current player.
+
+	// board[x][y] = player
+	// return true
+
+	nextX := v[0] + x
+	nextY := v[1] + y
+
+	if nextX < 0 || nextX >= messages.BoardSize || nextY < 0 || nextY >= messages.BoardSize {
+		return false
+	}
+
+	switch (*board)[nextX][nextY] {
+	case 0:
+		return false
+	case player:
+		(*board)[x][y] = player
+		return true
+	default:
+		return ExpandVector(board, nextX, nextY, player, v)
+	}
 }
