@@ -12,6 +12,7 @@ type Scene interface {
 	Setup(changeScene ChangeScene, sendMessage SendMessage, sceneContext SceneContext) error
 	OnMessage(message common.AnyMessage) error
 	OnTerminalEvent(event termbox.Event) error
+	Tick() bool
 	Draw()
 }
 
@@ -40,4 +41,9 @@ func (s *scene) Setup(changeScene ChangeScene, sendMessage SendMessage, sceneCon
 func (s *scene) OnMessage(_ common.AnyMessage) error {
 	// Default implementation is a no-op.
 	return nil
+}
+
+func (s *scene) Tick() bool {
+	// Default implementation is a no-op.
+	return false
 }

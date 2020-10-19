@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"reflect"
+	"time"
 	"unicode"
 
 	"github.com/gorilla/websocket"
@@ -24,85 +25,31 @@ const firstScene = "menu"
 
 func Run() (err error) {
 	// Setup log file.
-
-	logFile, err := os.Create("othelgo.log")
+	finish, err := setupFileLogger()
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
-	defer logFile.Close()
-
-	log.SetOutput(logFile)
-	log.SetFlags(log.Lmicroseconds | log.Lshortfile | log.Lmsgprefix)
-
-	defer func() {
-		log.SetPrefix("")
-
-		if err != nil {
-			log.Printf("Exiting with error: %v", err)
-		} else {
-			log.Println("Exiting OK")
-		}
-
-		// Reset logger.
-		log.SetOutput(os.Stderr)
-		log.SetFlags(log.LstdFlags)
-	}()
+	defer finish(err)
 
 	// Setup websocket.
 	addr := "wss://1y9vcb5geb.execute-api.us-west-2.amazonaws.com/development"
 	log.Printf("Dialing websocket %q", addr)
-
 	c, _, err := websocket.DefaultDialer.Dial(addr, nil)
 	if err != nil {
 		return err
 	}
-
 	defer c.Close()
 
 	// Setup terminal.
-
 	log.Println("Initializing terminal")
-
 	if err := termbox.Init(); err != nil {
 		return err
 	}
 	defer termbox.Close()
 
-	// Setup scene handlers.
-
-	sendMessage := func(v interface{}) error {
-		action := reflect.ValueOf(v).FieldByName("Action").String()
-		log.Printf("Sending message (action=%q)", action)
-
-		return c.WriteJSON(v)
-	}
-
-	var (
-		currentScene scenes.Scene
-		changeScene  scenes.ChangeScene
-	)
-
-	changeScene = func(name string, sceneContext scenes.SceneContext) error {
-		log.Printf("Changing scene to %q", name)
-
-		nextScene, ok := allScenes[name]
-		if !ok {
-			return fmt.Errorf("no scene with name %q", name)
-		}
-
-		currentScene = nextScene
-
-		log.SetPrefix(fmt.Sprintf("[%s] ", name))
-
-		if err := currentScene.Setup(changeScene, sendMessage, sceneContext); err != nil {
-			return err
-		}
-
-		return drawAndFlush(currentScene)
-	}
-
-	// Set the first scene.
-	if err := changeScene(firstScene, nil); err != nil {
+	// Setup a handler for changing scenes, and start the first scene.
+	var currentScene scenes.Scene
+	if err := setupChangeSceneHandler(&currentScene, c); err != nil {
 		return err
 	}
 
@@ -111,15 +58,24 @@ func Run() (err error) {
 	go receiveTerminalEvents(terminalEvents)
 
 	// Listen for websocket messages.
-
 	messageQueue := make(chan common.AnyMessage)
 	messageErrors := make(chan error)
-
 	go receiveMessages(c, messageQueue, messageErrors)
+
+	// Setup a ticker for calling Tick on the scene.
+	ticker := time.NewTicker(time.Second / 12)
+	defer ticker.Stop()
 
 	// Run an event loop and call handlers on the current scene.
 	for {
 		select {
+		case <-ticker.C:
+			if currentScene.Tick() {
+				if err := drawAndFlush(currentScene); err != nil {
+					return err
+				}
+			}
+
 		case event := <-terminalEvents:
 			log.Printf("Received terminal event (type=%d)", event.Type)
 
@@ -153,6 +109,65 @@ func Run() (err error) {
 			return err
 		}
 	}
+}
+
+func setupFileLogger() (finish func(err error), err error) {
+	logFile, err := os.Create("othelgo.log")
+	if err != nil {
+		return nil, err
+	}
+
+	log.SetOutput(logFile)
+	log.SetFlags(log.Lmicroseconds | log.Lshortfile | log.Lmsgprefix)
+
+	finish = func(err error) {
+		log.SetPrefix("")
+
+		if err != nil {
+			log.Printf("Exiting with error: %v", err)
+		} else {
+			log.Println("Exiting OK")
+		}
+
+		logFile.Close()
+
+		// Reset logger.
+		log.SetOutput(os.Stderr)
+		log.SetFlags(log.LstdFlags)
+	}
+
+	return finish, nil
+}
+
+func setupChangeSceneHandler(currentScene *scenes.Scene, c *websocket.Conn) error {
+	sendMessage := func(v interface{}) error {
+		action := reflect.ValueOf(v).FieldByName("Action").String()
+		log.Printf("Sending message (action=%q)", action)
+
+		return c.WriteJSON(v)
+	}
+
+	var changeScene scenes.ChangeScene
+	changeScene = func(name string, sceneContext scenes.SceneContext) error {
+		log.Printf("Changing scene to %q", name)
+
+		nextScene, ok := allScenes[name]
+		if !ok {
+			return fmt.Errorf("no scene with name %q", name)
+		}
+
+		*currentScene = nextScene
+
+		log.SetPrefix(fmt.Sprintf("[%s] ", name))
+
+		if err := nextScene.Setup(changeScene, sendMessage, sceneContext); err != nil {
+			return err
+		}
+
+		return drawAndFlush(*currentScene)
+	}
+
+	return changeScene(firstScene, nil)
 }
 
 func receiveTerminalEvents(ch chan<- termbox.Event) {
