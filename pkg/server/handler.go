@@ -8,7 +8,7 @@ import (
 
 	"github.com/aws/aws-lambda-go/events"
 
-	"github.com/armsnyder/othelgo/pkg/messages"
+	"github.com/armsnyder/othelgo/pkg/common"
 )
 
 func Handler(ctx context.Context, req events.APIGatewayWebsocketProxyRequest) (resp events.APIGatewayProxyResponse, err error) {
@@ -29,7 +29,7 @@ func Handler(ctx context.Context, req events.APIGatewayWebsocketProxyRequest) (r
 }
 
 func handleMessage(ctx context.Context, req events.APIGatewayWebsocketProxyRequest) error {
-	var message messages.BaseMessage
+	var message common.BaseMessage
 
 	if err := json.Unmarshal([]byte(req.Body), &message); err != nil {
 		return err
@@ -38,11 +38,11 @@ func handleMessage(ctx context.Context, req events.APIGatewayWebsocketProxyReque
 	log.Printf("Handling message action %q", message.Action)
 
 	switch message.Action {
-	case messages.PlaceDiskAction:
+	case common.PlaceDiskAction:
 		return handlePlaceDisk(ctx, req)
-	case messages.NewGameAction:
+	case common.NewGameAction:
 		return handleNewGame(ctx, req)
-	case messages.JoinGameAction:
+	case common.JoinGameAction:
 		return handleJoinGame(ctx, req)
 	default:
 		return fmt.Errorf("unrecognized message action %q", message.Action)
@@ -50,7 +50,7 @@ func handleMessage(ctx context.Context, req events.APIGatewayWebsocketProxyReque
 }
 
 func handlePlaceDisk(ctx context.Context, req events.APIGatewayWebsocketProxyRequest) error {
-	var message messages.PlaceDiskMessage
+	var message common.PlaceDiskMessage
 
 	if err := json.Unmarshal([]byte(req.Body), &message); err != nil {
 		return err
@@ -63,19 +63,19 @@ func handlePlaceDisk(ctx context.Context, req events.APIGatewayWebsocketProxyReq
 		return err
 	}
 
-	board, updated := ApplyMove(board, message.X, message.Y, message.Player)
+	board, updated := common.ApplyMove(board, message.X, message.Y, message.Player)
 
 	if updated {
 		if err := saveBoard(ctx, board); err != nil {
 			return err
 		}
-		return broadcastMessage(ctx, req.RequestContext, messages.NewUpdateBoardMessage(board))
+		return broadcastMessage(ctx, req.RequestContext, common.NewUpdateBoardMessage(board))
 	}
-	return reply(ctx, req.RequestContext, messages.NewUpdateBoardMessage(board))
+	return reply(ctx, req.RequestContext, common.NewUpdateBoardMessage(board))
 }
 
 func handleNewGame(ctx context.Context, req events.APIGatewayWebsocketProxyRequest) error {
-	var board messages.Board
+	var board common.Board
 
 	board[3][3] = 1
 	board[3][4] = 2
@@ -86,7 +86,7 @@ func handleNewGame(ctx context.Context, req events.APIGatewayWebsocketProxyReque
 		return err
 	}
 
-	return broadcastMessage(ctx, req.RequestContext, messages.NewUpdateBoardMessage(board))
+	return broadcastMessage(ctx, req.RequestContext, common.NewUpdateBoardMessage(board))
 }
 
 func handleJoinGame(ctx context.Context, req events.APIGatewayWebsocketProxyRequest) error {
@@ -95,5 +95,5 @@ func handleJoinGame(ctx context.Context, req events.APIGatewayWebsocketProxyRequ
 		return err
 	}
 
-	return reply(ctx, req.RequestContext, messages.NewUpdateBoardMessage(board))
+	return reply(ctx, req.RequestContext, common.NewUpdateBoardMessage(board))
 }

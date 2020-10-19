@@ -1,9 +1,11 @@
 package scenes
 
 import (
+	"fmt"
+
 	"github.com/nsf/termbox-go"
 
-	"github.com/armsnyder/othelgo/pkg/messages"
+	"github.com/armsnyder/othelgo/pkg/common"
 )
 
 type Game struct {
@@ -11,7 +13,9 @@ type Game struct {
 	player     int
 	curSquareX int
 	curSquareY int
-	board      messages.Board
+	board      common.Board
+	p1Score    int
+	p2Score    int
 }
 
 func (g *Game) Setup(changeScene ChangeScene, sendMessage SendMessage, setupContext SceneContext) error {
@@ -23,17 +27,18 @@ func (g *Game) Setup(changeScene ChangeScene, sendMessage SendMessage, setupCont
 
 	var message interface{}
 	if g.player == 1 {
-		message = messages.NewNewGameMessage()
+		message = common.NewNewGameMessage()
 	} else {
-		message = messages.NewJoinGameMessage()
+		message = common.NewJoinGameMessage()
 	}
 
 	return sendMessage(message)
 }
 
-func (g *Game) OnMessage(message messages.AnyMessage) error {
-	if m, ok := message.Message.(*messages.UpdateBoardMessage); ok {
+func (g *Game) OnMessage(message common.AnyMessage) error {
+	if m, ok := message.Message.(*common.UpdateBoardMessage); ok {
 		g.board = m.Board
+		g.p1Score, g.p2Score = common.KeepScore(g.board)
 	}
 
 	return nil
@@ -41,15 +46,17 @@ func (g *Game) OnMessage(message messages.AnyMessage) error {
 
 func (g *Game) OnTerminalEvent(event termbox.Event) error {
 	dx, dy := getDirectionPressed(event)
-	g.curSquareX = clamp(g.curSquareX+dx, 0, messages.BoardSize)
-	g.curSquareY = clamp(g.curSquareY+dy, 0, messages.BoardSize)
+	g.curSquareX = clamp(g.curSquareX+dx, 0, common.BoardSize)
+	g.curSquareY = clamp(g.curSquareY+dy, 0, common.BoardSize)
 
 	if event.Key == termbox.KeyEnter {
-		g.board[g.curSquareX][g.curSquareY] = g.player
-
-		message := messages.NewPlaceDiskMessage(g.player, g.curSquareX, g.curSquareY)
-		if err := g.SendMessage(message); err != nil {
-			return err
+		board, updated := common.ApplyMove(g.board, g.curSquareX, g.curSquareY, g.player)
+		if updated {
+			g.board = board
+			message := common.NewPlaceDiskMessage(g.player, g.curSquareX, g.curSquareY)
+			if err := g.SendMessage(message); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -69,8 +76,12 @@ func (g *Game) Draw() {
 	}
 
 	youAreText := "You are: "
+	offset := 21
 	drawString(youAreText, 0, 0, termbox.ColorDefault, termbox.ColorDefault)
 	drawDisk(g.player, len(youAreText), 0)
+	drawString(fmt.Sprintf("Score:    %2d      %2d", g.p1Score, g.p2Score), offset, 0, termbox.ColorDefault, termbox.ColorDefault)
+	drawDisk(1, offset+7, 0)
+	drawDisk(2, offset+15, 0)
 
 	var (
 		squareHeight = 2
@@ -79,8 +90,8 @@ func (g *Game) Draw() {
 	)
 
 	// Outline
-	for x := 0; x < messages.BoardSize*squareWidth+1; x++ {
-		for y := 0; y < messages.BoardSize*squareHeight+1; y++ {
+	for x := 0; x < common.BoardSize*squareWidth+1; x++ {
+		for y := 0; y < common.BoardSize*squareHeight+1; y++ {
 			var value rune
 			switch {
 			case y%squareHeight == 0 && x%squareWidth == 0:
@@ -95,8 +106,8 @@ func (g *Game) Draw() {
 	}
 
 	// Pieces
-	for i := 0; i < messages.BoardSize; i++ {
-		for j := 0; j < messages.BoardSize; j++ {
+	for i := 0; i < common.BoardSize; i++ {
+		for j := 0; j < common.BoardSize; j++ {
 			player := g.board[i][j]
 			if player == 0 {
 				continue

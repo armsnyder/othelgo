@@ -9,7 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 
-	"github.com/armsnyder/othelgo/pkg/messages"
+	"github.com/armsnyder/othelgo/pkg/common"
 )
 
 var (
@@ -67,8 +67,8 @@ func forgetConnection(ctx context.Context, connectionID string) error {
 	return err
 }
 
-func loadBoard(ctx context.Context) (messages.Board, error) {
-	var board messages.Board
+func loadBoard(ctx context.Context) (common.Board, error) {
+	var board common.Board
 	output, err := dynamoClient().GetItemWithContext(ctx, &dynamodb.GetItemInput{
 		TableName: tableName,
 		Key:       boardKey,
@@ -83,7 +83,7 @@ func loadBoard(ctx context.Context) (messages.Board, error) {
 	return board, err
 }
 
-func saveBoard(ctx context.Context, board messages.Board) error {
+func saveBoard(ctx context.Context, board common.Board) error {
 	b, err := json.Marshal(board)
 	if err != nil {
 		return err

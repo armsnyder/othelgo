@@ -12,7 +12,7 @@ import (
 
 	"github.com/armsnyder/othelgo/pkg/client/scenes"
 
-	"github.com/armsnyder/othelgo/pkg/messages"
+	"github.com/armsnyder/othelgo/pkg/common"
 )
 
 var allScenes = map[string]scenes.Scene{
@@ -105,7 +105,7 @@ func Run() (err error) {
 	go receiveTerminalEvents(terminalEvents)
 
 	// Listen for websocket messages.
-	messageQueue := make(chan messages.AnyMessage)
+	messageQueue := make(chan common.AnyMessage)
 	messageErrors := make(chan error)
 	go receiveMessages(c, messageQueue, messageErrors)
 
@@ -152,9 +152,9 @@ func receiveTerminalEvents(ch chan<- termbox.Event) {
 	}
 }
 
-func receiveMessages(c *websocket.Conn, messageQueue chan<- messages.AnyMessage, messageErrors chan<- error) {
+func receiveMessages(c *websocket.Conn, messageQueue chan<- common.AnyMessage, messageErrors chan<- error) {
 	for {
-		var message messages.AnyMessage
+		var message common.AnyMessage
 		if err := c.ReadJSON(&message); err != nil {
 			messageErrors <- fmt.Errorf("failed to read message from websocket: %w", err)
 		}
