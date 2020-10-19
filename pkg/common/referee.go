@@ -92,3 +92,8 @@ func WhoseTurn(board Board) int {
 	p1, p2 := KeepScore(board)
 	return (p1+p2)%2 + 1
 }
+
+func GameOver(board Board) bool {
+	p1, p2 := KeepScore(board)
+	return p1+p2 == BoardSize*BoardSize
+}

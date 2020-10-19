@@ -16,6 +16,7 @@ type Game struct {
 	board      common.Board
 	p1Score    int
 	p2Score    int
+	confetti   confetti
 }
 
 func (g *Game) Setup(changeScene ChangeScene, sendMessage SendMessage, setupContext SceneContext) error {
@@ -62,12 +63,30 @@ func (g *Game) OnTerminalEvent(event termbox.Event) error {
 	return nil
 }
 
+func (g *Game) Tick() bool {
+	if !common.GameOver(g.board) {
+		return false
+	}
+
+	p1, p2 := common.KeepScore(g.board)
+	switch {
+	case g.player == 1 && p2 > p1:
+		return false
+	case g.player == 2 && p1 > p2:
+		return false
+	}
+
+	g.confetti.tick()
+	return true
+}
+
 func (g *Game) Draw() {
 	g.drawYouAre()
 	g.drawScore()
 	drawBoardOutline()
 	g.drawDisks()
 	g.drawCursor()
+	g.confetti.draw()
 }
 
 var playerColors = map[int]termbox.Attribute{
@@ -111,10 +130,12 @@ func (g *Game) drawScore() {
 	drawDisk(2, p2DiskXOffset, 0)
 
 	// Current turn indicator
-	if common.WhoseTurn(g.board) == 1 {
-		drawStringDefault("﹌", p1DiskXOffset, 1)
-	} else {
-		drawStringDefault("﹌", p2DiskXOffset, 1)
+	if !common.GameOver(g.board) {
+		if common.WhoseTurn(g.board) == 1 {
+			drawStringDefault("﹌", p1DiskXOffset, 1)
+		} else {
+			drawStringDefault("﹌", p2DiskXOffset, 1)
+		}
 	}
 }
 
@@ -160,13 +181,13 @@ func (g *Game) drawDisks() {
 }
 
 func (g *Game) drawCursor() {
-	if common.WhoseTurn(g.board) == g.player {
+	if common.GameOver(g.board) || common.WhoseTurn(g.board) != g.player {
+		termbox.HideCursor()
+	} else {
 		termbox.SetCursor(
 			squareWidth/2+squareWidth*g.curSquareX,
 			boardYOffset+squareHeight/2+squareHeight*g.curSquareY,
 		)
-	} else {
-		termbox.HideCursor()
 	}
 }
 
