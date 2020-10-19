@@ -60,6 +60,7 @@ func sendMessage(ctx context.Context, client *apigatewaymanagementapi.ApiGateway
 			ConnectionId: &connectionID,
 			Data:         data,
 		})
+
 		return err
 	}
 }

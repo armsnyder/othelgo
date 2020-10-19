@@ -51,20 +51,31 @@ func Run() (err error) {
 	// Setup websocket.
 	addr := "wss://1y9vcb5geb.execute-api.us-west-2.amazonaws.com/development"
 	log.Printf("Dialing websocket %q", addr)
+
 	c, _, err := websocket.DefaultDialer.Dial(addr, nil)
 	if err != nil {
 		return err
 	}
+
 	defer c.Close()
 
 	// Setup terminal.
+
 	log.Println("Initializing terminal")
+
 	if err := termbox.Init(); err != nil {
 		return err
 	}
 	defer termbox.Close()
 
-	// Setup handler for changing scenes.
+	// Setup scene handlers.
+
+	sendMessage := func(v interface{}) error {
+		action := reflect.ValueOf(v).FieldByName("Action").String()
+		log.Printf("Sending message (action=%q)", action)
+
+		return c.WriteJSON(v)
+	}
 
 	var (
 		currentScene scenes.Scene
@@ -80,13 +91,8 @@ func Run() (err error) {
 		}
 
 		currentScene = nextScene
-		log.SetPrefix(fmt.Sprintf("[%s] ", name))
 
-		sendMessage := func(v interface{}) error {
-			action := reflect.ValueOf(v).FieldByName("Action").String()
-			log.Printf("Sending message (action=%q)", action)
-			return c.WriteJSON(v)
-		}
+		log.SetPrefix(fmt.Sprintf("[%s] ", name))
 
 		if err := currentScene.Setup(changeScene, sendMessage, sceneContext); err != nil {
 			return err
@@ -105,8 +111,10 @@ func Run() (err error) {
 	go receiveTerminalEvents(terminalEvents)
 
 	// Listen for websocket messages.
+
 	messageQueue := make(chan common.AnyMessage)
 	messageErrors := make(chan error)
+
 	go receiveMessages(c, messageQueue, messageErrors)
 
 	// Run an event loop and call handlers on the current scene.
@@ -118,6 +126,7 @@ func Run() (err error) {
 			if shouldInterrupt(event) {
 				log.Println("Interrupting terminal")
 				termbox.Interrupt()
+
 				return nil
 			}
 
@@ -131,6 +140,7 @@ func Run() (err error) {
 
 		case message := <-messageQueue:
 			log.Printf("Received message (action=%q)", message.Action)
+
 			if err := currentScene.OnMessage(message); err != nil {
 				return err
 			}

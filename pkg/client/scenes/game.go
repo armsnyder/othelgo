@@ -50,9 +50,8 @@ func (g *Game) OnTerminalEvent(event termbox.Event) error {
 	g.curSquareY = clamp(g.curSquareY+dy, 0, common.BoardSize)
 
 	if event.Key == termbox.KeyEnter {
-		board, updated := common.ApplyMove(g.board, g.curSquareX, g.curSquareY, g.player)
+		updated := common.ApplyMove(&g.board, g.curSquareX, g.curSquareY, g.player)
 		if updated {
-			g.board = board
 			message := common.NewPlaceDiskMessage(g.player, g.curSquareX, g.curSquareY)
 			if err := g.SendMessage(message); err != nil {
 				return err
@@ -64,35 +63,72 @@ func (g *Game) OnTerminalEvent(event termbox.Event) error {
 }
 
 func (g *Game) Draw() {
-	playerColors := map[int]termbox.Attribute{
-		1: termbox.ColorMagenta,
-		2: termbox.ColorGreen,
-	}
+	g.drawYouAre()
+	g.drawScore()
+	drawBoardOutline()
+	g.drawDisks()
+	g.drawCursor()
+}
 
-	drawDisk := func(player, x, y int) {
-		color := playerColors[player]
-		termbox.SetCell(x, y, '⬤', color, termbox.ColorDefault)
-		termbox.SetCell(x+1, y, ' ', color, termbox.ColorDefault) // Prevent half-circle on some terminals.
-	}
+var playerColors = map[int]termbox.Attribute{
+	1: termbox.ColorMagenta,
+	2: termbox.ColorGreen,
+}
 
+func drawDisk(player, x, y int) {
+	color := playerColors[player]
+	termbox.SetCell(x, y, '⬤', color, termbox.ColorDefault)
+	termbox.SetCell(x+1, y, ' ', color, termbox.ColorDefault) // Prevent half-circle on some terminals.
+}
+
+func (g *Game) drawYouAre() {
 	youAreText := "You are: "
-	offset := 21
-	drawString(youAreText, 0, 0, termbox.ColorDefault, termbox.ColorDefault)
+	drawStringDefault(youAreText, 0, 0)
 	drawDisk(g.player, len(youAreText), 0)
-	drawString(fmt.Sprintf("Score:    %2d      %2d", g.p1Score, g.p2Score), offset, 0, termbox.ColorDefault, termbox.ColorDefault)
-	drawDisk(1, offset+7, 0)
-	drawDisk(2, offset+15, 0)
+}
 
+var (
+	squareWidth  = 5
+	squareHeight = 2
+	boardYOffset = 2
+)
+
+func (g *Game) drawScore() {
 	var (
-		squareHeight = 2
-		squareWidth  = 5
-		yOffset      = 2
+		boardWidth     = common.BoardSize * squareWidth
+		p2ScoreXOffset = boardWidth - 1
+		p2DiskXOffset  = p2ScoreXOffset - 3
+		p1ScoreXOffset = p2DiskXOffset - 4
+		p1DiskXOffset  = p1ScoreXOffset - 3
+		scoreText      = "Score: "
+		scoreXOffset   = p1DiskXOffset - len(scoreText)
+	)
+
+	drawStringDefault(scoreText, scoreXOffset, 0)
+	drawStringDefault(fmt.Sprintf("%2d", g.p1Score), p1ScoreXOffset, 0)
+	drawStringDefault(fmt.Sprintf("%2d", g.p2Score), p2ScoreXOffset, 0)
+	drawDisk(1, p1DiskXOffset, 0)
+	drawDisk(2, p2DiskXOffset, 0)
+
+	// Current turn indicator
+	if common.WhoseTurn(g.board) == 1 {
+		drawStringDefault("﹌", p1DiskXOffset, 1)
+	} else {
+		drawStringDefault("﹌", p2DiskXOffset, 1)
+	}
+}
+
+func drawBoardOutline() {
+	var (
+		boardWidth  = common.BoardSize * squareWidth
+		boardHeight = common.BoardSize * squareHeight
 	)
 
 	// Outline
-	for x := 0; x < common.BoardSize*squareWidth+1; x++ {
-		for y := 0; y < common.BoardSize*squareHeight+1; y++ {
+	for x := 0; x <= boardWidth; x++ {
+		for y := 0; y <= boardHeight; y++ {
 			var value rune
+
 			switch {
 			case y%squareHeight == 0 && x%squareWidth == 0:
 				value = '+'
@@ -101,11 +137,13 @@ func (g *Game) Draw() {
 			case x%squareWidth == 0:
 				value = '|'
 			}
-			termbox.SetCell(x, yOffset+y, value, termbox.ColorDefault, termbox.ColorDefault)
+
+			termbox.SetCell(x, boardYOffset+y, value, termbox.ColorDefault, termbox.ColorDefault)
 		}
 	}
+}
 
-	// Pieces
+func (g *Game) drawDisks() {
 	for i := 0; i < common.BoardSize; i++ {
 		for j := 0; j < common.BoardSize; j++ {
 			player := g.board[i][j]
@@ -114,16 +152,22 @@ func (g *Game) Draw() {
 			}
 
 			x := squareWidth/2 + squareWidth*i
-			y := yOffset + squareHeight/2 + squareHeight*j
+			y := boardYOffset + squareHeight/2 + squareHeight*j
 
 			drawDisk(player, x, y)
 		}
 	}
+}
 
-	termbox.SetCursor(
-		squareWidth/2+squareWidth*g.curSquareX,
-		yOffset+squareHeight/2+squareHeight*g.curSquareY,
-	)
+func (g *Game) drawCursor() {
+	if common.WhoseTurn(g.board) == g.player {
+		termbox.SetCursor(
+			squareWidth/2+squareWidth*g.curSquareX,
+			boardYOffset+squareHeight/2+squareHeight*g.curSquareY,
+		)
+	} else {
+		termbox.HideCursor()
+	}
 }
 
 func clamp(val, min, max int) int {

@@ -29,14 +29,15 @@ type scene struct {
 	SceneContext
 }
 
-func (b *scene) Setup(changeScene ChangeScene, sendMessage SendMessage, sceneContext SceneContext) error {
-	b.ChangeScene = changeScene
-	b.SendMessage = sendMessage
-	b.SceneContext = sceneContext
+func (s *scene) Setup(changeScene ChangeScene, sendMessage SendMessage, sceneContext SceneContext) error {
+	s.ChangeScene = changeScene
+	s.SendMessage = sendMessage
+	s.SceneContext = sceneContext
+
 	return nil
 }
 
-func (b *scene) OnMessage(_ common.AnyMessage) error {
+func (s *scene) OnMessage(_ common.AnyMessage) error {
 	// Default implementation is a no-op.
 	return nil
 }

@@ -63,14 +63,15 @@ func handlePlaceDisk(ctx context.Context, req events.APIGatewayWebsocketProxyReq
 		return err
 	}
 
-	board, updated := common.ApplyMove(board, message.X, message.Y, message.Player)
-
+	updated := common.ApplyMove(&board, message.X, message.Y, message.Player)
 	if updated {
 		if err := saveBoard(ctx, board); err != nil {
 			return err
 		}
+
 		return broadcastMessage(ctx, req.RequestContext, common.NewUpdateBoardMessage(board))
 	}
+
 	return reply(ctx, req.RequestContext, common.NewUpdateBoardMessage(board))
 }
 

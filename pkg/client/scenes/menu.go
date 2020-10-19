@@ -52,5 +52,5 @@ func (m *Menu) Draw() {
 	drawStringHighlight(joinGameText, len(newGameText)+3, 2, m.isJoinGame)
 
 	titleX := 2 + len(newGameText) - len(titleText)/2
-	drawString(titleText, titleX, 0, termbox.ColorDefault, termbox.ColorDefault)
+	drawStringDefault(titleText, titleX, 0)
 }

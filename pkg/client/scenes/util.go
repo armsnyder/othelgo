@@ -40,3 +40,7 @@ func drawString(s string, x, y int, fg, bg termbox.Attribute) {
 	// Reset terminal colors.
 	termbox.SetCell(x+len(s), y, ' ', termbox.ColorDefault, termbox.ColorDefault)
 }
+
+func drawStringDefault(s string, x, y int) {
+	drawString(s, x, y, termbox.ColorDefault, termbox.ColorDefault)
+}

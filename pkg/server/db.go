@@ -49,6 +49,7 @@ func saveConnection(ctx context.Context, connectionID string) error {
 			":v": {SS: aws.StringSlice([]string{connectionID})},
 		},
 	})
+
 	return err
 }
 
@@ -64,11 +65,13 @@ func forgetConnection(ctx context.Context, connectionID string) error {
 			":v": {SS: aws.StringSlice([]string{connectionID})},
 		},
 	})
+
 	return err
 }
 
 func loadBoard(ctx context.Context) (common.Board, error) {
 	var board common.Board
+
 	output, err := dynamoClient().GetItemWithContext(ctx, &dynamodb.GetItemInput{
 		TableName: tableName,
 		Key:       boardKey,
@@ -76,10 +79,13 @@ func loadBoard(ctx context.Context) (common.Board, error) {
 	if err != nil {
 		return board, err
 	}
+
 	if output.Item == nil {
 		return board, nil
 	}
+
 	err = json.Unmarshal(output.Item[boardAttribute].B, &board)
+
 	return board, err
 }
 
@@ -88,6 +94,7 @@ func saveBoard(ctx context.Context, board common.Board) error {
 	if err != nil {
 		return err
 	}
+
 	_, err = dynamoClient().PutItemWithContext(ctx, &dynamodb.PutItemInput{
 		TableName: tableName,
 		Item: map[string]*dynamodb.AttributeValue{
@@ -95,6 +102,7 @@ func saveBoard(ctx context.Context, board common.Board) error {
 			boardAttribute: {B: b},
 		},
 	})
+
 	return err
 }
 
