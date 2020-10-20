@@ -173,21 +173,12 @@ func (g *Game) drawDisks() {
 }
 
 func (g *Game) drawCursor() {
-	termWidth, termHeight := termbox.Size()
-
-	var (
-		boardWidth  = common.BoardSize * squareWidth
-		boardHeight = common.BoardSize * squareHeight
-	)
-
-	offsetX, offsetY := (termWidth-boardWidth)/2, (termHeight-boardHeight)/2
-
 	if common.GameOver(g.board) || common.WhoseTurn(g.board) != g.player {
 		termbox.HideCursor()
 	} else {
-		termbox.SetCursor(
-			offsetX+squareWidth/2+squareWidth*g.curSquareX,
-			offsetY+squareHeight/2+squareHeight*g.curSquareY,
-		)
+		x := (g.curSquareX+1-common.BoardSize/2)*squareWidth - 3
+		y := (g.curSquareY + 1 - common.BoardSize/2) * squareHeight
+
+		setCursor(offset(center, x, y))
 	}
 }
