@@ -149,6 +149,8 @@ func setupChangeSceneHandler(currentScene *scenes.Scene, c *websocket.Conn) erro
 
 		*currentScene = scene
 
+		termbox.HideCursor()
+
 		if err := scene.Setup(changeScene, sendMessage); err != nil {
 			return err
 		}

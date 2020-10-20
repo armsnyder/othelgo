@@ -39,6 +39,13 @@ func draw(anchor anchor, color color, text interface{}) {
 	}
 }
 
+// setCursor uses an anchor to determine the position of the cursor, so it can be used in
+// conjunction with draw to place the cursor.
+func setCursor(anchor anchor) {
+	x, y, _, _ := anchor()
+	termbox.SetCursor(x, y-1)
+}
+
 // anchor defines a position offset and direction that can be used for drawing.
 type anchor func() (positionX, positionY int, drawDirectionX, drawDirectionY float64)
 

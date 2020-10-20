@@ -61,12 +61,20 @@ func (n *Nickname) OnTerminalEvent(event termbox.Event) error {
 		n.nickname = n.nickname[:len(n.nickname)-1]
 	}
 
-	if len(n.nickname) >= maxNicknameLen {
-		return nil
+	var setLastChar func(rune)
+
+	if len(n.nickname) < maxNicknameLen {
+		setLastChar = func(r rune) {
+			n.nickname += string(r)
+		}
+	} else {
+		setLastChar = func(r rune) {
+			n.nickname = n.nickname[:maxNicknameLen-1] + string(r)
+		}
 	}
 
 	if event.Key == termbox.KeySpace {
-		n.nickname += " "
+		setLastChar(' ')
 		return nil
 	}
 
@@ -75,7 +83,7 @@ func (n *Nickname) OnTerminalEvent(event termbox.Event) error {
 		return nil
 	}
 
-	n.nickname += string(letter)
+	setLastChar(letter)
 
 	return nil
 }
@@ -101,6 +109,9 @@ func (n *Nickname) Draw() {
 	}
 
 	draw(offset(center, 0, 4), normal, sb.String())
+
+	cursorX := min(len(n.nickname), maxNicknameLen-1) - maxNicknameLen/2
+	setCursor(offset(center, cursorX, 4))
 }
 
 func (n *Nickname) load() error {
