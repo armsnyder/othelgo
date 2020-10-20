@@ -9,7 +9,7 @@ import (
 // Scene is responsible for the logic and view of a particular page of the application.
 // It can handle websocket messages and terminal events.
 type Scene interface {
-	Setup(changeScene ChangeScene, sendMessage SendMessage, sceneContext SceneContext) error
+	Setup(changeScene ChangeScene, sendMessage SendMessage) error
 	OnMessage(message common.AnyMessage) error
 	OnTerminalEvent(event termbox.Event) error
 	Tick() bool
@@ -18,7 +18,7 @@ type Scene interface {
 
 // types for Scene setup method.
 type (
-	ChangeScene  func(string, SceneContext) error
+	ChangeScene  func(Scene) error
 	SendMessage  func(interface{}) error
 	SceneContext map[string]interface{}
 )
@@ -27,13 +27,11 @@ type (
 type scene struct {
 	ChangeScene
 	SendMessage
-	SceneContext
 }
 
-func (s *scene) Setup(changeScene ChangeScene, sendMessage SendMessage, sceneContext SceneContext) error {
+func (s *scene) Setup(changeScene ChangeScene, sendMessage SendMessage) error {
 	s.ChangeScene = changeScene
 	s.SendMessage = sendMessage
-	s.SceneContext = sceneContext
 
 	return nil
 }

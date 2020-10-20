@@ -19,12 +19,10 @@ type Game struct {
 	confetti   confetti
 }
 
-func (g *Game) Setup(changeScene ChangeScene, sendMessage SendMessage, setupContext SceneContext) error {
-	if err := g.scene.Setup(changeScene, sendMessage, setupContext); err != nil {
+func (g *Game) Setup(changeScene ChangeScene, sendMessage SendMessage) error {
+	if err := g.scene.Setup(changeScene, sendMessage); err != nil {
 		return err
 	}
-
-	g.player = setupContext["player"].(int)
 
 	var message interface{}
 	if g.player == 1 {

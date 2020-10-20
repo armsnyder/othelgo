@@ -16,12 +16,7 @@ import (
 	"github.com/armsnyder/othelgo/pkg/common"
 )
 
-var allScenes = map[string]scenes.Scene{
-	"menu": new(scenes.Menu),
-	"game": new(scenes.Game),
-}
-
-const firstScene = "menu"
+var firstScene = new(scenes.Menu)
 
 func Run() (err error) {
 	// Setup log file.
@@ -148,26 +143,21 @@ func setupChangeSceneHandler(currentScene *scenes.Scene, c *websocket.Conn) erro
 	}
 
 	var changeScene scenes.ChangeScene
-	changeScene = func(name string, sceneContext scenes.SceneContext) error {
-		log.Printf("Changing scene to %q", name)
-
-		nextScene, ok := allScenes[name]
-		if !ok {
-			return fmt.Errorf("no scene with name %q", name)
-		}
-
-		*currentScene = nextScene
-
+	changeScene = func(scene scenes.Scene) error {
+		name := reflect.TypeOf(scene).Elem().Name()
+		log.Printf("Changing scene to %s", name)
 		log.SetPrefix(fmt.Sprintf("[%s] ", name))
 
-		if err := nextScene.Setup(changeScene, sendMessage, sceneContext); err != nil {
+		*currentScene = scene
+
+		if err := scene.Setup(changeScene, sendMessage); err != nil {
 			return err
 		}
 
 		return drawAndFlush(*currentScene)
 	}
 
-	return changeScene(firstScene, nil)
+	return changeScene(firstScene)
 }
 
 func receiveTerminalEvents(ch chan<- termbox.Event) {

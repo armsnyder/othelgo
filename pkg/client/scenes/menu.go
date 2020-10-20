@@ -25,7 +25,7 @@ func (m *Menu) OnTerminalEvent(event termbox.Event) error {
 			player = 1
 		}
 
-		return m.ChangeScene("game", SceneContext{"player": player})
+		return m.ChangeScene(&Game{player: player})
 	}
 
 	return nil
