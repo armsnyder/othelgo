@@ -114,6 +114,10 @@ func (n *Nickname) Draw() {
 	setCursor(offset(center, cursorX, 4))
 }
 
+func (n *Nickname) HasFreeKeyboardInput() bool {
+	return true
+}
+
 func (n *Nickname) load() error {
 	configPath, err := n.configPath()
 	if err != nil {

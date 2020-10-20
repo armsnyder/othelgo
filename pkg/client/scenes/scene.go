@@ -14,6 +14,7 @@ type Scene interface {
 	OnTerminalEvent(event termbox.Event) error
 	Tick() bool
 	Draw()
+	HasFreeKeyboardInput() bool
 }
 
 // types for Scene setup method.
@@ -43,5 +44,9 @@ func (s *scene) OnMessage(_ common.AnyMessage) error {
 
 func (s *scene) Tick() bool {
 	// Default implementation is a no-op.
+	return false
+}
+
+func (s *scene) HasFreeKeyboardInput() bool {
 	return false
 }

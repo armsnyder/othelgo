@@ -6,6 +6,7 @@ import (
 	"os"
 	"reflect"
 	"time"
+	"unicode"
 
 	"github.com/gorilla/websocket"
 	"github.com/nsf/termbox-go"
@@ -73,7 +74,7 @@ func Run() (err error) {
 		case event := <-terminalEvents:
 			log.Printf("Received terminal event (type=%d)", event.Type)
 
-			if shouldInterrupt(event) {
+			if shouldInterrupt(event, currentScene) {
 				log.Println("Interrupting terminal")
 				termbox.Interrupt()
 
@@ -178,7 +179,11 @@ func receiveMessages(c *websocket.Conn, messageQueue chan<- common.AnyMessage, m
 	}
 }
 
-func shouldInterrupt(event termbox.Event) bool {
+func shouldInterrupt(event termbox.Event, scene scenes.Scene) bool {
+	if unicode.ToLower(event.Ch) == 'q' && !scene.HasFreeKeyboardInput() {
+		return true
+	}
+
 	return event.Key == termbox.KeyCtrlC || event.Key == termbox.KeyEsc
 }
 
