@@ -14,12 +14,17 @@ const maxNicknameLen = 10
 
 type Nickname struct {
 	scene
-	nickname string
+	nickname       string
+	changeNickname bool
 }
 
 func (n *Nickname) Setup(changeScene ChangeScene, sendMessage SendMessage) error {
 	if err := n.scene.Setup(changeScene, sendMessage); err != nil {
 		return err
+	}
+
+	if n.changeNickname {
+		return nil
 	}
 
 	if err := n.load(); err != nil {
