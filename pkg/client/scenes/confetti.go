@@ -41,9 +41,9 @@ func (c *confetti) tick() {
 
 	// Destroy off-screen paper.
 	oldPaper := *c
-	*c = make([]*paper, 0)
+	*c = nil
 	for _, p := range oldPaper {
-		if p.y < height {
+		if p.x < width && p.y < height {
 			*c = append(*c, p)
 		}
 	}
