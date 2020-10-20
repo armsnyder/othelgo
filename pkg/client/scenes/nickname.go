@@ -49,6 +49,13 @@ func (n *Nickname) OnTerminalEvent(event termbox.Event) error {
 
 	// Handle typing.
 
+	if event.Key == termbox.KeyBackspace2 {
+		if n.nickname == "" {
+			return nil
+		}
+		n.nickname = n.nickname[:len(n.nickname)-1]
+	}
+
 	if len(n.nickname) >= maxNicknameLen {
 		return nil
 	}

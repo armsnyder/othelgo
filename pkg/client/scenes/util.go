@@ -83,7 +83,7 @@ func drawUpperRight(s string) {
 func drawGameBoyBorder() {
 	topY, bottomY, leftX, rightX := corners()
 
-	borderRunes := []rune{'🎃', '🧟', '🕯', '🧛', '🍬', '👻'}
+	borderRunes := []rune{'🎃', '🧟', '🔮', '🧛', '🍬', '👻'}
 
 	for i := 0; i < gameBoyWidth/2; i++ {
 		ch := borderRunes[i%len(borderRunes)]

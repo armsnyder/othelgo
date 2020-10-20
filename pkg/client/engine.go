@@ -6,7 +6,6 @@ import (
 	"os"
 	"reflect"
 	"time"
-	"unicode"
 
 	"github.com/gorilla/websocket"
 	"github.com/nsf/termbox-go"
@@ -178,7 +177,7 @@ func receiveMessages(c *websocket.Conn, messageQueue chan<- common.AnyMessage, m
 }
 
 func shouldInterrupt(event termbox.Event) bool {
-	return unicode.ToLower(event.Ch) == 'q' || event.Key == termbox.KeyCtrlC || event.Key == termbox.KeyEsc
+	return event.Key == termbox.KeyCtrlC || event.Key == termbox.KeyEsc
 }
 
 func drawAndFlush(scene scenes.Scene) error {
