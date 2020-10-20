@@ -7,4 +7,10 @@ build:
 lint:
 	golangci-lint run --fix
 
-.PHONY: default build lint
+run:
+	go run ./cmd/client
+
+deploy:
+	test -f aws-creds.sh && source aws-creds.sh; ./scripts/deploy_server.sh
+
+.PHONY: default build lint run deploy

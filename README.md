@@ -1,21 +1,9 @@
 # Othelgo
 
-Compile with `make` (requires [Go](https://golang.org/doc/install) and [Golangci-lint](https://golangci-lint.run/usage/install/#local-installation)).
+A commandline Othello game and experiment using AWS API Gateway WebSocket APIs and AWS Lambda.
+
+Run the client with `make run` (requires [Go](https://golang.org/doc/install)).
 
 ```sh
-$ make
+$ make run
 ```
-
-Run precompiled client after running `make`.
-
-```sh
-$ ./bin/client
-```
-
-Or skip `make` and run with `go`.
-
-```sh
-$ go run ./cmd/client
-```
-
-The client logs to file named `othelgo.log`.
