@@ -7,6 +7,7 @@ import (
 type Menu struct {
 	scene
 	isJoinGame bool
+	nickname   string
 }
 
 func (m *Menu) OnTerminalEvent(event termbox.Event) error {
@@ -32,25 +33,25 @@ func (m *Menu) OnTerminalEvent(event termbox.Event) error {
 }
 
 func (m *Menu) Draw() {
+	drawGameBoyBorder()
+	drawUpperRight("Did you know? Your name is " + m.nickname + "!")
+	drawFromCenter(splashText, 0, -6, termbox.ColorDefault, termbox.ColorDefault)
+
 	var (
-		titleText    = "OTHELGO"
 		newGameText  = "[ NEW GAME ]"
 		joinGameText = "[ JOIN GAME ]"
 	)
 
-	drawStringHighlight := func(s string, x, y int, highlight bool) {
+	drawStringHighlight := func(s string, dx, dy int, highlight bool) {
 		var fg, bg termbox.Attribute
 		if highlight {
-			fg = termbox.ColorWhite
-			bg = termbox.ColorGreen
+			fg = termbox.ColorBlack
+			bg = termbox.ColorWhite
 		}
 
-		drawString(s, x, y, fg, bg)
+		drawFromCenter(s, dx, dy, fg, bg)
 	}
 
-	drawStringHighlight(newGameText, 1, 2, !m.isJoinGame)
-	drawStringHighlight(joinGameText, len(newGameText)+3, 2, m.isJoinGame)
-
-	titleX := 2 + len(newGameText) - len(titleText)/2
-	drawStringDefault(titleText, titleX, 0)
+	drawStringHighlight(newGameText, -len(newGameText)/2-1, 3, !m.isJoinGame)
+	drawStringHighlight(joinGameText, len(joinGameText)/2+1, 3, m.isJoinGame)
 }

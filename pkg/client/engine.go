@@ -16,7 +16,7 @@ import (
 	"github.com/armsnyder/othelgo/pkg/common"
 )
 
-var firstScene = new(scenes.Menu)
+var firstScene = new(scenes.Nickname)
 
 func Run() (err error) {
 	// Setup log file.

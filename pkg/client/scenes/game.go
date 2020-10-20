@@ -79,6 +79,7 @@ func (g *Game) Tick() bool {
 }
 
 func (g *Game) Draw() {
+	drawGameBoyBorder()
 	g.drawYouAre()
 	g.drawScore()
 	drawBoardOutline()
@@ -99,21 +100,23 @@ func drawDisk(player, x, y int) {
 }
 
 func (g *Game) drawYouAre() {
+	topY, _, leftX, _ := corners()
+
 	youAreText := "You are: "
-	drawStringDefault(youAreText, 0, 0)
-	drawDisk(g.player, len(youAreText), 0)
+	drawStringDefault(youAreText, leftX+5, topY+2)
+	drawDisk(g.player, leftX+5+len(youAreText), topY+2)
 }
 
 var (
 	squareWidth  = 5
 	squareHeight = 2
-	boardYOffset = 2
 )
 
 func (g *Game) drawScore() {
+	topY, _, _, rightX := corners()
+
 	var (
-		boardWidth     = common.BoardSize * squareWidth
-		p2ScoreXOffset = boardWidth - 1
+		p2ScoreXOffset = rightX - 5
 		p2DiskXOffset  = p2ScoreXOffset - 3
 		p1ScoreXOffset = p2DiskXOffset - 4
 		p1DiskXOffset  = p1ScoreXOffset - 3
@@ -121,27 +124,31 @@ func (g *Game) drawScore() {
 		scoreXOffset   = p1DiskXOffset - len(scoreText)
 	)
 
-	drawStringDefault(scoreText, scoreXOffset, 0)
-	drawStringDefault(fmt.Sprintf("%2d", g.p1Score), p1ScoreXOffset, 0)
-	drawStringDefault(fmt.Sprintf("%2d", g.p2Score), p2ScoreXOffset, 0)
-	drawDisk(1, p1DiskXOffset, 0)
-	drawDisk(2, p2DiskXOffset, 0)
+	drawStringDefault(scoreText, scoreXOffset, topY+2)
+	drawStringDefault(fmt.Sprintf("%2d", g.p1Score), p1ScoreXOffset, topY+2)
+	drawStringDefault(fmt.Sprintf("%2d", g.p2Score), p2ScoreXOffset, topY+2)
+	drawDisk(1, p1DiskXOffset, topY+2)
+	drawDisk(2, p2DiskXOffset, topY+2)
 
 	// Current turn indicator
 	if !common.GameOver(g.board) {
 		if common.WhoseTurn(g.board) == 1 {
-			drawStringDefault("﹌", p1DiskXOffset, 1)
+			drawStringDefault("﹌", p1DiskXOffset, topY+3)
 		} else {
-			drawStringDefault("﹌", p2DiskXOffset, 1)
+			drawStringDefault("﹌", p2DiskXOffset, topY+3)
 		}
 	}
 }
 
 func drawBoardOutline() {
+	termWidth, termHeight := termbox.Size()
+
 	var (
 		boardWidth  = common.BoardSize * squareWidth
 		boardHeight = common.BoardSize * squareHeight
 	)
+
+	offsetX, offsetY := (termWidth-boardWidth)/2, (termHeight-boardHeight)/2
 
 	// Outline
 	for x := 0; x <= boardWidth; x++ {
@@ -157,12 +164,21 @@ func drawBoardOutline() {
 				value = '|'
 			}
 
-			termbox.SetCell(x, boardYOffset+y, value, termbox.ColorDefault, termbox.ColorDefault)
+			termbox.SetCell(offsetX+x, offsetY+y, value, termbox.ColorDefault, termbox.ColorDefault)
 		}
 	}
 }
 
 func (g *Game) drawDisks() {
+	termWidth, termHeight := termbox.Size()
+
+	var (
+		boardWidth  = common.BoardSize * squareWidth
+		boardHeight = common.BoardSize * squareHeight
+	)
+
+	offsetX, offsetY := (termWidth-boardWidth)/2, (termHeight-boardHeight)/2
+
 	for i := 0; i < common.BoardSize; i++ {
 		for j := 0; j < common.BoardSize; j++ {
 			player := g.board[i][j]
@@ -170,8 +186,8 @@ func (g *Game) drawDisks() {
 				continue
 			}
 
-			x := squareWidth/2 + squareWidth*i
-			y := boardYOffset + squareHeight/2 + squareHeight*j
+			x := offsetX + squareWidth/2 + squareWidth*i
+			y := offsetY + squareHeight/2 + squareHeight*j
 
 			drawDisk(player, x, y)
 		}
@@ -179,12 +195,21 @@ func (g *Game) drawDisks() {
 }
 
 func (g *Game) drawCursor() {
+	termWidth, termHeight := termbox.Size()
+
+	var (
+		boardWidth  = common.BoardSize * squareWidth
+		boardHeight = common.BoardSize * squareHeight
+	)
+
+	offsetX, offsetY := (termWidth-boardWidth)/2, (termHeight-boardHeight)/2
+
 	if common.GameOver(g.board) || common.WhoseTurn(g.board) != g.player {
 		termbox.HideCursor()
 	} else {
 		termbox.SetCursor(
-			squareWidth/2+squareWidth*g.curSquareX,
-			boardYOffset+squareHeight/2+squareHeight*g.curSquareY,
+			offsetX+squareWidth/2+squareWidth*g.curSquareX,
+			offsetY+squareHeight/2+squareHeight*g.curSquareY,
 		)
 	}
 }
