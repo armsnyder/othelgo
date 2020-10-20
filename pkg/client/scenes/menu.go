@@ -1,6 +1,8 @@
 package scenes
 
 import (
+	"fmt"
+
 	"github.com/nsf/termbox-go"
 )
 
@@ -34,24 +36,22 @@ func (m *Menu) OnTerminalEvent(event termbox.Event) error {
 
 func (m *Menu) Draw() {
 	drawGameBoyBorder()
-	drawUpperRight("Did you know? Your name is " + m.nickname + "!")
-	drawFromCenter(splashText, 0, -6, termbox.ColorDefault, termbox.ColorDefault)
+	drawSplash()
+
+	draw(topRight, normal, fmt.Sprintf("Did you know? Your name is %s!", m.nickname))
 
 	var (
 		newGameText  = "[ NEW GAME ]"
 		joinGameText = "[ JOIN GAME ]"
 	)
 
-	drawStringHighlight := func(s string, dx, dy int, highlight bool) {
-		var fg, bg termbox.Attribute
-		if highlight {
-			fg = termbox.ColorBlack
-			bg = termbox.ColorWhite
-		}
-
-		drawFromCenter(s, dx, dy, fg, bg)
+	var buttonColors [2]color
+	if m.isJoinGame {
+		buttonColors = [2]color{normal, inverted}
+	} else {
+		buttonColors = [2]color{inverted, normal}
 	}
 
-	drawStringHighlight(newGameText, -len(newGameText)/2-1, 3, !m.isJoinGame)
-	drawStringHighlight(joinGameText, len(joinGameText)/2+1, 3, m.isJoinGame)
+	draw(offset(centerLeft, -1, 3), buttonColors[0], newGameText)
+	draw(offset(centerRight, 1, 3), buttonColors[1], joinGameText)
 }

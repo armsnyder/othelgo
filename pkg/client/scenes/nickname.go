@@ -85,8 +85,9 @@ func getLetter(ch rune) rune {
 
 func (n *Nickname) Draw() {
 	drawGameBoyBorder()
-	drawFromCenter(splashText, 0, -6, termbox.ColorDefault, termbox.ColorDefault)
-	drawFromCenter("Enter your name:", 0, 2, termbox.ColorDefault, termbox.ColorDefault)
+	drawSplash()
+
+	draw(offset(center, 0, 2), normal, "Enter your name:")
 
 	var sb strings.Builder
 	sb.WriteString(n.nickname)
@@ -94,7 +95,7 @@ func (n *Nickname) Draw() {
 		sb.WriteRune('_')
 	}
 
-	drawFromCenter(sb.String(), 0, 4, termbox.ColorDefault, termbox.ColorDefault)
+	draw(offset(center, 0, 4), normal, sb.String())
 }
 
 func (n *Nickname) load() error {

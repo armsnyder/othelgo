@@ -21,7 +21,7 @@ var confettiShapes = []rune{'▪', '▮', '▰', '▴', '▸', '▾', '◂', '�
 
 type paper struct {
 	x, y  int
-	color termbox.Attribute
+	color color
 }
 
 type confetti []*paper
@@ -43,16 +43,20 @@ func (c *confetti) tick() {
 	oldPaper := *c
 	*c = nil
 	for _, p := range oldPaper {
-		if p.x < width && p.y < height {
+		if p.x >= -width/2 && p.x < width/2 && p.y >= -height/2 && p.y < height/2 {
 			*c = append(*c, p)
 		}
 	}
 
 	// Spawn new paper.
 	for i := 0; i < width/30; i++ {
-		x := rand.Intn(width)                                   //nolint:gosec
-		color := confettiColors[rand.Intn(len(confettiColors))] //nolint:gosec
-		*c = append(*c, &paper{x: x, color: color})
+		x := rand.Intn(width) - width/2 //nolint:gosec
+		y := -height / 2
+		color := func() (fg, bg termbox.Attribute) {
+			return confettiColors[rand.Intn(len(confettiColors))], termbox.ColorDefault //nolint:gosec
+		}
+
+		*c = append(*c, &paper{x: x, y: y, color: color})
 	}
 }
 
@@ -67,10 +71,6 @@ func (c *confetti) draw() {
 
 	for _, p := range *c {
 		shape := confettiShapes[rand.Intn(len(confettiShapes))] //nolint:gosec
-		termbox.SetCell(p.x, p.y, shape, p.color, termbox.ColorDefault)
+		draw(offset(center, p.x, p.y), p.color, shape)
 	}
-
-	// Clear the last color.
-	width, height := termbox.Size()
-	termbox.SetCell(width-1, height-1, ' ', termbox.ColorDefault, termbox.ColorDefault)
 }

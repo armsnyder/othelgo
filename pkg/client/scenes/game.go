@@ -88,23 +88,17 @@ func (g *Game) Draw() {
 	g.confetti.draw()
 }
 
-var playerColors = map[int]termbox.Attribute{
-	1: termbox.ColorMagenta,
-	2: termbox.ColorGreen,
-}
+var playerColors = map[int]color{1: magenta, 2: green}
 
-func drawDisk(player, x, y int) {
-	color := playerColors[player]
-	termbox.SetCell(x, y, '⬤', color, termbox.ColorDefault)
-	termbox.SetCell(x+1, y, ' ', color, termbox.ColorDefault) // Prevent half-circle on some terminals.
+func drawDisk(anchor anchor, player int) {
+	// The extra space prevents a half-circle on some terminals.
+	draw(anchor, playerColors[player], "⬤ ")
 }
 
 func (g *Game) drawYouAre() {
-	topY, _, leftX, _ := corners()
-
 	youAreText := "You are: "
-	drawStringDefault(youAreText, leftX+5, topY+2)
-	drawDisk(g.player, leftX+5+len(youAreText), topY+2)
+	draw(topLeft, normal, youAreText)
+	drawDisk(offset(topLeft, len(youAreText), 0), g.player)
 }
 
 var (
@@ -113,46 +107,39 @@ var (
 )
 
 func (g *Game) drawScore() {
-	topY, _, _, rightX := corners()
+	// Text.
+	scoreText := "Score: "
+	draw(offset(topRight, len(scoreText)-20, 0), normal, scoreText)
 
-	var (
-		p2ScoreXOffset = rightX - 5
-		p2DiskXOffset  = p2ScoreXOffset - 3
-		p1ScoreXOffset = p2DiskXOffset - 4
-		p1DiskXOffset  = p1ScoreXOffset - 3
-		scoreText      = "Score: "
-		scoreXOffset   = p1DiskXOffset - len(scoreText)
-	)
+	// P1 score.
+	drawDisk(offset(topRight, -8, 0), 1)
+	draw(offset(topRight, -7, 0), normal, fmt.Sprintf("%2d", g.p1Score))
 
-	drawStringDefault(scoreText, scoreXOffset, topY+2)
-	drawStringDefault(fmt.Sprintf("%2d", g.p1Score), p1ScoreXOffset, topY+2)
-	drawStringDefault(fmt.Sprintf("%2d", g.p2Score), p2ScoreXOffset, topY+2)
-	drawDisk(1, p1DiskXOffset, topY+2)
-	drawDisk(2, p2DiskXOffset, topY+2)
+	// P2 score.
+	drawDisk(offset(topRight, -1, 0), 2)
+	draw(topRight, normal, fmt.Sprintf("%2d", g.p2Score))
 
 	// Current turn indicator
 	if !common.GameOver(g.board) {
+		var xOffset int
 		if common.WhoseTurn(g.board) == 1 {
-			drawStringDefault("﹌", p1DiskXOffset, topY+3)
+			xOffset = -9
 		} else {
-			drawStringDefault("﹌", p2DiskXOffset, topY+3)
+			xOffset = -2
 		}
+		draw(offset(topRight, xOffset, 1), normal, "﹌")
 	}
 }
 
 func drawBoardOutline() {
-	termWidth, termHeight := termbox.Size()
-
 	var (
 		boardWidth  = common.BoardSize * squareWidth
 		boardHeight = common.BoardSize * squareHeight
 	)
 
-	offsetX, offsetY := (termWidth-boardWidth)/2, (termHeight-boardHeight)/2
-
 	// Outline
-	for x := 0; x <= boardWidth; x++ {
-		for y := 0; y <= boardHeight; y++ {
+	for x := -boardWidth / 2; x <= boardWidth/2; x++ {
+		for y := -boardHeight / 2; y <= boardHeight/2; y++ {
 			var value rune
 
 			switch {
@@ -164,21 +151,12 @@ func drawBoardOutline() {
 				value = '|'
 			}
 
-			termbox.SetCell(offsetX+x, offsetY+y, value, termbox.ColorDefault, termbox.ColorDefault)
+			draw(offset(center, x, y), normal, value)
 		}
 	}
 }
 
 func (g *Game) drawDisks() {
-	termWidth, termHeight := termbox.Size()
-
-	var (
-		boardWidth  = common.BoardSize * squareWidth
-		boardHeight = common.BoardSize * squareHeight
-	)
-
-	offsetX, offsetY := (termWidth-boardWidth)/2, (termHeight-boardHeight)/2
-
 	for i := 0; i < common.BoardSize; i++ {
 		for j := 0; j < common.BoardSize; j++ {
 			player := g.board[i][j]
@@ -186,10 +164,10 @@ func (g *Game) drawDisks() {
 				continue
 			}
 
-			x := offsetX + squareWidth/2 + squareWidth*i
-			y := offsetY + squareHeight/2 + squareHeight*j
+			x := (i+1-common.BoardSize/2)*squareWidth - 1
+			y := (j + 1 - common.BoardSize/2) * squareHeight
 
-			drawDisk(player, x, y)
+			drawDisk(offset(center, x, y), player)
 		}
 	}
 }
@@ -211,16 +189,5 @@ func (g *Game) drawCursor() {
 			offsetX+squareWidth/2+squareWidth*g.curSquareX,
 			offsetY+squareHeight/2+squareHeight*g.curSquareY,
 		)
-	}
-}
-
-func clamp(val, min, max int) int {
-	switch {
-	case val < min:
-		return min
-	case val >= max:
-		return max - 1
-	default:
-		return val
 	}
 }
