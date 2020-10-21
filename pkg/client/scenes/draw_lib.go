@@ -78,7 +78,7 @@ func botRight() (positionX, positionY int, drawDirectionX, drawDirectionY float6
 	rightX := (termWidth + gameBoyWidth) / 2
 	botY := (termHeight + gameBoyHeight) / 2
 	// Add an inner margin while also ensuring the text is always on-screen.
-	return min(termWidth, rightX-3), max(0, botY+-2), -1, 0
+	return min(termWidth, rightX-3), min(termHeight, botY-1) - 1, -1, 0
 }
 
 // center is an anchor the center-middle of the terminal that draws from the center outward.
