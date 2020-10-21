@@ -51,7 +51,7 @@ func (m *Menu) OnTerminalEvent(event termbox.Event) error {
 		case buttonJoinGame:
 			return m.ChangeScene(&Game{player: 2, nickname: m.nickname})
 		case buttonChangeName:
-			return m.ChangeScene(&Nickname{changeNickname: true, nickname: m.nickname})
+			return m.ChangeScene(&Nickname{changeNickname: true})
 		}
 	}
 

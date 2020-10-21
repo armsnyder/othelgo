@@ -61,10 +61,7 @@ func (g *Game) OnTerminalEvent(event termbox.Event) error {
 	}
 
 	if unicode.ToUpper(event.Ch) == 'M' {
-		err := g.ChangeScene(&Menu{})
-		if err != nil {
-			return err
-		}
+		return g.ChangeScene(&Menu{nickname: g.nickname})
 	}
 
 	return nil

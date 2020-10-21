@@ -23,15 +23,11 @@ func (n *Nickname) Setup(changeScene ChangeScene, sendMessage SendMessage) error
 		return err
 	}
 
-	if n.changeNickname {
-		return nil
-	}
-
 	if err := n.load(); err != nil {
 		return err
 	}
 
-	if n.nickname != "" {
+	if n.nickname != "" && !n.changeNickname {
 		return n.ChangeScene(&Menu{nickname: n.nickname})
 	}
 
