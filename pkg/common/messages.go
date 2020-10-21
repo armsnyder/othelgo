@@ -47,7 +47,7 @@ func NewPlaceDiskMessage(player, x, y int) PlaceDiskMessage {
 type UpdateBoardMessage struct {
 	Action string `json:"action"`
 	Board  Board  `json:"board"`
-	Player int
+	Player int    `json:"player"`
 }
 
 func NewUpdateBoardMessage(board Board, player int) UpdateBoardMessage {
