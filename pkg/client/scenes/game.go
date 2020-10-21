@@ -117,15 +117,15 @@ var (
 func (g *Game) drawScore() {
 	// Text.
 	scoreText := "Score: "
-	draw(offset(topRight, len(scoreText)-20, 10), normal, scoreText)
+	draw(offset(middleRight, len(scoreText)-20, 0), normal, scoreText)
 
 	// P1 score.
-	drawDisk(offset(topRight, -8, 10), 1)
-	draw(offset(topRight, -7, 10), normal, fmt.Sprintf("%2d", g.p1Score))
+	drawDisk(offset(middleRight, -8, 0), 1)
+	draw(offset(middleRight, -7, 0), normal, fmt.Sprintf("%2d", g.p1Score))
 
 	// P2 score.
-	drawDisk(offset(topRight, -1, 10), 2)
-	draw(offset(topRight, 0, 10), normal, fmt.Sprintf("%2d", g.p2Score))
+	drawDisk(offset(middleRight, -1, 0), 2)
+	draw(middleRight, normal, fmt.Sprintf("%2d", g.p2Score))
 
 	// Current turn indicator
 	if !common.GameOver(g.board) {
@@ -135,7 +135,7 @@ func (g *Game) drawScore() {
 		} else {
 			xOffset = -2
 		}
-		draw(offset(topRight, xOffset, 11), normal, "﹌")
+		draw(offset(middleRight, xOffset, 1), normal, "﹌")
 	}
 }
 

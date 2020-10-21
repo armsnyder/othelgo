@@ -107,6 +107,15 @@ func centerTop() (positionX, positionY int, drawDirectionX, drawDirectionY float
 	return positionX, positionY, -0.5, -1
 }
 
+// middleRight is an anchor that is vertically centered and on the right edge of the game window.
+func middleRight() (positionX, positionY int, drawDirectionX, drawDirectionY float64) {
+	termWidth, termHeight := termbox.Size()
+	rightX := (termWidth + gameBoyWidth) / 2
+	centerY := termHeight / 2
+	// Add an inner margin while also ensuring the text is always on-screen.
+	return min(termWidth, rightX-3), centerY, -1, 0
+}
+
 // offset returns an anchor that is offset from the specified anchor by a specified position.
 func offset(anchor anchor, x, y int) anchor {
 	return func() (positionX, positionY int, drawDirectionX, drawDirectionY float64) {
