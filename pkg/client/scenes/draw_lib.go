@@ -8,7 +8,11 @@ import (
 	"github.com/nsf/termbox-go"
 )
 
-var gameBoyWidth, gameBoyHeight = 96, 24
+// Bordered game window area size.
+const gameBoyWidth, gameBoyHeight = 96, 24
+
+// Margins inside the bordered game window.
+const marginX, marginY = 3, 1
 
 // draw is a general function for drawing to the terminal.
 // The text can be a rune, a string, or a multiline string, which will be drawn relative to the
@@ -60,7 +64,7 @@ func topLeft() (positionX, positionY int, drawDirectionX, drawDirectionY float64
 	leftX := (termWidth - gameBoyWidth) / 2
 	topY := (termHeight - gameBoyHeight) / 2
 	// Add an inner margin while also ensuring the text is always on-screen.
-	return max(0, leftX+5), max(0, topY+2), 0, 0
+	return max(0, leftX+marginX+2), max(0, topY+marginY+1), 0, 0
 }
 
 // topRight is an anchor on the top-right corner of the game window.
@@ -69,7 +73,7 @@ func topRight() (positionX, positionY int, drawDirectionX, drawDirectionY float6
 	rightX := (termWidth + gameBoyWidth) / 2
 	topY := (termHeight - gameBoyHeight) / 2
 	// Add an inner margin while also ensuring the text is always on-screen.
-	return min(termWidth, rightX-3), max(0, topY+2), -1, 0
+	return min(termWidth, rightX-marginX), max(0, topY+marginY+1), -1, 0
 }
 
 // botRight is an anchor on the bottom-right corner of the game window.
@@ -78,7 +82,7 @@ func botRight() (positionX, positionY int, drawDirectionX, drawDirectionY float6
 	rightX := (termWidth + gameBoyWidth) / 2
 	botY := (termHeight + gameBoyHeight) / 2
 	// Add an inner margin while also ensuring the text is always on-screen.
-	return min(termWidth, rightX-3), min(termHeight, botY-1) - 1, -1, 0
+	return min(termWidth, rightX-marginX), min(termHeight, botY-marginY) - 1, -1, 0
 }
 
 // center is an anchor in the center-middle of the terminal that draws from the center outward.
@@ -113,7 +117,7 @@ func middleRight() (positionX, positionY int, drawDirectionX, drawDirectionY flo
 	rightX := (termWidth + gameBoyWidth) / 2
 	centerY := termHeight / 2
 	// Add an inner margin while also ensuring the text is always on-screen.
-	return min(termWidth, rightX-3), centerY, -1, 0
+	return min(termWidth, rightX-marginX), centerY, -1, 0
 }
 
 // offset returns an anchor that is offset from the specified anchor by a specified position.
