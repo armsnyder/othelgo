@@ -72,6 +72,15 @@ func topRight() (positionX, positionY int, drawDirectionX, drawDirectionY float6
 	return min(termWidth, rightX-3), max(0, topY+2), -1, 0
 }
 
+// botRight is an anchor on the bottom-right corner of the game window.
+func botRight() (positionX, positionY int, drawDirectionX, drawDirectionY float64) {
+	termWidth, termHeight := termbox.Size()
+	rightX := (termWidth + gameBoyWidth) / 2
+	botY := (termHeight + gameBoyHeight) / 2
+	// Add an inner margin while also ensuring the text is always on-screen.
+	return min(termWidth, rightX-3), max(0, botY+-2), -1, 0
+}
+
 // center is an anchor the center-middle of the terminal that draws from the center outward.
 func center() (positionX, positionY int, drawDirectionX, drawDirectionY float64) {
 	termWidth, termHeight := termbox.Size()
@@ -126,7 +135,7 @@ func magenta() (fg, bg termbox.Attribute) {
 	return termbox.ColorMagenta, termbox.ColorDefault
 }
 
-// green is a green color.
+// green is not a creative color.
 func green() (fg, bg termbox.Attribute) {
 	return termbox.ColorGreen, termbox.ColorDefault
 }

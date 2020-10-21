@@ -18,6 +18,7 @@ var (
 	boardKey             = makeKey("board")
 	connectionsAttribute = "connections"
 	boardAttribute       = "board"
+	playerAttribute      = "player"
 )
 
 func getAllConnectionIDs(ctx context.Context) ([]string, error) {
@@ -69,37 +70,47 @@ func forgetConnection(ctx context.Context, connectionID string) error {
 	return err
 }
 
-func loadBoard(ctx context.Context) (common.Board, error) {
+func loadBoard(ctx context.Context) (common.Board, int, error) {
 	var board common.Board
+	var player int
 
 	output, err := dynamoClient().GetItemWithContext(ctx, &dynamodb.GetItemInput{
 		TableName: tableName,
 		Key:       boardKey,
 	})
 	if err != nil {
-		return board, err
+		return board, player, err
 	}
 
 	if output.Item == nil {
-		return board, nil
+		return board, player, nil
 	}
 
 	err = json.Unmarshal(output.Item[boardAttribute].B, &board)
 
-	return board, err
+	if *output.Item[playerAttribute].BOOL {
+		player = 1
+	} else {
+		player = 2
+	}
+
+	return board, player, err
 }
 
-func saveBoard(ctx context.Context, board common.Board) error {
+func saveBoard(ctx context.Context, board common.Board, player int) error {
 	b, err := json.Marshal(board)
 	if err != nil {
 		return err
 	}
 
+	p1 := player%2 != 0
+
 	_, err = dynamoClient().PutItemWithContext(ctx, &dynamodb.PutItemInput{
 		TableName: tableName,
 		Item: map[string]*dynamodb.AttributeValue{
-			"id":           boardKey["id"],
-			boardAttribute: {B: b},
+			"id":            boardKey["id"],
+			boardAttribute:  {B: b},
+			playerAttribute: {BOOL: &p1},
 		},
 	})
 

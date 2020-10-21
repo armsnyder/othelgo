@@ -2,6 +2,7 @@ package scenes
 
 import (
 	"fmt"
+	"unicode"
 
 	"github.com/nsf/termbox-go"
 
@@ -17,6 +18,7 @@ type Game struct {
 	p1Score    int
 	p2Score    int
 	confetti   confetti
+	nickname   string
 }
 
 func (g *Game) Setup(changeScene ChangeScene, sendMessage SendMessage) error {
@@ -58,6 +60,13 @@ func (g *Game) OnTerminalEvent(event termbox.Event) error {
 		}
 	}
 
+	if unicode.ToUpper(event.Ch) == 'M' {
+		err := g.ChangeScene(&Menu{})
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -82,6 +91,8 @@ func (g *Game) Draw() {
 	drawGameBoyBorder()
 	g.drawYouAre()
 	g.drawScore()
+	draw(topRight, normal, fmt.Sprintf("Your name is %s!", g.nickname))
+	draw(botRight, normal, "[M] MENU  [Q] QUIT")
 	drawBoardOutline()
 	g.drawDisks()
 	g.drawCursor()
@@ -109,15 +120,15 @@ var (
 func (g *Game) drawScore() {
 	// Text.
 	scoreText := "Score: "
-	draw(offset(topRight, len(scoreText)-20, 0), normal, scoreText)
+	draw(offset(topRight, len(scoreText)-20, 10), normal, scoreText)
 
 	// P1 score.
-	drawDisk(offset(topRight, -8, 0), 1)
-	draw(offset(topRight, -7, 0), normal, fmt.Sprintf("%2d", g.p1Score))
+	drawDisk(offset(topRight, -8, 10), 1)
+	draw(offset(topRight, -7, 10), normal, fmt.Sprintf("%2d", g.p1Score))
 
 	// P2 score.
-	drawDisk(offset(topRight, -1, 0), 2)
-	draw(topRight, normal, fmt.Sprintf("%2d", g.p2Score))
+	drawDisk(offset(topRight, -1, 10), 2)
+	draw(offset(topRight, 0, 10), normal, fmt.Sprintf("%2d", g.p2Score))
 
 	// Current turn indicator
 	if !common.GameOver(g.board) {
@@ -127,7 +138,7 @@ func (g *Game) drawScore() {
 		} else {
 			xOffset = -2
 		}
-		draw(offset(topRight, xOffset, 1), normal, "﹌")
+		draw(offset(topRight, xOffset, 11), normal, "﹌")
 	}
 }
 

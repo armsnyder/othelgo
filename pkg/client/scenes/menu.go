@@ -47,9 +47,9 @@ func (m *Menu) OnTerminalEvent(event termbox.Event) error {
 	if event.Key == termbox.KeyEnter {
 		switch m.button {
 		case buttonNewGame:
-			return m.ChangeScene(&Game{player: 1})
+			return m.ChangeScene(&Game{player: 1, nickname: m.nickname})
 		case buttonJoinGame:
-			return m.ChangeScene(&Game{player: 2})
+			return m.ChangeScene(&Game{player: 2, nickname: m.nickname})
 		case buttonChangeName:
 			return m.ChangeScene(&Nickname{changeNickname: true, nickname: m.nickname})
 		}

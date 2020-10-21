@@ -47,12 +47,14 @@ func NewPlaceDiskMessage(player, x, y int) PlaceDiskMessage {
 type UpdateBoardMessage struct {
 	Action string `json:"action"`
 	Board  Board  `json:"board"`
+	Player int
 }
 
-func NewUpdateBoardMessage(board Board) UpdateBoardMessage {
+func NewUpdateBoardMessage(board Board, player int) UpdateBoardMessage {
 	return UpdateBoardMessage{
 		Action: UpdateBoardAction,
 		Board:  board,
+		Player: player,
 	}
 }
 
