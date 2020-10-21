@@ -81,7 +81,7 @@ func botRight() (positionX, positionY int, drawDirectionX, drawDirectionY float6
 	return min(termWidth, rightX-3), min(termHeight, botY-1) - 1, -1, 0
 }
 
-// center is an anchor the center-middle of the terminal that draws from the center outward.
+// center is an anchor in the center-middle of the terminal that draws from the center outward.
 func center() (positionX, positionY int, drawDirectionX, drawDirectionY float64) {
 	termWidth, termHeight := termbox.Size()
 	centerX := termWidth / 2
@@ -89,19 +89,19 @@ func center() (positionX, positionY int, drawDirectionX, drawDirectionY float64)
 	return centerX, centerY, -0.5, -0.5
 }
 
-// centerLeft is an anchor the center-middle of the terminal that draws toward the left side.
+// centerLeft is an anchor in the center-middle of the terminal that draws toward the left side.
 func centerLeft() (positionX, positionY int, drawDirectionX, drawDirectionY float64) {
 	positionX, positionY, _, _ = center()
 	return positionX, positionY, -1, -0.5
 }
 
-// centerRight is an anchor the center-middle of the terminal that draws toward the right side.
+// centerRight is an anchor in the center-middle of the terminal that draws toward the right side.
 func centerRight() (positionX, positionY int, drawDirectionX, drawDirectionY float64) {
 	positionX, positionY, _, _ = center()
 	return positionX, positionY, 0, -0.5
 }
 
-// centerTop is an anchor the center-middle of the terminal that draws toward the top.
+// centerTop is an anchor in the center-middle of the terminal that draws toward the top.
 func centerTop() (positionX, positionY int, drawDirectionX, drawDirectionY float64) {
 	positionX, positionY, _, _ = center()
 	return positionX, positionY, -0.5, -1
