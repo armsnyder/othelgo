@@ -4,9 +4,14 @@ func ApplyMove(board Board, x int, y int, player int) (Board, bool) {
 	updated := false
 	vectors := [][2]int{{-1, -1}, {-1, 0}, {-1, 1}, {0, -1}, {0, 1}, {1, -1}, {1, 0}, {1, 1}}
 
+	if isInBounds(x, y) && board[x][y] != 0 {
+		return board, false
+	}
+
 	for _, v := range vectors {
-		if flipAlongVector(&board, x, y, player, v, 0) {
+		if flipAlongVector(&board, x+v[0], y+v[1], player, v, 0) {
 			updated = true
+			board[x][y] = player
 		}
 	}
 
@@ -14,19 +19,17 @@ func ApplyMove(board Board, x int, y int, player int) (Board, bool) {
 }
 
 func flipAlongVector(board *Board, x int, y int, player int, v [2]int, depth int) bool {
-	if x < 0 || x >= BoardSize || y < 0 || y >= BoardSize {
+	if !isInBounds(x, y) {
 		return false
 	}
 
 	disk := board[x][y]
 
-	if depth > 0 {
-		switch disk {
-		case 0:
-			return false
-		case player:
-			return depth > 1
-		}
+	switch disk {
+	case 0:
+		return false
+	case player:
+		return depth > 0
 	}
 
 	if flipAlongVector(board, x+v[0], y+v[1], player, v, depth+1) {
@@ -35,6 +38,10 @@ func flipAlongVector(board *Board, x int, y int, player int, v [2]int, depth int
 	}
 
 	return false
+}
+
+func isInBounds(x int, y int) bool {
+	return x >= 0 && x < BoardSize && y >= 0 && y < BoardSize
 }
 
 func KeepScore(board Board) (p1 int, p2 int) {
