@@ -18,10 +18,10 @@ func flipAlongVector(board *Board, x int, y int, player int, v [2]int, depth int
 		return false
 	}
 
-	piece := board[x][y]
+	disk := board[x][y]
 
 	if depth > 0 {
-		switch piece {
+		switch disk {
 		case 0:
 			return false
 		case player:

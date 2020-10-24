@@ -154,7 +154,7 @@ func TestApplyMove(t *testing.T) {
 			wantUpdated: false,
 		},
 		{
-			name: "illegal position no bounding piece",
+			name: "illegal position no bounding disk",
 			args: args{
 				board: buildTestBoard(
 					[][2]int{},
