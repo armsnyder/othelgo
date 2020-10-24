@@ -140,16 +140,16 @@ func TestApplyMove(t *testing.T) {
 			name: "illegal position no adjacent opponent",
 			args: args{
 				board: buildTestBoard(
-					[][2]int{{1, 1}},
-					[][2]int{{1, 2}},
+					[][2]int{{3, 3}, {4, 4}},
+					[][2]int{{3, 4}, {4, 3}},
 				),
-				x:      1,
-				y:      0,
+				x:      2,
+				y:      2,
 				player: 1,
 			},
 			wantBoard: buildTestBoard(
-				[][2]int{{1, 1}},
-				[][2]int{{1, 2}},
+				[][2]int{{3, 3}, {4, 4}},
+				[][2]int{{3, 4}, {4, 3}},
 			),
 			wantUpdated: false,
 		},

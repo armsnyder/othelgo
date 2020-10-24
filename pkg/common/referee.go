@@ -20,12 +20,13 @@ func flipAlongVector(board *Board, x int, y int, player int, v [2]int, depth int
 
 	piece := board[x][y]
 
-	if depth > 0 && piece == 0 {
-		return false
-	}
-
-	if depth > 1 && piece == player {
-		return true
+	if depth > 0 {
+		switch piece {
+		case 0:
+			return false
+		case player:
+			return depth > 1
+		}
 	}
 
 	if flipAlongVector(board, x+v[0], y+v[1], player, v, depth+1) {
