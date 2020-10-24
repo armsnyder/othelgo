@@ -63,15 +63,19 @@ func handlePlaceDisk(ctx context.Context, req events.APIGatewayWebsocketProxyReq
 		return err
 	}
 
-	updated := common.ApplyMove(&board, message.X, message.Y, message.Player)
-	if updated {
-		if err := saveBoard(ctx, board, message.Player); err != nil {
-			return err
+	// Ensure it's this player's turn, check move legality, update board and current player
+	if player == message.Player {
+		if common.ApplyMove(&board, message.X, message.Y, message.Player, true) {
+			if common.HasMoves(board, player%2+1) {
+				player = player%2 + 1
+			}
+			if err := saveBoard(ctx, board, player); err != nil {
+				return err
+			}
+
+			return broadcastMessage(ctx, req.RequestContext, common.NewUpdateBoardMessage(board, player))
 		}
-
-		return broadcastMessage(ctx, req.RequestContext, common.NewUpdateBoardMessage(board, player))
 	}
-
 	return reply(ctx, req.RequestContext, common.NewUpdateBoardMessage(board, player))
 }
 
@@ -92,10 +96,10 @@ func handleNewGame(ctx context.Context, req events.APIGatewayWebsocketProxyReque
 }
 
 func handleJoinGame(ctx context.Context, req events.APIGatewayWebsocketProxyRequest) error {
-	board, _, err := loadBoard(ctx)
+	board, player, err := loadBoard(ctx)
 	if err != nil {
 		return err
 	}
 
-	return reply(ctx, req.RequestContext, common.NewUpdateBoardMessage(board, 2))
+	return reply(ctx, req.RequestContext, common.NewUpdateBoardMessage(board, player))
 }

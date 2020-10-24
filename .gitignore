@@ -17,6 +17,9 @@
 # IDEA
 .idea
 
+# VSCode
+.vscode
+
 # Oops I compiled the program
 othelgo
 

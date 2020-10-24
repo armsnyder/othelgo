@@ -19,6 +19,7 @@ type Game struct {
 	p2Score    int
 	confetti   confetti
 	nickname   string
+	whoseTurn  int
 }
 
 func (g *Game) Setup(changeScene ChangeScene, sendMessage SendMessage) error {
@@ -39,6 +40,7 @@ func (g *Game) Setup(changeScene ChangeScene, sendMessage SendMessage) error {
 func (g *Game) OnMessage(message common.AnyMessage) error {
 	if m, ok := message.Message.(*common.UpdateBoardMessage); ok {
 		g.board = m.Board
+		g.whoseTurn = m.Player
 		g.p1Score, g.p2Score = common.KeepScore(g.board)
 	}
 
@@ -50,8 +52,8 @@ func (g *Game) OnTerminalEvent(event termbox.Event) error {
 	g.curSquareX = clamp(g.curSquareX+dx, 0, common.BoardSize)
 	g.curSquareY = clamp(g.curSquareY+dy, 0, common.BoardSize)
 
-	if event.Key == termbox.KeyEnter {
-		updated := common.ApplyMove(&g.board, g.curSquareX, g.curSquareY, g.player)
+	if event.Key == termbox.KeyEnter && g.whoseTurn == g.player {
+		updated := common.ApplyMove(&g.board, g.curSquareX, g.curSquareY, g.player, true)
 		if updated {
 			message := common.NewPlaceDiskMessage(g.player, g.curSquareX, g.curSquareY)
 			if err := g.SendMessage(message); err != nil {
@@ -130,7 +132,7 @@ func (g *Game) drawScore() {
 	// Current turn indicator
 	if !common.GameOver(g.board) {
 		var xOffset int
-		if common.WhoseTurn(g.board) == 1 {
+		if g.whoseTurn == 1 {
 			xOffset = -9
 		} else {
 			xOffset = -2
@@ -181,7 +183,7 @@ func (g *Game) drawDisks() {
 }
 
 func (g *Game) drawCursor() {
-	if common.GameOver(g.board) || common.WhoseTurn(g.board) != g.player {
+	if common.GameOver(g.board) || g.whoseTurn != g.player {
 		termbox.HideCursor()
 	} else {
 		x := (g.curSquareX+1-common.BoardSize/2)*squareWidth - 3

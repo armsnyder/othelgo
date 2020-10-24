@@ -1,6 +1,6 @@
 package common
 
-func ApplyMove(board *Board, x int, y int, player int) bool {
+func ApplyMove(board *Board, x int, y int, player int, makeUpdate bool) bool {
 	if board == nil {
 		return false
 	}
@@ -11,10 +11,6 @@ func ApplyMove(board *Board, x int, y int, player int) bool {
 
 	// validate x and y are on the even board
 	if x < 0 || x >= BoardSize || y < 0 || y >= BoardSize {
-		return false
-	}
-
-	if WhoseTurn(*board) != player {
 		return false
 	}
 
@@ -35,8 +31,10 @@ func ApplyMove(board *Board, x int, y int, player int) bool {
 
 		if board[nextX][nextY] == player%2+1 {
 			// expand and aggregate vectors
-			if expandVector(board, nextX, nextY, player, v) {
-				board[x][y] = player
+			if expandVector(board, nextX, nextY, player, v, makeUpdate) {
+				if makeUpdate {
+					board[x][y] = player
+				}
 				updated = true
 			}
 		}
@@ -45,7 +43,7 @@ func ApplyMove(board *Board, x int, y int, player int) bool {
 	return updated
 }
 
-func expandVector(board *Board, x int, y int, player int, v [2]int) bool {
+func expandVector(board *Board, x int, y int, player int, v [2]int, makeUpdate bool) bool {
 	// By the time expandVector is called, we have already chosen a vector from the position of the
 	// placed disk that contains at least one of the opposing player's disks. Therefore, we need to
 	// search along the vector for the next disk belonging to the current player.
@@ -64,8 +62,10 @@ func expandVector(board *Board, x int, y int, player int, v [2]int) bool {
 		(*board)[x][y] = player
 		return true
 	default:
-		if expandVector(board, nextX, nextY, player, v) {
-			(*board)[x][y] = player
+		if expandVector(board, nextX, nextY, player, v, makeUpdate) {
+			if makeUpdate {
+				(*board)[x][y] = player
+			}
 			return true
 		}
 
@@ -88,12 +88,17 @@ func KeepScore(board Board) (p1 int, p2 int) {
 	return p1, p2
 }
 
-func WhoseTurn(board Board) int {
-	p1, p2 := KeepScore(board)
-	return (p1+p2)%2 + 1
+func GameOver(board Board) bool {
+	return !(HasMoves(board, 1) || HasMoves(board, 2))
 }
 
-func GameOver(board Board) bool {
-	p1, p2 := KeepScore(board)
-	return p1+p2 == BoardSize*BoardSize
+func HasMoves(board Board, player int) bool {
+	for i := 0; i < BoardSize; i++ {
+		for j := 0; j < BoardSize; j++ {
+			if ApplyMove(&board, i, j, player, false) {
+				return true
+			}
+		}
+	}
+	return false
 }
