@@ -60,6 +60,9 @@ func KeepScore(board Board) (p1 int, p2 int) {
 }
 
 func GameOver(board Board) bool {
+	if (board == Board{}) {
+		return false
+	}
 	return !(HasMoves(board, 1) || HasMoves(board, 2))
 }
 
