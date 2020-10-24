@@ -18,6 +18,7 @@ func ApplyMove(board *Board, x int, y int, player int, makeUpdate bool) bool {
 	if board[x][y] != 0 {
 		return false
 	}
+
 	// choose vectors
 	updated := false
 
@@ -29,18 +30,25 @@ func ApplyMove(board *Board, x int, y int, player int, makeUpdate bool) bool {
 			continue
 		}
 
-		if board[nextX][nextY] == player%2+1 {
-			// expand and aggregate vectors
-			if expandVector(board, nextX, nextY, player, v, makeUpdate) {
-				if makeUpdate {
-					board[x][y] = player
-				}
-				updated = true
+		if tryVector(board, nextX, nextY, player, v, makeUpdate) {
+			if makeUpdate {
+				board[x][y] = player
 			}
+			updated = true
 		}
 	}
 
 	return updated
+}
+
+func tryVector(board *Board, x int, y int, player int, v [2]int, makeUpdate bool) bool {
+	if board[x][y] == player%2+1 {
+		// expand and aggregate vectors
+		if expandVector(board, x, y, player, v, makeUpdate) {
+			return true
+		}
+	}
+	return false
 }
 
 func expandVector(board *Board, x int, y int, player int, v [2]int, makeUpdate bool) bool {

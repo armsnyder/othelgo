@@ -64,17 +64,18 @@ func handlePlaceDisk(ctx context.Context, req events.APIGatewayWebsocketProxyReq
 	}
 
 	// Ensure it's this player's turn, check move legality, update board and current player
-	if player == message.Player {
-		if common.ApplyMove(&board, message.X, message.Y, message.Player, true) {
-			if common.HasMoves(board, player%2+1) {
-				player = player%2 + 1
-			}
-			if err := saveBoard(ctx, board, player); err != nil {
-				return err
-			}
-
-			return broadcastMessage(ctx, req.RequestContext, common.NewUpdateBoardMessage(board, player))
+	if player != message.Player {
+		return reply(ctx, req.RequestContext, common.NewUpdateBoardMessage(board, player))
+	}
+	if common.ApplyMove(&board, message.X, message.Y, message.Player, true) {
+		if common.HasMoves(board, player%2+1) {
+			player = player%2 + 1
 		}
+		if err := saveBoard(ctx, board, player); err != nil {
+			return err
+		}
+
+		return broadcastMessage(ctx, req.RequestContext, common.NewUpdateBoardMessage(board, player))
 	}
 	return reply(ctx, req.RequestContext, common.NewUpdateBoardMessage(board, player))
 }
