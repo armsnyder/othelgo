@@ -1,84 +1,39 @@
 package common
 
-func ApplyMove(board *Board, x int, y int, player int, makeUpdate bool) bool {
-	if board == nil {
-		return false
-	}
-
-	if player != 1 && player != 2 {
-		return false
-	}
-
-	// validate x and y are on the even board
-	if x < 0 || x >= BoardSize || y < 0 || y >= BoardSize {
-		return false
-	}
-
-	// verify cell is empty
-	if board[x][y] != 0 {
-		return false
-	}
-
-	// choose vectors
+func ApplyMove(board Board, x int, y int, player int) (Board, bool) {
 	updated := false
+	vectors := [][2]int{{-1, -1}, {-1, 0}, {-1, 1}, {0, -1}, {0, 1}, {1, -1}, {1, 0}, {1, 1}}
 
-	for _, v := range [][2]int{{-1, -1}, {-1, 0}, {-1, 1}, {0, -1}, {0, 1}, {1, -1}, {1, 0}, {1, 1}} {
-		nextX := v[0] + x
-		nextY := v[1] + y
-
-		if nextX < 0 || nextX >= BoardSize || nextY < 0 || nextY >= BoardSize {
-			continue
-		}
-
-		if tryVector(board, nextX, nextY, player, v, makeUpdate) {
-			if makeUpdate {
-				board[x][y] = player
-			}
+	for _, v := range vectors {
+		if flipAlongVector(&board, x, y, player, v, 0) {
 			updated = true
 		}
 	}
 
-	return updated
+	return board, updated
 }
 
-func tryVector(board *Board, x int, y int, player int, v [2]int, makeUpdate bool) bool {
-	if board[x][y] == player%2+1 {
-		// expand and aggregate vectors
-		if expandVector(board, x, y, player, v, makeUpdate) {
-			return true
-		}
-	}
-	return false
-}
-
-func expandVector(board *Board, x int, y int, player int, v [2]int, makeUpdate bool) bool {
-	// By the time expandVector is called, we have already chosen a vector from the position of the
-	// placed disk that contains at least one of the opposing player's disks. Therefore, we need to
-	// search along the vector for the next disk belonging to the current player.
-
-	nextX := v[0] + x
-	nextY := v[1] + y
-
-	if nextX < 0 || nextX >= BoardSize || nextY < 0 || nextY >= BoardSize {
+func flipAlongVector(board *Board, x int, y int, player int, v [2]int, depth int) bool {
+	if x < 0 || x >= BoardSize || y < 0 || y >= BoardSize {
 		return false
 	}
 
-	switch (*board)[nextX][nextY] {
-	case 0:
+	piece := board[x][y]
+
+	if depth > 0 && piece == 0 {
 		return false
-	case player:
-		(*board)[x][y] = player
+	}
+
+	if depth > 1 && piece == player {
 		return true
-	default:
-		if expandVector(board, nextX, nextY, player, v, makeUpdate) {
-			if makeUpdate {
-				(*board)[x][y] = player
-			}
-			return true
-		}
-
-		return false
 	}
+
+	if flipAlongVector(board, x+v[0], y+v[1], player, v, depth+1) {
+		board[x][y] = player
+		return true
+	}
+
+	return false
 }
 
 func KeepScore(board Board) (p1 int, p2 int) {
@@ -103,7 +58,7 @@ func GameOver(board Board) bool {
 func HasMoves(board Board, player int) bool {
 	for i := 0; i < BoardSize; i++ {
 		for j := 0; j < BoardSize; j++ {
-			if ApplyMove(&board, i, j, player, false) {
+			if _, updated := ApplyMove(board, i, j, player); updated {
 				return true
 			}
 		}

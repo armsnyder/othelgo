@@ -1,8 +1,11 @@
-default: lint build
+default: lint test build
 
 build:
 	go build -o bin/client ./cmd/client
 	go build -o bin/server ./cmd/server
+
+test:
+	go test ./...
 
 lint:
 	golangci-lint run --fix
@@ -13,4 +16,4 @@ run:
 deploy:
 	test -f aws-creds.sh && source aws-creds.sh; ./scripts/deploy_server.sh
 
-.PHONY: default build lint run deploy
+.PHONY: default build test lint run deploy

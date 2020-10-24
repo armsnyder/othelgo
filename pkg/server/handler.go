@@ -67,7 +67,9 @@ func handlePlaceDisk(ctx context.Context, req events.APIGatewayWebsocketProxyReq
 	if player != message.Player {
 		return reply(ctx, req.RequestContext, common.NewUpdateBoardMessage(board, player))
 	}
-	if common.ApplyMove(&board, message.X, message.Y, message.Player, true) {
+	var updated bool
+	board, updated = common.ApplyMove(board, message.X, message.Y, message.Player)
+	if updated {
 		if common.HasMoves(board, player%2+1) {
 			player = player%2 + 1
 		}

@@ -53,8 +53,9 @@ func (g *Game) OnTerminalEvent(event termbox.Event) error {
 	g.curSquareY = clamp(g.curSquareY+dy, 0, common.BoardSize)
 
 	if event.Key == termbox.KeyEnter && g.whoseTurn == g.player {
-		updated := common.ApplyMove(&g.board, g.curSquareX, g.curSquareY, g.player, true)
+		board, updated := common.ApplyMove(g.board, g.curSquareX, g.curSquareY, g.player)
 		if updated {
+			g.board = board
 			message := common.NewPlaceDiskMessage(g.player, g.curSquareX, g.curSquareY)
 			if err := g.SendMessage(message); err != nil {
 				return err
