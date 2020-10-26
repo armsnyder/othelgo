@@ -16,4 +16,7 @@ run:
 deploy:
 	test -f aws-creds.sh && source aws-creds.sh; ./scripts/deploy_server.sh
 
-.PHONY: default build test lint run deploy
+logs:
+	test -f aws-creds.sh && source aws-creds.sh; ./scripts/server_logs.sh
+
+.PHONY: default build test lint run deploy logs
