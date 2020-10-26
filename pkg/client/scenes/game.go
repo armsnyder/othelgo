@@ -11,7 +11,7 @@ import (
 
 type Game struct {
 	scene
-	player     int
+	player     common.Disk
 	curSquareX int
 	curSquareY int
 	board      common.Board
@@ -19,7 +19,7 @@ type Game struct {
 	p2Score    int
 	confetti   confetti
 	nickname   string
-	whoseTurn  int
+	whoseTurn  common.Disk
 }
 
 func (g *Game) Setup(changeScene ChangeScene, sendMessage SendMessage) error {
@@ -99,9 +99,9 @@ func (g *Game) Draw() {
 	g.confetti.draw()
 }
 
-var playerColors = map[int]color{1: magenta, 2: green}
+var playerColors = map[common.Disk]color{1: magenta, 2: green}
 
-func drawDisk(anchor anchor, player int) {
+func drawDisk(anchor anchor, player common.Disk) {
 	// The extra space prevents a half-circle on some terminals.
 	draw(anchor, playerColors[player], "⬤ ")
 }

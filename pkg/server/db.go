@@ -70,9 +70,9 @@ func forgetConnection(ctx context.Context, connectionID string) error {
 	return err
 }
 
-func loadBoard(ctx context.Context) (common.Board, int, error) {
+func loadBoard(ctx context.Context) (common.Board, common.Disk, error) {
 	var board common.Board
-	var player int
+	var player common.Disk
 
 	output, err := dynamoClient().GetItemWithContext(ctx, &dynamodb.GetItemInput{
 		TableName: tableName,
@@ -97,7 +97,7 @@ func loadBoard(ctx context.Context) (common.Board, int, error) {
 	return board, player, err
 }
 
-func saveBoard(ctx context.Context, board common.Board, player int) error {
+func saveBoard(ctx context.Context, board common.Board, player common.Disk) error {
 	b, err := json.Marshal(board)
 	if err != nil {
 		return err

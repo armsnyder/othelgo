@@ -1,6 +1,6 @@
 package common
 
-func ApplyMove(board Board, x int, y int, player int) (Board, bool) {
+func ApplyMove(board Board, x int, y int, player Disk) (Board, bool) {
 	updated := false
 	vectors := [][2]int{{-1, -1}, {-1, 0}, {-1, 1}, {0, -1}, {0, 1}, {1, -1}, {1, 0}, {1, 1}}
 
@@ -18,7 +18,7 @@ func ApplyMove(board Board, x int, y int, player int) (Board, bool) {
 	return board, updated
 }
 
-func flipAlongVector(board *Board, x int, y int, player int, v [2]int, depth int) bool {
+func flipAlongVector(board *Board, x int, y int, player Disk, v [2]int, depth int) bool {
 	if !isInBounds(x, y) {
 		return false
 	}
@@ -66,7 +66,7 @@ func GameOver(board Board) bool {
 	return !(HasMoves(board, 1) || HasMoves(board, 2))
 }
 
-func HasMoves(board Board, player int) bool {
+func HasMoves(board Board, player Disk) bool {
 	for i := 0; i < BoardSize; i++ {
 		for j := 0; j < BoardSize; j++ {
 			if _, updated := ApplyMove(board, i, j, player); updated {

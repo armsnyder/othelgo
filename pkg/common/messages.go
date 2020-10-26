@@ -23,7 +23,9 @@ var actionToMessage = map[string]interface{}{
 
 const BoardSize = 8
 
-type Board [BoardSize][BoardSize]int
+type Disk uint8
+
+type Board [BoardSize][BoardSize]Disk
 
 func (b Board) String() string {
 	// This function makes Board implement fmt.Stringer so that it renders visually in test outputs.
@@ -53,12 +55,12 @@ type BaseMessage struct {
 
 type PlaceDiskMessage struct {
 	Action string `json:"action"`
-	Player int    `json:"player"`
+	Player Disk   `json:"player"`
 	X      int    `json:"x"`
 	Y      int    `json:"y"`
 }
 
-func NewPlaceDiskMessage(player, x, y int) PlaceDiskMessage {
+func NewPlaceDiskMessage(player Disk, x, y int) PlaceDiskMessage {
 	return PlaceDiskMessage{
 		Action: PlaceDiskAction,
 		Player: player,
@@ -70,10 +72,10 @@ func NewPlaceDiskMessage(player, x, y int) PlaceDiskMessage {
 type UpdateBoardMessage struct {
 	Action string `json:"action"`
 	Board  Board  `json:"board"`
-	Player int    `json:"player"`
+	Player Disk   `json:"player"`
 }
 
-func NewUpdateBoardMessage(board Board, player int) UpdateBoardMessage {
+func NewUpdateBoardMessage(board Board, player Disk) UpdateBoardMessage {
 	return UpdateBoardMessage{
 		Action: UpdateBoardAction,
 		Board:  board,
