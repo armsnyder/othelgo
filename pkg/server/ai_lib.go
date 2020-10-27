@@ -72,7 +72,7 @@ func moveUsingMinimax(state AIGameState, n int) (int, bool) {
 	fullyExplored := true
 
 	for i := 0; i < state.MoveCount(); i++ {
-		moveScore, moveFullyExplored := minimax(state.Move(i), n)
+		moveScore, moveFullyExplored := minimax(state.Move(i), n, math.Inf(-1), math.Inf(1))
 
 		if !moveFullyExplored {
 			fullyExplored = false
@@ -92,7 +92,7 @@ func moveUsingMinimax(state AIGameState, n int) (int, bool) {
 // minimax is the minimax adversarial search algorithm. It returns the score for an AIGameState
 // after performing minimax up to the specified depth n, and a bool which is true if it fully
 // fully explored the moves.
-func minimax(state AIGameState, n int) (float64, bool) {
+func minimax(state AIGameState, n int, alpha, beta float64) (float64, bool) {
 	if state.MoveCount() <= 0 {
 		return state.Score(), true
 	}
@@ -102,29 +102,40 @@ func minimax(state AIGameState, n int) (float64, bool) {
 	}
 
 	var (
-		result     float64
-		comparator func(float64) bool
+		result          float64
+		comparator      func(float64, float64) float64
+		alphaBetaUpdate func(float64)
+		alphaBetaBreak  func() bool
 	)
 
 	if state.AITurn() {
 		result = math.Inf(-1)
-		comparator = func(v float64) bool { return v > result }
+		comparator = math.Max
+		alphaBetaUpdate = func(v float64) { alpha = math.Max(alpha, v) }
+		alphaBetaBreak = func() bool { return alpha >= beta }
 	} else {
 		result = math.Inf(1)
-		comparator = func(v float64) bool { return v < result }
+		comparator = math.Min
+		alphaBetaUpdate = func(v float64) { beta = math.Min(beta, v) }
+		alphaBetaBreak = func() bool { return beta <= alpha }
 	}
 
 	fullyExplored := true
 
 	for i := 0; i < state.MoveCount(); i++ {
-		moveScore, moveFullyExplored := minimax(state.Move(i), n-1)
+		moveScore, moveFullyExplored := minimax(state.Move(i), n-1, alpha, beta)
+
+		result = comparator(result, moveScore)
 
 		if !moveFullyExplored {
 			fullyExplored = false
 		}
 
-		if comparator(moveScore) {
-			result = moveScore
+		alphaBetaUpdate(moveScore)
+
+		if alphaBetaBreak() {
+			fullyExplored = false
+			break
 		}
 	}
 
