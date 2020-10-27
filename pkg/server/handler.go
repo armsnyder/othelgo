@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/aws/aws-lambda-go/events"
 
@@ -58,31 +59,51 @@ func handlePlaceDisk(ctx context.Context, req events.APIGatewayWebsocketProxyReq
 
 	log.Printf("Player %d placed a disk at (%d, %d)", message.Player, message.X, message.Y)
 
-	board, player, err := loadBoard(ctx)
+	game, err := loadGame(ctx)
 	if err != nil {
 		return err
 	}
 
-	// Ensure it's this player's turn, check move legality, update board and current player
-	if player != message.Player {
-		return reply(ctx, req.RequestContext, common.NewUpdateBoardMessage(board, player))
+	// Make the move provided in the message input.
+	board, updated := common.ApplyMove(game.board, message.X, message.Y, message.Player)
+	if !updated {
+		return reply(ctx, req.RequestContext, newUpdateBoardMessage(game))
 	}
-	var updated bool
-	board, updated = common.ApplyMove(board, message.X, message.Y, message.Player)
-	if updated {
-		if common.HasMoves(board, player%2+1) {
-			player = player%2 + 1
-		}
-		if err := saveBoard(ctx, board, player); err != nil {
+
+	// Save game state.
+	if common.HasMoves(board, game.player%2+1) {
+		game.player = game.player%2 + 1
+	}
+	game.board = board
+	if err := saveGame(ctx, game); err != nil {
+		return err
+	}
+
+	// Send players the updated game state.
+	if err := broadcastMessage(ctx, req.RequestContext, newUpdateBoardMessage(game)); err != nil {
+		return err
+	}
+
+	// If it is a single-player game, then perform the AI turn.
+	if game.player != message.Player && !game.multiplayer {
+		time.Sleep(time.Second) // artificial "think" time
+		game = doAIPlayerMove(ctx, game)
+		if err := saveGame(ctx, game); err != nil {
 			return err
 		}
-
-		return broadcastMessage(ctx, req.RequestContext, common.NewUpdateBoardMessage(board, player))
+		return broadcastMessage(ctx, req.RequestContext, newUpdateBoardMessage(game))
 	}
-	return reply(ctx, req.RequestContext, common.NewUpdateBoardMessage(board, player))
+
+	return nil
 }
 
 func handleNewGame(ctx context.Context, req events.APIGatewayWebsocketProxyRequest) error {
+	var message common.NewGameMessage
+
+	if err := json.Unmarshal([]byte(req.Body), &message); err != nil {
+		return err
+	}
+
 	var board common.Board
 
 	board[3][3] = 1
@@ -90,19 +111,28 @@ func handleNewGame(ctx context.Context, req events.APIGatewayWebsocketProxyReque
 	board[4][3] = 2
 	board[4][4] = 1
 
-	// New game started by player 1
-	if err := saveBoard(ctx, board, 1); err != nil {
+	game := gameState{
+		board:       board,
+		player:      1,
+		multiplayer: message.Multiplayer,
+	}
+
+	if err := saveGame(ctx, game); err != nil {
 		return err
 	}
 
-	return broadcastMessage(ctx, req.RequestContext, common.NewUpdateBoardMessage(board, 1))
+	return broadcastMessage(ctx, req.RequestContext, newUpdateBoardMessage(game))
 }
 
 func handleJoinGame(ctx context.Context, req events.APIGatewayWebsocketProxyRequest) error {
-	board, player, err := loadBoard(ctx)
+	game, err := loadGame(ctx)
 	if err != nil {
 		return err
 	}
 
-	return reply(ctx, req.RequestContext, common.NewUpdateBoardMessage(board, player))
+	return reply(ctx, req.RequestContext, newUpdateBoardMessage(game))
+}
+
+func newUpdateBoardMessage(game gameState) common.UpdateBoardMessage {
+	return common.NewUpdateBoardMessage(game.board, game.player)
 }

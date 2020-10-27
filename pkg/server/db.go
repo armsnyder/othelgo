@@ -8,6 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
+	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 
 	"github.com/armsnyder/othelgo/pkg/common"
 )
@@ -15,11 +16,22 @@ import (
 var (
 	tableName            = aws.String("othelgo")
 	connectionsKey       = makeKey("connections")
-	boardKey             = makeKey("board")
+	boardKeyValue        = "board"
 	connectionsAttribute = "connections"
-	boardAttribute       = "board"
-	playerAttribute      = "player"
 )
+
+type gameState struct {
+	board       common.Board
+	player      common.Disk
+	multiplayer bool
+}
+
+type gameItem struct {
+	ID          string `json:"id"`
+	Board       []byte `json:"board"`
+	Player      int    `json:"player"`
+	Multiplayer bool   `json:"multiplayer"`
+}
 
 func getAllConnectionIDs(ctx context.Context) ([]string, error) {
 	output, err := dynamoClient().GetItemWithContext(ctx, &dynamodb.GetItemInput{
@@ -70,48 +82,53 @@ func forgetConnection(ctx context.Context, connectionID string) error {
 	return err
 }
 
-func loadBoard(ctx context.Context) (common.Board, common.Disk, error) {
-	var board common.Board
-	var player common.Disk
-
+func loadGame(ctx context.Context) (gameState, error) {
 	output, err := dynamoClient().GetItemWithContext(ctx, &dynamodb.GetItemInput{
 		TableName: tableName,
-		Key:       boardKey,
+		Key:       makeKey(boardKeyValue),
 	})
 	if err != nil {
-		return board, player, err
+		return gameState{}, err
 	}
 
-	if output.Item == nil {
-		return board, player, nil
+	var gameItem gameItem
+	if err := dynamodbattribute.UnmarshalMap(output.Item, &gameItem); err != nil {
+		return gameState{}, err
 	}
 
-	err = json.Unmarshal(output.Item[boardAttribute].B, &board)
-
-	if *output.Item[playerAttribute].BOOL {
-		player = 1
-	} else {
-		player = 2
+	var board common.Board
+	if err := json.Unmarshal(gameItem.Board, &board); err != nil {
+		return gameState{}, err
 	}
 
-	return board, player, err
+	return gameState{
+		board:       board,
+		player:      common.Disk(gameItem.Player),
+		multiplayer: gameItem.Multiplayer,
+	}, err
 }
 
-func saveBoard(ctx context.Context, board common.Board, player common.Disk) error {
-	b, err := json.Marshal(board)
+func saveGame(ctx context.Context, game gameState) error {
+	b, err := json.Marshal(game.board)
 	if err != nil {
 		return err
 	}
 
-	p1 := player%2 != 0
+	gameItem := gameItem{
+		ID:          boardKeyValue,
+		Board:       b,
+		Player:      int(game.player),
+		Multiplayer: game.multiplayer,
+	}
+
+	item, err := dynamodbattribute.MarshalMap(gameItem)
+	if err != nil {
+		return err
+	}
 
 	_, err = dynamoClient().PutItemWithContext(ctx, &dynamodb.PutItemInput{
 		TableName: tableName,
-		Item: map[string]*dynamodb.AttributeValue{
-			"id":            boardKey["id"],
-			boardAttribute:  {B: b},
-			playerAttribute: {BOOL: &p1},
-		},
+		Item:      item,
 	})
 
 	return err

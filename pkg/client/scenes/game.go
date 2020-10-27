@@ -11,15 +11,16 @@ import (
 
 type Game struct {
 	scene
-	player     common.Disk
-	curSquareX int
-	curSquareY int
-	board      common.Board
-	p1Score    int
-	p2Score    int
-	confetti   confetti
-	nickname   string
-	whoseTurn  common.Disk
+	player      common.Disk
+	curSquareX  int
+	curSquareY  int
+	board       common.Board
+	p1Score     int
+	p2Score     int
+	confetti    confetti
+	nickname    string
+	whoseTurn   common.Disk
+	multiplayer bool
 }
 
 func (g *Game) Setup(changeScene ChangeScene, sendMessage SendMessage) error {
@@ -29,7 +30,7 @@ func (g *Game) Setup(changeScene ChangeScene, sendMessage SendMessage) error {
 
 	var message interface{}
 	if g.player == 1 {
-		message = common.NewNewGameMessage()
+		message = common.NewNewGameMessage(g.multiplayer)
 	} else {
 		message = common.NewJoinGameMessage()
 	}

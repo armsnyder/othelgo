@@ -7,7 +7,8 @@ import (
 )
 
 const (
-	buttonNewGame = iota
+	buttonSingleplayer = iota
+	buttonHostGame
 	buttonJoinGame
 	buttonChangeName
 )
@@ -25,31 +26,41 @@ func (m *Menu) OnTerminalEvent(event termbox.Event) error {
 	case dx == -1:
 		switch m.button {
 		case buttonChangeName:
-			m.button = buttonJoinGame
-		case buttonJoinGame:
-			m.button = buttonNewGame
+			m.button = buttonHostGame
+		case buttonHostGame, buttonJoinGame:
+			m.button = buttonSingleplayer
 		}
 	case dx == 1:
 		switch m.button {
-		case buttonNewGame:
-			m.button = buttonJoinGame
-		case buttonJoinGame:
+		case buttonSingleplayer:
+			m.button = buttonHostGame
+		case buttonHostGame, buttonJoinGame:
 			m.button = buttonChangeName
 		}
 	case dy == -1:
-		m.button = buttonChangeName
+		switch m.button {
+		case buttonJoinGame:
+			m.button = buttonHostGame
+		default:
+			m.button = buttonChangeName
+		}
 	case dy == 1:
-		if m.button == buttonChangeName {
+		switch m.button {
+		case buttonHostGame:
 			m.button = buttonJoinGame
+		case buttonChangeName:
+			m.button = buttonHostGame
 		}
 	}
 
 	if event.Key == termbox.KeyEnter {
 		switch m.button {
-		case buttonNewGame:
-			return m.ChangeScene(&Game{player: 1, nickname: m.nickname})
+		case buttonSingleplayer:
+			return m.ChangeScene(&Game{player: 1, multiplayer: false, nickname: m.nickname})
+		case buttonHostGame:
+			return m.ChangeScene(&Game{player: 1, multiplayer: true, nickname: m.nickname})
 		case buttonJoinGame:
-			return m.ChangeScene(&Game{player: 2, nickname: m.nickname})
+			return m.ChangeScene(&Game{player: 2, multiplayer: true, nickname: m.nickname})
 		case buttonChangeName:
 			return m.ChangeScene(&Nickname{changeNickname: true})
 		}
@@ -64,10 +75,18 @@ func (m *Menu) Draw() {
 
 	draw(topRight, normal, fmt.Sprintf("Did you know? Your name is %s!", m.nickname))
 
-	buttonColors := [3]color{normal, normal, normal}
+	buttonColors := [4]color{normal, normal, normal, normal}
 	buttonColors[m.button] = inverted
 
-	draw(offset(centerLeft, -1, 3), buttonColors[buttonNewGame], "[ NEW GAME ]")
-	draw(offset(centerRight, 1, 3), buttonColors[buttonJoinGame], "[ JOIN GAME ]")
+	multiplayerButtonColor := normal
+	multiplayerOffset := offset(centerRight, 1, 3)
+	if m.button == buttonHostGame || m.button == buttonJoinGame {
+		multiplayerButtonColor = inverted
+		draw(offset(multiplayerOffset, 0, 2), buttonColors[buttonHostGame], "[ HOST GAME ]")
+		draw(offset(multiplayerOffset, 0, 4), buttonColors[buttonJoinGame], "[ JOIN GAME ]")
+	}
+
+	draw(offset(centerLeft, -1, 3), buttonColors[buttonSingleplayer], "[ SINGLEPLAYER ]")
+	draw(multiplayerOffset, multiplayerButtonColor, "[ MULTIPLAYER ]")
 	draw(offset(topRight, 0, 2), buttonColors[buttonChangeName], "[ CHANGE NAME ]")
 }

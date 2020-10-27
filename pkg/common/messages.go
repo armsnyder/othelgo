@@ -83,10 +83,16 @@ func NewUpdateBoardMessage(board Board, player Disk) UpdateBoardMessage {
 	}
 }
 
-type NewGameMessage BaseMessage
+type NewGameMessage struct {
+	Action      string `json:"action"`
+	Multiplayer bool   `json:"multiplayer"`
+}
 
-func NewNewGameMessage() NewGameMessage {
-	return NewGameMessage{Action: NewGameAction}
+func NewNewGameMessage(multiplayer bool) NewGameMessage {
+	return NewGameMessage{
+		Action:      NewGameAction,
+		Multiplayer: multiplayer,
+	}
 }
 
 type JoinGameMessage BaseMessage
