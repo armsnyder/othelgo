@@ -15,7 +15,7 @@ func doAIPlayerMove(ctx context.Context, board common.Board, player common.Disk)
 		player: player,
 	}
 
-	ctx2, cancel := context.WithTimeout(ctx, time.Second*2)
+	ctx2, cancel := context.WithTimeout(ctx, time.Second)
 	defer cancel()
 
 	move := minimaxWithIterativeDeepening(ctx2, aiState, 64)
