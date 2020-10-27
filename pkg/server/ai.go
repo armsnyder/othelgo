@@ -2,56 +2,74 @@ package server
 
 import (
 	"context"
-	"errors"
+	"fmt"
+	"time"
 
 	"github.com/armsnyder/othelgo/pkg/common"
 )
 
-type othelgoAIMove struct {
-	x int
-	y int
-}
-
 // doAIPlayerMove takes a turn as the AI player.
-func doAIPlayerMove(ctx context.Context, game gameState) gameState {
-	return newAI(othelgoScoreFn, othelgoPossibleMovesFn, othelgoApplyMoveFn)(ctx, game).(gameState)
+func doAIPlayerMove(ctx context.Context, board common.Board, player common.Disk) common.Board {
+	aiState := &aiGameState{
+		board:  board,
+		player: player,
+	}
+
+	ctx2, cancel := context.WithTimeout(ctx, time.Second*2)
+	defer cancel()
+
+	move := minimaxWithIterativeDeepening(ctx2, aiState, 64)
+	return aiState.moves[move]
 }
 
-func othelgoScoreFn(state interface{}) int {
-	game := state.(gameState)
-	_, p2 := common.KeepScore(game.board)
-	return p2
+type aiGameState struct {
+	board  common.Board
+	player common.Disk
+	moves  []common.Board
 }
 
-func othelgoPossibleMovesFn(state interface{}) (moves []interface{}) {
-	game := state.(gameState)
+func (a *aiGameState) Score() float64 {
+	p1, p2 := common.KeepScore(a.board)
+	switch a.player {
+	case 1:
+		return float64(p1)
+	case 2:
+		return float64(p2)
+	default:
+		panic(fmt.Errorf("illegal player %v", a.player))
+	}
+}
 
-	for x := 0; x < common.BoardSize; x++ {
-		for y := 0; y < common.BoardSize; y++ {
-			if _, ok := common.ApplyMove(game.board, x, y, 2); ok {
-				moves = append(moves, &othelgoAIMove{x: x, y: y})
+func (a *aiGameState) AITurn() bool {
+	return a.player == 2
+}
+
+func (a *aiGameState) MoveCount() int {
+	if a.moves == nil {
+		a.moves = []common.Board{}
+		for x := 0; x < common.BoardSize; x++ {
+			for y := 0; y < common.BoardSize; y++ {
+				if board, updated := common.ApplyMove(a.board, x, y, a.player); updated {
+					a.moves = append(a.moves, board)
+				}
 			}
 		}
 	}
 
-	return moves
+	return len(a.moves)
 }
 
-func othelgoApplyMoveFn(state, move interface{}) interface{} {
-	game := state.(gameState)
+func (a *aiGameState) Move(i int) AIGameState {
+	a.MoveCount() // Lazy initialize moves
 
-	if move != nil {
-		aiMove := move.(*othelgoAIMove)
-		board, updated := common.ApplyMove(game.board, aiMove.x, aiMove.y, 2)
-
-		if !updated {
-			panic(errors.New("board was not updated using AI move"))
-		}
-
-		game.board = board
+	nextState := &aiGameState{
+		board:  a.moves[i],
+		player: a.player,
 	}
 
-	game.player = game.player%2 + 1
+	if common.HasMoves(a.moves[i], a.player%2+1) {
+		nextState.player = a.player%2 + 1
+	}
 
-	return game
+	return nextState
 }

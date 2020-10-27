@@ -2,42 +2,131 @@ package server
 
 import (
 	"context"
+	"log"
+	"math"
 )
 
-// ai is a general function for modifying a game state using an AI player. The context can be used
-// to set a timeout on the AI player's move. After the timeout expires the AI player will make the
-// best move it calculated within the allotted timeframe and return.
-type ai func(ctx context.Context, state interface{}) (stateOut interface{})
+// AIGameState represents the state of a game and implements game domain-specific logic.
+type AIGameState interface {
+	// Score evaluates the desirability of a state from the perspective of the AI player.
+	Score() float64
 
-// scoreFn is a function that evaluates the desirability of a game state from the perspective of
-// an AI player.
-type scoreFn func(state interface{}) int
+	// AITurn returns true if the next move will be performed by the AI player.
+	AITurn() bool
 
-// possibleMovesFn is a function that lists the possible moves the AI player can make given a game
-// state.
-type possibleMovesFn func(state interface{}) (moves []interface{})
+	// MoveCount returns the number of moves possible in the current state.
+	MoveCount() int
 
-// applyMoveFn is a function that applies one of the moves returned from possibleMovesFn to the game
-// state. The move argument may be nil if no move is possible.
-type applyMoveFn func(state interface{}, move interface{}) (stateOut interface{})
+	// Move performs the move at the given index and returns the next state after the move.
+	Move(int) AIGameState
+}
 
-// newAI is a general function for building a new AI player. The arguments are functions that
-// implement the game domain-specific logic.
-func newAI(scoreFn scoreFn, possibleMovesFn possibleMovesFn, applyMoveFn applyMoveFn) ai {
-	return func(ctx context.Context, state interface{}) (move interface{}) {
-		bestState := applyMoveFn(state, nil)
-		bestStateScore := scoreFn(bestState)
+// minimaxWithIterativeDeepening invokes moveUsingMinimax multiple times using different search
+// depths, up to a max depth of n. It blocks until the provided context's deadline is passed and
+// then returns the result from the deepest moveUsingMinimax invocation. The result is a move index.
+func minimaxWithIterativeDeepening(ctx context.Context, state AIGameState, n int) int {
+	results := make(chan int)
+	ctx2, cancel := context.WithCancel(ctx)
+	defer cancel()
 
-		for _, move := range possibleMovesFn(state) {
-			thisState := applyMoveFn(state, move)
-			thisStateScore := scoreFn(thisState)
+	go func() {
+		for i := 1; true; i++ {
+			result, fullyExplored := moveUsingMinimax(state, i)
+			results <- result
+			if fullyExplored {
+				close(results)
+				return
+			}
 
-			if thisStateScore > bestStateScore {
-				bestState = thisState
-				bestStateScore = thisStateScore
+			select {
+			case <-ctx2.Done():
+				return
+			default:
 			}
 		}
+	}()
 
-		return bestState
+	result, _ := moveUsingMinimax(state, 0)
+	var ok bool
+
+	for i := 1; i < n; i++ {
+		select {
+		case result, ok = <-results:
+			if !ok { // No more results.
+				return result
+			}
+		case <-ctx.Done():
+			return result
+		}
 	}
+
+	return result
+}
+
+// moveUsingMinimax invokes minimax using the specified depth and then returns the best AI move.
+func moveUsingMinimax(state AIGameState, n int) (int, bool) {
+	log.Printf("Running moveUsingMinimax using n=%d", n)
+
+	bestMove := 0
+	bestScore := math.Inf(-1)
+	fullyExplored := true
+
+	for i := 0; i < state.MoveCount(); i++ {
+		moveScore, moveFullyExplored := minimax(state.Move(i), n)
+
+		if !moveFullyExplored {
+			fullyExplored = false
+		}
+
+		if moveScore > bestScore {
+			bestMove = i
+			bestScore = moveScore
+		}
+	}
+
+	log.Printf("moveUsingMinimax bestMove=%d, bestScore=%f, n=%d", bestMove, bestScore, n)
+
+	return bestMove, fullyExplored
+}
+
+// minimax is the minimax adversarial search algorithm. It returns the score for an AIGameState
+// after performing minimax up to the specified depth n, and a bool which is true if it fully
+// fully explored the moves.
+func minimax(state AIGameState, n int) (float64, bool) {
+	if state.MoveCount() <= 0 {
+		return state.Score(), true
+	}
+
+	if n <= 0 {
+		return state.Score(), false
+	}
+
+	var (
+		result     float64
+		comparator func(float64) bool
+	)
+
+	if state.AITurn() {
+		result = math.Inf(-1)
+		comparator = func(v float64) bool { return v > result }
+	} else {
+		result = math.Inf(1)
+		comparator = func(v float64) bool { return v < result }
+	}
+
+	fullyExplored := true
+
+	for i := 0; i < state.MoveCount(); i++ {
+		moveScore, moveFullyExplored := minimax(state.Move(i), n-1)
+
+		if !moveFullyExplored {
+			fullyExplored = false
+		}
+
+		if comparator(moveScore) {
+			result = moveScore
+		}
+	}
+
+	return result, fullyExplored
 }

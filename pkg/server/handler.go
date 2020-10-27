@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"time"
 
 	"github.com/aws/aws-lambda-go/events"
 
@@ -70,13 +69,10 @@ func handlePlaceDisk(ctx context.Context, req events.APIGatewayWebsocketProxyReq
 		return reply(ctx, req.RequestContext, newUpdateBoardMessage(game))
 	}
 
-	// Save game state.
+	game.board = board
+
 	if common.HasMoves(board, game.player%2+1) {
 		game.player = game.player%2 + 1
-	}
-	game.board = board
-	if err := saveGame(ctx, game); err != nil {
-		return err
 	}
 
 	// Send players the updated game state.
@@ -85,16 +81,21 @@ func handlePlaceDisk(ctx context.Context, req events.APIGatewayWebsocketProxyReq
 	}
 
 	// If it is a single-player game, then perform the AI turn.
-	if game.player != message.Player && !game.multiplayer {
-		time.Sleep(time.Second) // artificial "think" time
-		game = doAIPlayerMove(ctx, game)
-		if err := saveGame(ctx, game); err != nil {
+	for !game.multiplayer && game.player != message.Player {
+		log.Println("Taking AI turn")
+
+		game.board = doAIPlayerMove(ctx, game.board, game.player)
+		if common.HasMoves(board, game.player%2+1) {
+			game.player = game.player%2 + 1
+		}
+
+		// Send players the updated game state.
+		if err := broadcastMessage(ctx, req.RequestContext, newUpdateBoardMessage(game)); err != nil {
 			return err
 		}
-		return broadcastMessage(ctx, req.RequestContext, newUpdateBoardMessage(game))
 	}
 
-	return nil
+	return saveGame(ctx, game)
 }
 
 func handleNewGame(ctx context.Context, req events.APIGatewayWebsocketProxyRequest) error {

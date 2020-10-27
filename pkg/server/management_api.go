@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-sdk-go/aws"
@@ -56,6 +57,8 @@ func newManagementAPIClient(reqCtx events.APIGatewayWebsocketProxyRequestContext
 
 func sendMessage(ctx context.Context, client *apigatewaymanagementapi.ApiGatewayManagementApi, connectionID string, data []byte) func() error {
 	return func() error {
+		log.Printf("Sending message to connection %s", connectionID)
+
 		_, err := client.PostToConnectionWithContext(ctx, &apigatewaymanagementapi.PostToConnectionInput{
 			ConnectionId: &connectionID,
 			Data:         data,

@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"log"
 	"os"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -83,6 +84,8 @@ func forgetConnection(ctx context.Context, connectionID string) error {
 }
 
 func loadGame(ctx context.Context) (gameState, error) {
+	log.Println("Loading game")
+
 	output, err := dynamoClient().GetItemWithContext(ctx, &dynamodb.GetItemInput{
 		TableName: tableName,
 		Key:       makeKey(boardKeyValue),
@@ -109,6 +112,8 @@ func loadGame(ctx context.Context) (gameState, error) {
 }
 
 func saveGame(ctx context.Context, game gameState) error {
+	log.Println("Saving game")
+
 	b, err := json.Marshal(game.board)
 	if err != nil {
 		return err
