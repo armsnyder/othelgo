@@ -81,11 +81,11 @@ func handlePlaceDisk(ctx context.Context, req events.APIGatewayWebsocketProxyReq
 	}
 
 	// If it is a single-player game, then perform the AI turn.
-	for !game.multiplayer && game.player != message.Player {
+	for !game.multiplayer && game.player == 2 && common.HasMoves(game.board, 2) {
 		log.Println("Taking AI turn")
 
 		game.board = doAIPlayerMove(ctx, game.board, game.player)
-		if common.HasMoves(board, game.player%2+1) {
+		if common.HasMoves(game.board, game.player%2+1) {
 			game.player = game.player%2 + 1
 		}
 
