@@ -2,17 +2,16 @@ package server
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/armsnyder/othelgo/pkg/common"
 )
 
 // doAIPlayerMove takes a turn as the AI player.
-func doAIPlayerMove(ctx context.Context, board common.Board, player common.Disk, difficulty int) common.Board {
+func doAIPlayerMove(ctx context.Context, board common.Board, difficulty int) common.Board {
 	aiState := &aiGameState{
 		board:  board,
-		player: player,
+		player: 2,
 	}
 
 	ctx2, cancel := context.WithTimeout(ctx, time.Second*3)
@@ -32,6 +31,7 @@ func doAIPlayerMove(ctx context.Context, board common.Board, player common.Disk,
 	return aiState.moves[move]
 }
 
+// aiGameState implements the othelgo domain-specific logic needed by the AI.
 type aiGameState struct {
 	board  common.Board
 	player common.Disk
@@ -40,14 +40,7 @@ type aiGameState struct {
 
 func (a *aiGameState) Score() float64 {
 	p1, p2 := common.KeepScore(a.board)
-	switch a.player {
-	case 1:
-		return float64(p1)
-	case 2:
-		return float64(p2)
-	default:
-		panic(fmt.Errorf("illegal player %v", a.player))
-	}
+	return float64(p2 - p1)
 }
 
 func (a *aiGameState) AITurn() bool {
