@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/aws/aws-lambda-go/events"
 
@@ -84,7 +85,13 @@ func handlePlaceDisk(ctx context.Context, req events.APIGatewayWebsocketProxyReq
 	for !game.multiplayer && game.player == 2 && common.HasMoves(game.board, 2) {
 		log.Println("Taking AI turn")
 
-		game.board = doAIPlayerMove(ctx, game.board, game.player)
+		turnStartedAt := time.Now()
+		game.board = doAIPlayerMove(ctx, game.board, game.player, game.difficulty)
+
+		// Pad the turn time in case the AI was very quick, so the player doesn't stress or know
+		// they're losing.
+		time.Sleep(time.Second - time.Since(turnStartedAt))
+
 		if common.HasMoves(game.board, game.player%2+1) {
 			game.player = game.player%2 + 1
 		}
@@ -116,6 +123,7 @@ func handleNewGame(ctx context.Context, req events.APIGatewayWebsocketProxyReque
 		board:       board,
 		player:      1,
 		multiplayer: message.Multiplayer,
+		difficulty:  message.Difficulty,
 	}
 
 	if err := saveGame(ctx, game); err != nil {

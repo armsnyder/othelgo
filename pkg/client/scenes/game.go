@@ -21,6 +21,7 @@ type Game struct {
 	nickname    string
 	whoseTurn   common.Disk
 	multiplayer bool
+	difficulty  int
 }
 
 func (g *Game) Setup(changeScene ChangeScene, sendMessage SendMessage) error {
@@ -30,7 +31,7 @@ func (g *Game) Setup(changeScene ChangeScene, sendMessage SendMessage) error {
 
 	var message interface{}
 	if g.player == 1 {
-		message = common.NewNewGameMessage(g.multiplayer)
+		message = common.NewNewGameMessage(g.multiplayer, g.difficulty)
 	} else {
 		message = common.NewJoinGameMessage()
 	}

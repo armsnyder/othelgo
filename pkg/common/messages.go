@@ -86,12 +86,14 @@ func NewUpdateBoardMessage(board Board, player Disk) UpdateBoardMessage {
 type NewGameMessage struct {
 	Action      string `json:"action"`
 	Multiplayer bool   `json:"multiplayer"`
+	Difficulty  int    `json:"difficulty"`
 }
 
-func NewNewGameMessage(multiplayer bool) NewGameMessage {
+func NewNewGameMessage(multiplayer bool, difficulty int) NewGameMessage {
 	return NewGameMessage{
 		Action:      NewGameAction,
 		Multiplayer: multiplayer,
+		Difficulty:  difficulty,
 	}
 }
 

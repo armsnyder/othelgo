@@ -9,16 +9,26 @@ import (
 )
 
 // doAIPlayerMove takes a turn as the AI player.
-func doAIPlayerMove(ctx context.Context, board common.Board, player common.Disk) common.Board {
+func doAIPlayerMove(ctx context.Context, board common.Board, player common.Disk, difficulty int) common.Board {
 	aiState := &aiGameState{
 		board:  board,
 		player: player,
 	}
 
-	ctx2, cancel := context.WithTimeout(ctx, time.Second)
+	ctx2, cancel := context.WithTimeout(ctx, time.Second*2)
 	defer cancel()
 
-	move := minimaxWithIterativeDeepening(ctx2, aiState, 64)
+	var depth int
+	switch difficulty {
+	default:
+		depth = 1
+	case 1:
+		depth = 5
+	case 2:
+		depth = common.BoardSize * common.BoardSize // No limit
+	}
+
+	move := minimaxWithIterativeDeepening(ctx2, aiState, depth)
 	return aiState.moves[move]
 }
 

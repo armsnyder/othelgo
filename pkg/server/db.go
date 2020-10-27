@@ -25,6 +25,7 @@ type gameState struct {
 	board       common.Board
 	player      common.Disk
 	multiplayer bool
+	difficulty  int
 }
 
 type gameItem struct {
@@ -32,6 +33,7 @@ type gameItem struct {
 	Board       []byte `json:"board"`
 	Player      int    `json:"player"`
 	Multiplayer bool   `json:"multiplayer"`
+	Difficulty  int    `json:"difficulty"`
 }
 
 func getAllConnectionIDs(ctx context.Context) ([]string, error) {
@@ -108,6 +110,7 @@ func loadGame(ctx context.Context) (gameState, error) {
 		board:       board,
 		player:      common.Disk(gameItem.Player),
 		multiplayer: gameItem.Multiplayer,
+		difficulty:  gameItem.Difficulty,
 	}, err
 }
 
@@ -124,6 +127,7 @@ func saveGame(ctx context.Context, game gameState) error {
 		Board:       b,
 		Player:      int(game.player),
 		Multiplayer: game.multiplayer,
+		Difficulty:  game.difficulty,
 	}
 
 	item, err := dynamodbattribute.MarshalMap(gameItem)
