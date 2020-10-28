@@ -21,11 +21,19 @@ var actionToMessage = map[string]interface{}{
 	JoinGameAction:    JoinGameMessage{},
 }
 
-const BoardSize = 8
-
 type Disk uint8
 
-type Board [BoardSize][BoardSize]Disk
+const BoardSize = 8
+
+type Board [8]uint16
+
+func (b Board) GetCellAt(x int, y int) Disk {
+	return Disk((b[y] >> (x * 2)) & 0b11)
+}
+
+func (b *Board) SetCellAt(x int, y int, player Disk) {
+	b[y] = b[y]&^(3<<(x*2)) | (uint16(player) << (x * 2))
+}
 
 func (b Board) String() string {
 	// This function makes Board implement fmt.Stringer so that it renders visually in test outputs.
@@ -34,7 +42,7 @@ func (b Board) String() string {
 		sb.WriteRune('\n')
 		for x := 0; x < BoardSize; x++ {
 			var ch rune
-			switch b[x][y] {
+			switch b.GetCellAt(x, y) {
 			case 0:
 				ch = '_'
 			case 1:

@@ -16,13 +16,13 @@ func BenchmarkMiniMax(b *testing.B) {
 				var state aiGameState
 
 				// New board.
-				state.board[3][3] = 1
-				state.board[4][4] = 1
-				state.board[3][4] = 2
-				state.board[4][3] = 2
+				state.board.SetCellAt(3, 3, 1)
+				state.board.SetCellAt(4, 4, 1)
+				state.board.SetCellAt(3, 4, 2)
+				state.board.SetCellAt(4, 3, 2)
 
 				// Player 1 made the first move.
-				state.board[2][4] = 1
+				state.board.SetCellAt(2, 4, 1)
 
 				// Now it's player 2's turn (the AI player).
 				state.player = 2

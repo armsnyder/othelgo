@@ -114,10 +114,10 @@ func handleNewGame(ctx context.Context, req events.APIGatewayWebsocketProxyReque
 
 	var board common.Board
 
-	board[3][3] = 1
-	board[3][4] = 2
-	board[4][3] = 2
-	board[4][4] = 1
+	board.SetCellAt(3, 3, 1)
+	board.SetCellAt(3, 4, 2)
+	board.SetCellAt(4, 3, 2)
+	board.SetCellAt(4, 4, 1)
 
 	game := gameState{
 		board:       board,

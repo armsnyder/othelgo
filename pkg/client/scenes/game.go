@@ -172,7 +172,7 @@ func drawBoardOutline() {
 func (g *Game) drawDisks() {
 	for i := 0; i < common.BoardSize; i++ {
 		for j := 0; j < common.BoardSize; j++ {
-			player := g.board[i][j]
+			player := g.board.GetCellAt(i, j)
 			if player == 0 {
 				continue
 			}

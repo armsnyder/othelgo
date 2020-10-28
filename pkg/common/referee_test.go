@@ -13,7 +13,7 @@ func buildTestBoard(p1, p2 []move) (board Board) {
 		player := i + 1
 		for _, move := range moves {
 			x, y := move[0], move[1]
-			board[x][y] = Disk(player)
+			board.SetCellAt(x, y, Disk(player))
 		}
 	}
 	return board

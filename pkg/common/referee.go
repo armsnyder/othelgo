@@ -4,14 +4,14 @@ func ApplyMove(board Board, x int, y int, player Disk) (Board, bool) {
 	updated := false
 	vectors := [][2]int{{-1, -1}, {-1, 0}, {-1, 1}, {0, -1}, {0, 1}, {1, -1}, {1, 0}, {1, 1}}
 
-	if isInBounds(x, y) && board[x][y] != 0 {
+	if isInBounds(x, y) && board.GetCellAt(x, y) != 0 {
 		return board, false
 	}
 
 	for _, v := range vectors {
 		if flipAlongVector(&board, x+v[0], y+v[1], player, v, 0) {
 			updated = true
-			board[x][y] = player
+			board.SetCellAt(x, y, player)
 		}
 	}
 
@@ -23,7 +23,7 @@ func flipAlongVector(board *Board, x int, y int, player Disk, v [2]int, depth in
 		return false
 	}
 
-	disk := board[x][y]
+	disk := board.GetCellAt(x, y)
 
 	switch disk {
 	case 0:
@@ -33,7 +33,7 @@ func flipAlongVector(board *Board, x int, y int, player Disk, v [2]int, depth in
 	}
 
 	if flipAlongVector(board, x+v[0], y+v[1], player, v, depth+1) {
-		board[x][y] = player
+		board.SetCellAt(x, y, player)
 		return true
 	}
 
@@ -47,7 +47,7 @@ func isInBounds(x int, y int) bool {
 func KeepScore(board Board) (p1 int, p2 int) {
 	for i := 0; i < BoardSize; i++ {
 		for j := 0; j < BoardSize; j++ {
-			switch board[i][j] {
+			switch board.GetCellAt(i, j) {
 			case 1:
 				p1++
 			case 2:
