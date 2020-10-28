@@ -16,9 +16,9 @@ func doAIPlayerMove(board common.Board, difficulty int) common.Board {
 	default:
 		depth = 1
 	case 1:
-		depth = 3
+		depth = 4
 	case 2:
-		depth = 8
+		depth = 6
 	}
 
 	move := findMoveUsingMinimax(aiState, depth)
