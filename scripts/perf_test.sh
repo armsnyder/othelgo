@@ -16,9 +16,7 @@ mkdir -p perf || exit 1
 
 echo "Running benchmark on current version..."
 
-for _ in {1..5}; do
-  go test -bench=. ./... >>"perf/$HEAD_SHA.txt" || exit 1
-done
+go test -bench=. -count=5 ./... >>"perf/$HEAD_SHA.txt" || exit 1
 
 git checkout "$PREV_HEAD_SHA" || exit 1
 
@@ -26,9 +24,7 @@ trap 'git checkout $HEAD_REF' EXIT
 
 echo "Running benchmark on previous version..."
 
-for _ in {1..5}; do
-  go test -bench=. ./... >>"perf/$PREV_HEAD_SHA.txt" || exit 1
-done
+go test -bench=. -count=5 ./... >>"perf/$PREV_HEAD_SHA.txt" || exit 1
 
 git checkout "$HEAD_REF" || exit 1
 
