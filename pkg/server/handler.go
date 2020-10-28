@@ -86,7 +86,7 @@ func handlePlaceDisk(ctx context.Context, req events.APIGatewayWebsocketProxyReq
 		log.Println("Taking AI turn")
 
 		turnStartedAt := time.Now()
-		game.board = doAIPlayerMove(ctx, game.board, game.difficulty)
+		game.board = doAIPlayerMove(game.board, game.difficulty)
 
 		// Pad the turn time in case the AI was very quick, so the player doesn't stress or know
 		// they're losing.

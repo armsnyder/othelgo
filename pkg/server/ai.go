@@ -1,33 +1,27 @@
 package server
 
 import (
-	"context"
-	"time"
-
 	"github.com/armsnyder/othelgo/pkg/common"
 )
 
 // doAIPlayerMove takes a turn as the AI player.
-func doAIPlayerMove(ctx context.Context, board common.Board, difficulty int) common.Board {
+func doAIPlayerMove(board common.Board, difficulty int) common.Board {
 	aiState := &aiGameState{
 		board:  board,
 		player: 2,
 	}
-
-	ctx2, cancel := context.WithTimeout(ctx, time.Second*3)
-	defer cancel()
 
 	var depth int
 	switch difficulty {
 	default:
 		depth = 1
 	case 1:
-		depth = 5
+		depth = 3
 	case 2:
-		depth = common.BoardSize * common.BoardSize // No limit
+		depth = 8
 	}
 
-	move := minimaxWithIterativeDeepening(ctx2, aiState, depth)
+	move := findMoveUsingMinimax(aiState, depth)
 	return aiState.moves[move]
 }
 

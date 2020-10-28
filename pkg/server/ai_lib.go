@@ -1,7 +1,6 @@
 package server
 
 import (
-	"context"
 	"log"
 	"math"
 )
@@ -21,48 +20,15 @@ type AIGameState interface {
 	Move(int) AIGameState
 }
 
-// minimaxWithIterativeDeepening invokes moveUsingMinimax multiple times using different search
-// depths, up to a max depth of n. It blocks until the provided context's deadline is passed and
-// then returns the result from the deepest moveUsingMinimax invocation. The result is a move index.
-func minimaxWithIterativeDeepening(ctx context.Context, state AIGameState, n int) int {
-	results := make(chan int)
-	ctx2, cancel := context.WithCancel(ctx)
-	defer cancel()
-
-	go func() {
-		for i := 1; true; i++ {
-			results <- moveUsingMinimax(state, i)
-
-			select {
-			case <-ctx2.Done():
-				return
-			default:
-			}
-		}
-	}()
-
-	result := moveUsingMinimax(state, 0)
-
-	for i := 1; i < n; i++ {
-		select {
-		case result = <-results:
-		case <-ctx.Done():
-			return result
-		}
-	}
-
-	return result
-}
-
-// moveUsingMinimax invokes minimax using the specified depth and then returns the best AI move.
-func moveUsingMinimax(state AIGameState, n int) int {
-	log.Printf("Running moveUsingMinimax using n=%d", n)
+// findMoveUsingMinimax invokes minimax using the specified depth and then returns the best AI move.
+func findMoveUsingMinimax(state AIGameState, depth int) int {
+	log.Printf("Running findMoveUsingMinimax using depth=%d", depth)
 
 	bestMove := 0
 	bestScore := math.Inf(-1)
 
 	for i := 0; i < state.MoveCount(); i++ {
-		moveScore := minimax(state.Move(i), n, math.Inf(-1), math.Inf(1))
+		moveScore := minimax(state.Move(i), depth, math.Inf(-1), math.Inf(1))
 
 		if moveScore > bestScore {
 			bestMove = i
@@ -70,15 +36,15 @@ func moveUsingMinimax(state AIGameState, n int) int {
 		}
 	}
 
-	log.Printf("moveUsingMinimax bestMove=%d, bestScore=%f, n=%d", bestMove, bestScore, n)
+	log.Printf("findMoveUsingMinimax bestMove=%d, bestScore=%f, depth=%d", bestMove, bestScore, depth)
 
 	return bestMove
 }
 
 // minimax is the minimax adversarial search algorithm. It returns the score for an AIGameState
 // after performing minimax up to the specified depth n.
-func minimax(state AIGameState, n int, alpha, beta float64) float64 {
-	if n <= 0 || state.MoveCount() <= 0 {
+func minimax(state AIGameState, depth int, alpha, beta float64) float64 {
+	if depth <= 0 || state.MoveCount() <= 0 {
 		return state.Score()
 	}
 
@@ -102,7 +68,7 @@ func minimax(state AIGameState, n int, alpha, beta float64) float64 {
 	}
 
 	for i := 0; i < state.MoveCount(); i++ {
-		moveScore := minimax(state.Move(i), n-1, alpha, beta)
+		moveScore := minimax(state.Move(i), depth-1, alpha, beta)
 		result = comparator(result, moveScore)
 		alphaBetaUpdate(moveScore)
 		if alphaBetaBreak() {
