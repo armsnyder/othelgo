@@ -3,5 +3,5 @@
 package main
 
 import (
-	"golang.org/x/perf/benchstat"
+	"golang.org/x/perf/cmd/benchstat"
 )

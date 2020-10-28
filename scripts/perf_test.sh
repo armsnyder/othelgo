@@ -30,4 +30,4 @@ git checkout "$HEAD_REF" || exit 1
 
 echo 'If the difference is statistically significant, a delta will be shown. Otherwise the delta will be "~":'
 
-benchstat "perf/$PREV_HEAD_SHA.txt" "perf/$HEAD_SHA.txt"
+go run golang.org/x/perf/cmd/benchstat "perf/$PREV_HEAD_SHA.txt" "perf/$HEAD_SHA.txt"
