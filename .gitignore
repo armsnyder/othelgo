@@ -31,3 +31,6 @@ bin
 
 # Client log file
 othelgo.log
+
+# Benchmark results
+perf
