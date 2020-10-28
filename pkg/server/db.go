@@ -21,19 +21,15 @@ var (
 	connectionsAttribute = "connections"
 )
 
-type gameState struct {
-	board       common.Board
-	player      common.Disk
-	multiplayer bool
-	difficulty  int
-}
-
 type gameItem struct {
-	ID          string `json:"id"`
-	Board       []byte `json:"board"`
-	Player      int    `json:"player"`
-	Multiplayer bool   `json:"multiplayer"`
-	Difficulty  int    `json:"difficulty"`
+	Board       common.Board `json:"-"`
+	Player      common.Disk  `json:"-"`
+	Multiplayer bool         `json:"multiplayer"`
+	Difficulty  int          `json:"difficulty"`
+
+	ID        string `json:"id"`
+	BoardRaw  []byte `json:"board"`
+	PlayerRaw int    `json:"player"`
 }
 
 func getAllConnectionIDs(ctx context.Context) ([]string, error) {
@@ -85,7 +81,9 @@ func forgetConnection(ctx context.Context, connectionID string) error {
 	return err
 }
 
-func loadGame(ctx context.Context) (gameState, error) {
+func loadGame(ctx context.Context) (gameItem, error) {
+	var gameItem gameItem
+
 	log.Println("Loading game")
 
 	output, err := dynamoClient().GetItemWithContext(ctx, &dynamodb.GetItemInput{
@@ -93,44 +91,37 @@ func loadGame(ctx context.Context) (gameState, error) {
 		Key:       makeKey(boardKeyValue),
 	})
 	if err != nil {
-		return gameState{}, err
+		return gameItem, err
 	}
 
-	var gameItem gameItem
 	if err := dynamodbattribute.UnmarshalMap(output.Item, &gameItem); err != nil {
-		return gameState{}, err
+		return gameItem, err
 	}
 
 	var board common.Board
-	if err := json.Unmarshal(gameItem.Board, &board); err != nil {
-		return gameState{}, err
+	if err := json.Unmarshal(gameItem.BoardRaw, &board); err != nil {
+		return gameItem, err
 	}
 
-	return gameState{
-		board:       board,
-		player:      common.Disk(gameItem.Player),
-		multiplayer: gameItem.Multiplayer,
-		difficulty:  gameItem.Difficulty,
-	}, err
+	gameItem.Board = board
+	gameItem.Player = common.Disk(gameItem.PlayerRaw)
+
+	return gameItem, err
 }
 
-func saveGame(ctx context.Context, game gameState) error {
+func saveGame(ctx context.Context, game gameItem) error {
 	log.Println("Saving game")
 
-	b, err := json.Marshal(game.board)
+	b, err := json.Marshal(game.Board)
 	if err != nil {
 		return err
 	}
 
-	gameItem := gameItem{
-		ID:          boardKeyValue,
-		Board:       b,
-		Player:      int(game.player),
-		Multiplayer: game.multiplayer,
-		Difficulty:  game.difficulty,
-	}
+	game.ID = boardKeyValue
+	game.BoardRaw = b
+	game.PlayerRaw = int(game.Player)
 
-	item, err := dynamodbattribute.MarshalMap(gameItem)
+	item, err := dynamodbattribute.MarshalMap(game)
 	if err != nil {
 		return err
 	}

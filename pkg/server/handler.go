@@ -65,15 +65,15 @@ func handlePlaceDisk(ctx context.Context, req events.APIGatewayWebsocketProxyReq
 	}
 
 	// Make the move provided in the message input.
-	board, updated := common.ApplyMove(game.board, message.X, message.Y, message.Player)
+	board, updated := common.ApplyMove(game.Board, message.X, message.Y, message.Player)
 	if !updated {
 		return reply(ctx, req.RequestContext, newUpdateBoardMessage(game))
 	}
 
-	game.board = board
+	game.Board = board
 
-	if common.HasMoves(board, game.player%2+1) {
-		game.player = game.player%2 + 1
+	if common.HasMoves(board, game.Player%2+1) {
+		game.Player = game.Player%2 + 1
 	}
 
 	// Send players the updated game state.
@@ -82,18 +82,18 @@ func handlePlaceDisk(ctx context.Context, req events.APIGatewayWebsocketProxyReq
 	}
 
 	// If it is a single-player game, then perform the AI turn.
-	for !game.multiplayer && game.player == 2 && common.HasMoves(game.board, 2) {
+	for !game.Multiplayer && game.Player == 2 && common.HasMoves(game.Board, 2) {
 		log.Println("Taking AI turn")
 
 		turnStartedAt := time.Now()
-		game.board = doAIPlayerMove(game.board, game.difficulty)
+		game.Board = doAIPlayerMove(game.Board, game.Difficulty)
 
 		// Pad the turn time in case the AI was very quick, so the player doesn't stress or know
 		// they're losing.
 		time.Sleep(time.Second - time.Since(turnStartedAt))
 
-		if common.HasMoves(game.board, 1) {
-			game.player = 1
+		if common.HasMoves(game.Board, 1) {
+			game.Player = 1
 		}
 
 		// Send players the updated game state.
@@ -119,11 +119,11 @@ func handleNewGame(ctx context.Context, req events.APIGatewayWebsocketProxyReque
 	board[4][3] = 2
 	board[4][4] = 1
 
-	game := gameState{
-		board:       board,
-		player:      1,
-		multiplayer: message.Multiplayer,
-		difficulty:  message.Difficulty,
+	game := gameItem{
+		Board:       board,
+		Player:      1,
+		Multiplayer: message.Multiplayer,
+		Difficulty:  message.Difficulty,
 	}
 
 	if err := saveGame(ctx, game); err != nil {
@@ -142,6 +142,6 @@ func handleJoinGame(ctx context.Context, req events.APIGatewayWebsocketProxyRequ
 	return reply(ctx, req.RequestContext, newUpdateBoardMessage(game))
 }
 
-func newUpdateBoardMessage(game gameState) common.UpdateBoardMessage {
-	return common.NewUpdateBoardMessage(game.board, game.player)
+func newUpdateBoardMessage(game gameItem) common.UpdateBoardMessage {
+	return common.NewUpdateBoardMessage(game.Board, game.Player)
 }
