@@ -19,9 +19,8 @@ type Scene interface {
 
 // types for Scene setup method.
 type (
-	ChangeScene  func(Scene) error
-	SendMessage  func(interface{}) error
-	SceneContext map[string]interface{}
+	ChangeScene func(Scene) error
+	SendMessage func(interface{}) error
 )
 
 // scene has default implementations for Scene for convenience.
