@@ -11,6 +11,7 @@ import (
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	. "github.com/onsi/ginkgo"
@@ -98,7 +99,12 @@ var _ = Describe("Server", func() {
 
 // useLocalDynamo replaces the server's real dynamodb client with a local dynamo client.
 func useLocalDynamo() {
-	DynamoClient = dynamodb.New(session.Must(session.NewSession(aws.NewConfig().WithRegion("us-west-2").WithEndpoint("http://127.0.0.1:8042"))))
+	config := aws.NewConfig().
+		WithRegion("us-west-2").
+		WithEndpoint("http://127.0.0.1:8042").
+		WithCredentials(credentials.NewStaticCredentials("foo", "bar", ""))
+
+	DynamoClient = dynamodb.New(session.Must(session.NewSession(config)))
 }
 
 // clearOthelgoTable deletes and recreates the othelgo dynamodb table.
