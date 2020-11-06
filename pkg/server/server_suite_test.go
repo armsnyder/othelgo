@@ -48,38 +48,34 @@ var _ = Describe("Server", func() {
 	})
 
 	Context("singleplayer game", func() {
-		var (
-			sendMessage    func(interface{})
-			receiveMessage func() interface{}
-			disconnect     func()
-		)
+		var client *clientConnection
 
 		BeforeEach(func() {
-			sendMessage, receiveMessage, disconnect = newClientConnection(listen)
+			client = newClientConnection(listen)
 
 			// Start the singleplayer game by sending a message.
-			sendMessage(common.NewNewGameMessage(false, 0))
+			client.sendMessage(common.NewNewGameMessage(false, 0))
 		})
 
 		AfterEach(func() {
-			disconnect()
+			client.close()
 		})
 
 		When("new game starts", func() {
 			It("should send a new game board", func(done Done) {
 				newGameBoard := buildBoard([]move{{3, 3}, {4, 4}}, []move{{3, 4}, {4, 3}})
-				Expect(receiveMessage()).To(Equal(common.NewUpdateBoardMessage(newGameBoard, 1)))
+				Expect(client.receiveMessage()).To(Equal(common.NewUpdateBoardMessage(newGameBoard, 1)))
 				close(done)
 			})
 		})
 
 		When("human player places a disk", func() {
 			BeforeEach(func() {
-				sendMessage(common.NewPlaceDiskMessage(1, 2, 4))
+				client.sendMessage(common.NewPlaceDiskMessage(1, 2, 4))
 			})
 
 			It("should change to player 2's turn and send the updated board", func(done Done) {
-				Eventually(receiveMessage).Should(And(
+				Eventually(client.receiveMessage).Should(And(
 					WithTransform(countDisks, Equal(5)),
 					WithTransform(whoseTurn, Equal(2)),
 				))
@@ -87,7 +83,7 @@ var _ = Describe("Server", func() {
 			})
 
 			It("should make an AI move and send the updated board", func(done Done) {
-				Eventually(receiveMessage).Should(And(
+				Eventually(client.receiveMessage).Should(And(
 					WithTransform(countDisks, Equal(6)),
 					WithTransform(whoseTurn, Equal(1)),
 				))
@@ -191,10 +187,18 @@ func setupMessageListener() (listen func(connID string) (messages <-chan interfa
 	return listen
 }
 
-// newClientConnection encapsulates the behavior of a websocket client, since in this test we invoke
-// the Handler function directly instead of really using websockets. The listen argument is a
-// function for splitting off a new channel for receiving messages for a particular connection ID.
-func newClientConnection(listen func(string) (messages <-chan interface{}, removeListener func())) (sendMessage func(interface{}), receiveMessage func() interface{}, disconnect func()) {
+// clientConnection encapsulates the behavior of a websocket client, since in this test we invoke
+// the Handler function directly instead of really using websockets.
+type clientConnection struct {
+	connID         string
+	messages       <-chan interface{}
+	removeListener func()
+}
+
+// newClientConnection creates a new clientConnection and sends a CONNECT message to Handler.
+// The listen argument is a function for splitting off a new channel for receiving messages for a
+// particular connection ID.
+func newClientConnection(listen func(string) (messages <-chan interface{}, removeListener func())) *clientConnection {
 	// Generate a random connection ID.
 	var connIDSrc [8]byte
 	if _, err := rand.Read(connIDSrc[:]); err != nil {
@@ -202,44 +206,52 @@ func newClientConnection(listen func(string) (messages <-chan interface{}, remov
 	}
 	connID := base64.StdEncoding.EncodeToString(connIDSrc[:])
 
-	// send invokes our lambda Handler function.
-	send := func(typ string, message interface{}) {
-		b, err := json.Marshal(message)
-		if err != nil {
-			panic(err)
-		}
-		_, err = Handler(context.TODO(), events.APIGatewayWebsocketProxyRequest{
-			Body: string(b),
-			RequestContext: events.APIGatewayWebsocketProxyRequestContext{
-				ConnectionID: connID,
-				EventType:    typ,
-			},
-		})
-		Expect(err).NotTo(HaveOccurred())
-	}
-
 	// setup a new channel for receiving messages for our new connection ID.
 	messages, removeListener := listen(connID)
 
-	// Return values
-
-	sendMessage = func(message interface{}) {
-		send("MESSAGE", message)
-	}
-
-	receiveMessage = func() interface{} {
-		return <-messages
-	}
-
-	disconnect = func() {
-		send("DISCONNECT", nil)
-		removeListener()
+	clientConnection := &clientConnection{
+		connID:         connID,
+		messages:       messages,
+		removeListener: removeListener,
 	}
 
 	// Send a CONNECT message before returning.
-	send("CONNECT", nil)
+	clientConnection.sendType("CONNECT", nil)
 
-	return sendMessage, receiveMessage, disconnect
+	return clientConnection
+}
+
+// sendMessage sends a new message to Handler.
+func (c *clientConnection) sendMessage(message interface{}) {
+	c.sendType("MESSAGE", message)
+}
+
+// sendType sends a new message to Handler and lets you specify the message type.
+func (c *clientConnection) sendType(typ string, message interface{}) {
+	b, err := json.Marshal(message)
+	if err != nil {
+		panic(err)
+	}
+	_, err = Handler(context.TODO(), events.APIGatewayWebsocketProxyRequest{
+		Body: string(b),
+		RequestContext: events.APIGatewayWebsocketProxyRequestContext{
+			ConnectionID: c.connID,
+			EventType:    typ,
+		},
+	})
+	Expect(err).NotTo(HaveOccurred())
+}
+
+// receiveMessage returns the next message received by the client. It blocks until a message is
+// available.
+func (c *clientConnection) receiveMessage() interface{} {
+	return <-c.messages
+}
+
+// close cleans up the client and sends a DISCONNECT message to Handler.
+func (c *clientConnection) close() {
+	c.sendType("DISCONNECT", nil)
+	c.removeListener()
 }
 
 type move [2]int
