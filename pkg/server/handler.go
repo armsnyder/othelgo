@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"os"
 	"time"
 
 	"github.com/aws/aws-lambda-go/events"
@@ -89,8 +90,10 @@ func handlePlaceDisk(ctx context.Context, req events.APIGatewayWebsocketProxyReq
 		game.Board = doAIPlayerMove(game.Board, game.Difficulty)
 
 		// Pad the turn time in case the AI was very quick, so the player doesn't stress or know
-		// they're losing.
-		time.Sleep(time.Second - time.Since(turnStartedAt))
+		// they're losing. (Sleep is disabled during tests.)
+		if os.Getenv("AWS_EXECUTION_ENV") != "" {
+			time.Sleep(time.Second - time.Since(turnStartedAt))
+		}
 
 		if common.HasMoves(game.Board, 1) {
 			game.Player = 1
