@@ -47,6 +47,9 @@ var _ = Describe("Server", func() {
 		listen = setupMessageListener()
 	})
 
+	// Common test constants.
+	newGameBoard := buildBoard([]move{{3, 3}, {4, 4}}, []move{{3, 4}, {4, 3}})
+
 	Context("singleplayer game", func() {
 		var client *clientConnection
 
@@ -63,8 +66,7 @@ var _ = Describe("Server", func() {
 
 		When("new game starts", func() {
 			It("should send a new game board", func(done Done) {
-				newGameBoard := buildBoard([]move{{3, 3}, {4, 4}}, []move{{3, 4}, {4, 3}})
-				Expect(client.receiveMessage()).To(Equal(common.NewUpdateBoardMessage(newGameBoard, 1)))
+				Eventually(client.receiveMessage).Should(WithTransform(getBoard, Equal(newGameBoard)))
 				close(done)
 			})
 		})
@@ -75,10 +77,12 @@ var _ = Describe("Server", func() {
 			})
 
 			It("should change to player 2's turn and send the updated board", func(done Done) {
-				Eventually(client.receiveMessage).Should(And(
-					WithTransform(countDisks, Equal(5)),
+				expectedBoard := buildBoard([]move{{3, 3}, {4, 4}, {3, 4}, {2, 4}}, []move{{4, 3}})
+				expectBoardUpdatedMessage := And(
+					WithTransform(getBoard, Equal(expectedBoard)),
 					WithTransform(whoseTurn, Equal(2)),
-				))
+				)
+				Eventually(client.receiveMessage).Should(expectBoardUpdatedMessage)
 				close(done)
 			})
 
@@ -88,6 +92,59 @@ var _ = Describe("Server", func() {
 					WithTransform(whoseTurn, Equal(1)),
 				))
 				close(done)
+			})
+		})
+	})
+
+	Context("multiplayer game", func() {
+		var host, opponent *clientConnection
+
+		BeforeEach(func() {
+			host = newClientConnection(listen)
+			opponent = newClientConnection(listen)
+		})
+
+		When("host starts a new game", func() {
+			BeforeEach(func() {
+				host.sendMessage(common.NewNewGameMessage(true, 0))
+			})
+
+			It("should send a new game board to the host", func(done Done) {
+				Eventually(host.receiveMessage).Should(WithTransform(getBoard, Equal(newGameBoard)))
+				close(done)
+			})
+
+			When("opponent joins the game", func() {
+				BeforeEach(func() {
+					opponent.sendMessage(common.NewJoinGameMessage())
+				})
+
+				It("should send a new game board to the opponent", func(done Done) {
+					Eventually(opponent.receiveMessage).Should(WithTransform(getBoard, Equal(newGameBoard)))
+					close(done)
+				})
+
+				When("host makes the first move", func() {
+					BeforeEach(func() {
+						host.sendMessage(common.NewPlaceDiskMessage(1, 2, 4))
+					})
+
+					expectedBoard := buildBoard([]move{{3, 3}, {4, 4}, {3, 4}, {2, 4}}, []move{{4, 3}})
+					expectBoardUpdatedMessage := And(
+						WithTransform(getBoard, Equal(expectedBoard)),
+						WithTransform(whoseTurn, Equal(2)),
+					)
+
+					It("should send the resulting board to the host", func(done Done) {
+						Eventually(host.receiveMessage).Should(expectBoardUpdatedMessage)
+						close(done)
+					})
+
+					It("should send the resulting board to the opponent", func(done Done) {
+						Eventually(opponent.receiveMessage).Should(expectBoardUpdatedMessage)
+						close(done)
+					})
+				})
 			})
 		})
 	})
@@ -270,6 +327,10 @@ func buildBoard(p1, p2 []move) (board common.Board) {
 }
 
 // gomega matcher Transform functions, used in assertions.
+
+func getBoard(message common.UpdateBoardMessage) common.Board {
+	return message.Board
+}
 
 func countDisks(message common.UpdateBoardMessage) int {
 	p1, p2 := common.KeepScore(message.Board)
