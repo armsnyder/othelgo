@@ -68,7 +68,7 @@ var _ = Describe("Server", func() {
 		When("new game starts", func() {
 			It("should send a new game board", func(done Done) {
 				newGameBoard := buildBoard([]move{{3, 3}, {4, 4}}, []move{{3, 4}, {4, 3}})
-				Expect(receiveMessage).To(Equal(common.NewUpdateBoardMessage(newGameBoard, 1)))
+				Expect(receiveMessage()).To(Equal(common.NewUpdateBoardMessage(newGameBoard, 1)))
 				close(done)
 			})
 		})
