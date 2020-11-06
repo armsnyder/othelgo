@@ -32,8 +32,13 @@ type gameItem struct {
 	PlayerRaw int    `json:"player"`
 }
 
+// DynamoClient is the DynamoDB client.
+// It is the only connection between this package and DynamoDB.
+// It is exported so that it can be overridden in tests.
+var DynamoClient = dynamodb.New(session.Must(session.NewSession(aws.NewConfig().WithRegion(os.Getenv("AWS_REGION")))))
+
 func getAllConnectionIDs(ctx context.Context) ([]string, error) {
-	output, err := dynamoClient().GetItemWithContext(ctx, &dynamodb.GetItemInput{
+	output, err := DynamoClient.GetItemWithContext(ctx, &dynamodb.GetItemInput{
 		TableName: tableName,
 		Key:       connectionsKey,
 	})
@@ -50,7 +55,7 @@ func getAllConnectionIDs(ctx context.Context) ([]string, error) {
 }
 
 func saveConnection(ctx context.Context, connectionID string) error {
-	_, err := dynamoClient().UpdateItemWithContext(ctx, &dynamodb.UpdateItemInput{
+	_, err := DynamoClient.UpdateItemWithContext(ctx, &dynamodb.UpdateItemInput{
 		TableName:        tableName,
 		Key:              connectionsKey,
 		UpdateExpression: aws.String("ADD #c :v"),
@@ -66,7 +71,7 @@ func saveConnection(ctx context.Context, connectionID string) error {
 }
 
 func forgetConnection(ctx context.Context, connectionID string) error {
-	_, err := dynamoClient().UpdateItemWithContext(ctx, &dynamodb.UpdateItemInput{
+	_, err := DynamoClient.UpdateItemWithContext(ctx, &dynamodb.UpdateItemInput{
 		TableName:        tableName,
 		Key:              connectionsKey,
 		UpdateExpression: aws.String("DELETE #c :v"),
@@ -86,7 +91,7 @@ func loadGame(ctx context.Context) (gameItem, error) {
 
 	log.Println("Loading game")
 
-	output, err := dynamoClient().GetItemWithContext(ctx, &dynamodb.GetItemInput{
+	output, err := DynamoClient.GetItemWithContext(ctx, &dynamodb.GetItemInput{
 		TableName: tableName,
 		Key:       makeKey(boardKeyValue),
 	})
@@ -126,16 +131,12 @@ func saveGame(ctx context.Context, game gameItem) error {
 		return err
 	}
 
-	_, err = dynamoClient().PutItemWithContext(ctx, &dynamodb.PutItemInput{
+	_, err = DynamoClient.PutItemWithContext(ctx, &dynamodb.PutItemInput{
 		TableName: tableName,
 		Item:      item,
 	})
 
 	return err
-}
-
-func dynamoClient() *dynamodb.DynamoDB {
-	return dynamodb.New(session.Must(session.NewSession(aws.NewConfig().WithRegion(os.Getenv("AWS_REGION")))))
 }
 
 func makeKey(key string) map[string]*dynamodb.AttributeValue {
