@@ -5,7 +5,10 @@ build:
 	go build -o bin/server ./cmd/server
 
 test:
-	go test ./...
+	go test -short ./...
+
+e2etest:
+	./scripts/e2etest.sh
 
 lint:
 	golangci-lint run --fix
@@ -22,4 +25,4 @@ logs:
 perf:
 	./scripts/perf_test.sh
 
-.PHONY: default build test lint run deploy logs perf
+.PHONY: default build test e2etest lint run deploy logs perf

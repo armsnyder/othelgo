@@ -3,5 +3,6 @@
 package main
 
 import (
-	"golang.org/x/perf/cmd/benchstat"
+	_ "github.com/onsi/ginkgo/ginkgo"
+	_ "golang.org/x/perf/cmd/benchstat"
 )

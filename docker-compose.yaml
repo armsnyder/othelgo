@@ -1,0 +1,7 @@
+version: '3'
+
+services:
+  dynamodb:
+    image: amazon/dynamodb-local
+    ports:
+      - 8042:8000
