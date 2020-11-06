@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/json"
+	"log"
 	"sync"
 	"testing"
 	"time"
@@ -45,6 +46,7 @@ var _ = Describe("Server", func() {
 		useLocalDynamo()
 		clearOthelgoTable()
 		listen = setupMessageListener()
+		log.SetOutput(GinkgoWriter) // Auto-hides server log output for passing tests
 	})
 
 	// Common test constants.
