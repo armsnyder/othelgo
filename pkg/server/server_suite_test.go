@@ -39,9 +39,7 @@ func TestServer(t *testing.T) {
 //
 // See: https://onsi.github.io/ginkgo/#getting-started-writing-your-first-test
 var _ = Describe("Server", func() {
-	var (
-		clientConnectionFactory func() *clientConnection
-	)
+	var clientConnectionFactory func() *clientConnection
 
 	BeforeSuite(func() {
 		// Initialize the in-memory messages channel, which is used to deliver outgoing messages
@@ -64,9 +62,7 @@ var _ = Describe("Server", func() {
 		log.SetOutput(GinkgoWriter)
 	})
 
-	BeforeEach(func() {
-		clearOthelgoTable()
-	})
+	BeforeEach(clearOthelgoTable)
 
 	// Common test constants.
 	newGameBoard := buildBoard([]move{{3, 3}, {4, 4}}, []move{{3, 4}, {4, 3}})
