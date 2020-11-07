@@ -4,10 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"log"
-	"os"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 
@@ -15,7 +13,6 @@ import (
 )
 
 var (
-	tableName            = aws.String("othelgo")
 	connectionsKey       = makeKey("connections")
 	boardKeyValue        = "board"
 	connectionsAttribute = "connections"
@@ -32,14 +29,9 @@ type gameItem struct {
 	PlayerRaw int    `json:"player"`
 }
 
-// DynamoClient is the DynamoDB client.
-// It is the only connection between this package and DynamoDB.
-// It is exported so that it can be overridden in tests.
-var DynamoClient = dynamodb.New(session.Must(session.NewSession(aws.NewConfig().WithRegion(os.Getenv("AWS_REGION")))))
-
 func getAllConnectionIDs(ctx context.Context) ([]string, error) {
-	output, err := DynamoClient.GetItemWithContext(ctx, &dynamodb.GetItemInput{
-		TableName: tableName,
+	output, err := getDynamoClient(ctx).GetItemWithContext(ctx, &dynamodb.GetItemInput{
+		TableName: getTableName(ctx),
 		Key:       connectionsKey,
 	})
 	if err != nil {
@@ -55,8 +47,8 @@ func getAllConnectionIDs(ctx context.Context) ([]string, error) {
 }
 
 func saveConnection(ctx context.Context, connectionID string) error {
-	_, err := DynamoClient.UpdateItemWithContext(ctx, &dynamodb.UpdateItemInput{
-		TableName:        tableName,
+	_, err := getDynamoClient(ctx).UpdateItemWithContext(ctx, &dynamodb.UpdateItemInput{
+		TableName:        getTableName(ctx),
 		Key:              connectionsKey,
 		UpdateExpression: aws.String("ADD #c :v"),
 		ExpressionAttributeNames: map[string]*string{
@@ -71,8 +63,8 @@ func saveConnection(ctx context.Context, connectionID string) error {
 }
 
 func forgetConnection(ctx context.Context, connectionID string) error {
-	_, err := DynamoClient.UpdateItemWithContext(ctx, &dynamodb.UpdateItemInput{
-		TableName:        tableName,
+	_, err := getDynamoClient(ctx).UpdateItemWithContext(ctx, &dynamodb.UpdateItemInput{
+		TableName:        getTableName(ctx),
 		Key:              connectionsKey,
 		UpdateExpression: aws.String("DELETE #c :v"),
 		ExpressionAttributeNames: map[string]*string{
@@ -91,8 +83,8 @@ func loadGame(ctx context.Context) (gameItem, error) {
 
 	log.Println("Loading game")
 
-	output, err := DynamoClient.GetItemWithContext(ctx, &dynamodb.GetItemInput{
-		TableName: tableName,
+	output, err := getDynamoClient(ctx).GetItemWithContext(ctx, &dynamodb.GetItemInput{
+		TableName: getTableName(ctx),
 		Key:       makeKey(boardKeyValue),
 	})
 	if err != nil {
@@ -131,8 +123,8 @@ func saveGame(ctx context.Context, game gameItem) error {
 		return err
 	}
 
-	_, err = DynamoClient.PutItemWithContext(ctx, &dynamodb.PutItemInput{
-		TableName: tableName,
+	_, err = getDynamoClient(ctx).PutItemWithContext(ctx, &dynamodb.PutItemInput{
+		TableName: getTableName(ctx),
 		Item:      item,
 	})
 

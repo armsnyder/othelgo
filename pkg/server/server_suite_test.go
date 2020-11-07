@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"log"
 	"sync"
 	"testing"
@@ -38,15 +39,33 @@ func TestServer(t *testing.T) {
 //
 // See: https://onsi.github.io/ginkgo/#getting-started-writing-your-first-test
 var _ = Describe("Server", func() {
-	// listen is a function that can be called to start receiving messages for a particular connection ID.
-	var listen func(connID string) (messages <-chan interface{}, removeListener func())
+	var (
+		clientConnectionFactory func() *clientConnection
+	)
 
-	// Top-level setup steps which run before each test.
+	BeforeSuite(func() {
+		// Initialize the in-memory messages channel, which is used to deliver outgoing messages
+		// from the server to any listening clients.
+		listen, sendMessageHandler := setupMessagesChannel()
+
+		// Define some test implementations for external dependencies of the main Handler function.
+		// Note that these tests can be run in parallel. The ctx is passed to Handler each time it
+		// is invoked during a test.
+		ctx := NewHandlerContext(context.Background()).
+			WithDynamoClient(testDynamoClient()).
+			WithTableName(testTableName()).
+			WithSendMessageHandler(sendMessageHandler)
+
+		clientConnectionFactory = func() *clientConnection {
+			return newClientConnection(ctx, listen)
+		}
+
+		// Auto-hide server log output for passing tests.
+		log.SetOutput(GinkgoWriter)
+	})
+
 	BeforeEach(func() {
-		useLocalDynamo()
 		clearOthelgoTable()
-		listen = setupMessageListener()
-		log.SetOutput(GinkgoWriter) // Auto-hides server log output for passing tests
 	})
 
 	// Common test constants.
@@ -56,7 +75,7 @@ var _ = Describe("Server", func() {
 		var client *clientConnection
 
 		BeforeEach(func() {
-			client = newClientConnection(listen)
+			client = clientConnectionFactory()
 
 			// Start the singleplayer game by sending a message.
 			client.sendMessage(common.NewNewGameMessage(false, 0))
@@ -102,8 +121,8 @@ var _ = Describe("Server", func() {
 		var host, opponent *clientConnection
 
 		BeforeEach(func() {
-			host = newClientConnection(listen)
-			opponent = newClientConnection(listen)
+			host = clientConnectionFactory()
+			opponent = clientConnectionFactory()
 		})
 
 		When("host starts a new game", func() {
@@ -152,14 +171,18 @@ var _ = Describe("Server", func() {
 	})
 })
 
-// useLocalDynamo replaces the server's real dynamodb client with a local dynamo client.
-func useLocalDynamo() {
-	config := aws.NewConfig().
+// testTableName returns a table name that is unique for the ginkgo test node, allowing tests to
+// run in parallel using different tables.
+func testTableName() *string {
+	return aws.String(fmt.Sprintf("othelgo-%d", GinkgoParallelNode()))
+}
+
+// testDynamoClient returns a DynamoDB client for a local DynamoDB.
+func testDynamoClient() *dynamodb.DynamoDB {
+	return dynamodb.New(session.Must(session.NewSession(aws.NewConfig().
 		WithRegion("us-west-2").
 		WithEndpoint("http://127.0.0.1:8042").
-		WithCredentials(credentials.NewStaticCredentials("foo", "bar", ""))
-
-	DynamoClient = dynamodb.New(session.Must(session.NewSession(config)))
+		WithCredentials(credentials.NewStaticCredentials("foo", "bar", "")))))
 }
 
 // clearOthelgoTable deletes and recreates the othelgo dynamodb table.
@@ -167,10 +190,12 @@ func clearOthelgoTable() {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
-	_, _ = DynamoClient.DeleteTableWithContext(ctx, &dynamodb.DeleteTableInput{TableName: aws.String("othelgo")})
+	_, _ = testDynamoClient().DeleteTableWithContext(ctx, &dynamodb.DeleteTableInput{
+		TableName: testTableName(),
+	})
 
-	_, err := DynamoClient.CreateTableWithContext(ctx, &dynamodb.CreateTableInput{
-		TableName:            aws.String("othelgo"),
+	_, err := testDynamoClient().CreateTableWithContext(ctx, &dynamodb.CreateTableInput{
+		TableName:            testTableName(),
 		AttributeDefinitions: []*dynamodb.AttributeDefinition{{AttributeName: aws.String("id"), AttributeType: aws.String("S")}},
 		KeySchema:            []*dynamodb.KeySchemaElement{{AttributeName: aws.String("id"), KeyType: aws.String("HASH")}},
 		BillingMode:          aws.String("PAY_PER_REQUEST"),
@@ -179,9 +204,13 @@ func clearOthelgoTable() {
 	Expect(err).NotTo(HaveOccurred(), "failed to clear dynamodb table")
 }
 
-// setupMessageListener intercepts outgoing messages from the lambda server and returns a function
+// listenFunc is a function that can be called to start receiving messages for a particular
+// connection ID.
+type listenFunc func(connID string) (messages <-chan interface{}, removeListener func())
+
+// setupMessagesChannel intercepts outgoing messages from the lambda server and returns a function
 // which can be invoked to receive messages for a particular connection ID.
-func setupMessageListener() (listen func(connID string) (messages <-chan interface{}, removeListener func())) {
+func setupMessagesChannel() (listen listenFunc, sendMessageHandler SendMessageHandler) {
 	type message struct {
 		connID  string
 		message interface{}
@@ -189,9 +218,9 @@ func setupMessageListener() (listen func(connID string) (messages <-chan interfa
 
 	messages := make(chan message)
 
-	// Replace the real SendMessage function, which would invoke the API Gateway Management API,
-	// with an implementation that keeps messages in an in-memory messages channel.
-	SendMessage = func(ctx context.Context, reqCtx events.APIGatewayWebsocketProxyRequestContext, connectionID string, msg interface{}) error {
+	// Create a handler for the server, which, instead of invoking the real API Gateway Management
+	// API, sends messages to an in-memory messages channel.
+	sendMessageHandler = func(ctx context.Context, reqCtx events.APIGatewayWebsocketProxyRequestContext, connectionID string, msg interface{}) error {
 		messages <- message{
 			connID:  connectionID,
 			message: msg,
@@ -243,21 +272,23 @@ func setupMessageListener() (listen func(connID string) (messages <-chan interfa
 		return c, removeListener
 	}
 
-	return listen
+	return listen, sendMessageHandler
 }
 
 // clientConnection encapsulates the behavior of a websocket client, since in this test we invoke
 // the Handler function directly instead of really using websockets.
 type clientConnection struct {
+	ctx            context.Context
 	connID         string
 	messages       <-chan interface{}
 	removeListener func()
 }
 
 // newClientConnection creates a new clientConnection and sends a CONNECT message to Handler.
+// The ctx argument is sent to Handler on every invocation.
 // The listen argument is a function for splitting off a new channel for receiving messages for a
 // particular connection ID.
-func newClientConnection(listen func(string) (messages <-chan interface{}, removeListener func())) *clientConnection {
+func newClientConnection(ctx context.Context, listen listenFunc) *clientConnection {
 	// Generate a random connection ID.
 	var connIDSrc [8]byte
 	if _, err := rand.Read(connIDSrc[:]); err != nil {
@@ -269,6 +300,7 @@ func newClientConnection(listen func(string) (messages <-chan interface{}, remov
 	messages, removeListener := listen(connID)
 
 	clientConnection := &clientConnection{
+		ctx:            ctx,
 		connID:         connID,
 		messages:       messages,
 		removeListener: removeListener,
@@ -291,7 +323,7 @@ func (c *clientConnection) sendType(typ string, message interface{}) {
 	if err != nil {
 		panic(err)
 	}
-	_, err = Handler(context.TODO(), events.APIGatewayWebsocketProxyRequest{
+	_, err = Handler(c.ctx, events.APIGatewayWebsocketProxyRequest{
 		Body: string(b),
 		RequestContext: events.APIGatewayWebsocketProxyRequestContext{
 			ConnectionID: c.connID,
