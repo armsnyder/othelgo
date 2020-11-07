@@ -39,6 +39,9 @@ func TestServer(t *testing.T) {
 //
 // See: https://onsi.github.io/ginkgo/#getting-started-writing-your-first-test
 var _ = Describe("Server", func() {
+	// clientConnectionFactory creates a new test client each time it is invoked, with a new
+	// connection ID. The resulting client can be used to send messages to the main Handler function
+	// as well as receive messages sent from the server.
 	var clientConnectionFactory func() *clientConnection
 
 	BeforeSuite(func() {
@@ -67,30 +70,35 @@ var _ = Describe("Server", func() {
 	// Common test constants.
 	newGameBoard := buildBoard([]move{{3, 3}, {4, 4}}, []move{{3, 4}, {4, 3}})
 
-	Context("singleplayer game", func() {
-		var client *clientConnection
+	// Setup host and opponent client connections.
 
+	var host, opponent *clientConnection
+
+	BeforeEach(func() {
+		host = clientConnectionFactory()
+		opponent = clientConnectionFactory()
+	})
+
+	AfterEach(func() {
+		host.close()
+		opponent.close()
+	})
+
+	// Tests start here.
+
+	Context("new singleplayer game", func() {
 		BeforeEach(func() {
-			client = clientConnectionFactory()
-
-			// Start the singleplayer game by sending a message.
-			client.sendMessage(common.NewNewGameMessage(false, 0))
+			host.sendMessage(common.NewNewGameMessage(false, 0))
 		})
 
-		AfterEach(func() {
-			client.close()
-		})
-
-		When("new game starts", func() {
-			It("should send a new game board", func(done Done) {
-				Eventually(client.receiveMessage).Should(WithTransform(getBoard, Equal(newGameBoard)))
-				close(done)
-			})
+		It("should send a new game board", func(done Done) {
+			Eventually(host.receiveMessage).Should(WithTransform(getBoard, Equal(newGameBoard)))
+			close(done)
 		})
 
 		When("human player places a disk", func() {
 			BeforeEach(func() {
-				client.sendMessage(common.NewPlaceDiskMessage(1, 2, 4))
+				host.sendMessage(common.NewPlaceDiskMessage(1, 2, 4))
 			})
 
 			It("should change to player 2's turn and send the updated board", func(done Done) {
@@ -99,12 +107,12 @@ var _ = Describe("Server", func() {
 					WithTransform(getBoard, Equal(expectedBoard)),
 					WithTransform(whoseTurn, Equal(2)),
 				)
-				Eventually(client.receiveMessage).Should(expectBoardUpdatedMessage)
+				Eventually(host.receiveMessage).Should(expectBoardUpdatedMessage)
 				close(done)
 			})
 
 			It("should make an AI move and send the updated board", func(done Done) {
-				Eventually(client.receiveMessage).Should(And(
+				Eventually(host.receiveMessage).Should(And(
 					WithTransform(countDisks, Equal(6)),
 					WithTransform(whoseTurn, Equal(1)),
 				))
@@ -113,54 +121,45 @@ var _ = Describe("Server", func() {
 		})
 	})
 
-	Context("multiplayer game", func() {
-		var host, opponent *clientConnection
-
+	Context("new multiplayer game", func() {
 		BeforeEach(func() {
-			host = clientConnectionFactory()
-			opponent = clientConnectionFactory()
+			host.sendMessage(common.NewNewGameMessage(true, 0))
 		})
 
-		When("host starts a new game", func() {
+		It("should send a new game board to the host", func(done Done) {
+			Eventually(host.receiveMessage).Should(WithTransform(getBoard, Equal(newGameBoard)))
+			close(done)
+		})
+
+		Context("opponent joins the game", func() {
 			BeforeEach(func() {
-				host.sendMessage(common.NewNewGameMessage(true, 0))
+				opponent.sendMessage(common.NewJoinGameMessage())
 			})
 
-			It("should send a new game board to the host", func(done Done) {
-				Eventually(host.receiveMessage).Should(WithTransform(getBoard, Equal(newGameBoard)))
+			It("should send a new game board to the opponent", func(done Done) {
+				Eventually(opponent.receiveMessage).Should(WithTransform(getBoard, Equal(newGameBoard)))
 				close(done)
 			})
 
-			When("opponent joins the game", func() {
+			When("host makes the first move", func() {
 				BeforeEach(func() {
-					opponent.sendMessage(common.NewJoinGameMessage())
+					host.sendMessage(common.NewPlaceDiskMessage(1, 2, 4))
 				})
 
-				It("should send a new game board to the opponent", func(done Done) {
-					Eventually(opponent.receiveMessage).Should(WithTransform(getBoard, Equal(newGameBoard)))
+				expectedBoard := buildBoard([]move{{3, 3}, {4, 4}, {3, 4}, {2, 4}}, []move{{4, 3}})
+				expectBoardUpdatedMessage := And(
+					WithTransform(getBoard, Equal(expectedBoard)),
+					WithTransform(whoseTurn, Equal(2)),
+				)
+
+				It("should send the resulting board to the host", func(done Done) {
+					Eventually(host.receiveMessage).Should(expectBoardUpdatedMessage)
 					close(done)
 				})
 
-				When("host makes the first move", func() {
-					BeforeEach(func() {
-						host.sendMessage(common.NewPlaceDiskMessage(1, 2, 4))
-					})
-
-					expectedBoard := buildBoard([]move{{3, 3}, {4, 4}, {3, 4}, {2, 4}}, []move{{4, 3}})
-					expectBoardUpdatedMessage := And(
-						WithTransform(getBoard, Equal(expectedBoard)),
-						WithTransform(whoseTurn, Equal(2)),
-					)
-
-					It("should send the resulting board to the host", func(done Done) {
-						Eventually(host.receiveMessage).Should(expectBoardUpdatedMessage)
-						close(done)
-					})
-
-					It("should send the resulting board to the opponent", func(done Done) {
-						Eventually(opponent.receiveMessage).Should(expectBoardUpdatedMessage)
-						close(done)
-					})
+				It("should send the resulting board to the opponent", func(done Done) {
+					Eventually(opponent.receiveMessage).Should(expectBoardUpdatedMessage)
+					close(done)
 				})
 			})
 		})
