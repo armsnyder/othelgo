@@ -25,6 +25,11 @@ const BoardSize = 8
 
 type Disk uint8
 
+const (
+	Player1 = Disk(1)
+	Player2 = Disk(2)
+)
+
 type Board [BoardSize][BoardSize]Disk
 
 func (b Board) String() string {

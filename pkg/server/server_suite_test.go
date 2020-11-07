@@ -84,61 +84,86 @@ var _ = Describe("Server", func() {
 		opponent.close()
 	})
 
+	// Placeholder for a current message to run assertions on.
+	var message common.UpdateBoardMessage
+
+	// receiveMessage loads the next message from a particular clientConnection.
+	receiveMessage := func(client **clientConnection) func(Done) {
+		return func(done Done) {
+			messageOfUnknownType := <-(*client).messages
+			Expect(messageOfUnknownType).To(BeAssignableToTypeOf(common.UpdateBoardMessage{}))
+			message = messageOfUnknownType.(common.UpdateBoardMessage)
+			close(done)
+		}
+	}
+
 	// Tests start here.
 
 	Context("new singleplayer game", func() {
-		BeforeEach(func() {
+		BeforeEach(func(done Done) {
 			host.sendMessage(common.NewNewGameMessage(false, 0))
+			receiveMessage(&host)(done)
 		})
 
-		It("should send a new game board", func(done Done) {
-			Eventually(host.receiveMessage).Should(WithTransform(getBoard, Equal(newGameBoard)))
-			close(done)
+		It("should be a new game board", func() {
+			Expect(message.Board).To(Equal(newGameBoard))
 		})
 
-		When("human player places a disk", func() {
-			BeforeEach(func() {
+		When("player moves", func() {
+			BeforeEach(func(done Done) {
 				host.sendMessage(common.NewPlaceDiskMessage(1, 2, 4))
+				receiveMessage(&host)(done)
 			})
 
-			It("should change to player 2's turn and send the updated board", func(done Done) {
+			It("should update the board", func() {
 				expectedBoard := buildBoard([]move{{3, 3}, {4, 4}, {3, 4}, {2, 4}}, []move{{4, 3}})
-				expectBoardUpdatedMessage := And(
-					WithTransform(getBoard, Equal(expectedBoard)),
-					WithTransform(whoseTurn, Equal(2)),
-				)
-				Eventually(host.receiveMessage).Should(expectBoardUpdatedMessage)
-				close(done)
+				Expect(message.Board).To(Equal(expectedBoard))
 			})
 
-			It("should make an AI move and send the updated board", func(done Done) {
-				Eventually(host.receiveMessage).Should(And(
-					WithTransform(countDisks, Equal(6)),
-					WithTransform(whoseTurn, Equal(1)),
-				))
-				close(done)
+			It("should be player 2's turn", func() {
+				Expect(message.Player).To(Equal(common.Player2))
+			})
+
+			When("AI moves", func() {
+				BeforeEach(receiveMessage(&host))
+
+				It("should update the board with the AI move", func() {
+					p1, p2 := common.KeepScore(message.Board)
+					totalDisks := p1 + p2
+					Expect(totalDisks).To(Equal(6))
+				})
+
+				It("should be player 1's turn", func() {
+					Expect(message.Player).To(Equal(common.Player1))
+				})
 			})
 		})
 	})
 
 	Context("new multiplayer game", func() {
-		BeforeEach(func() {
+		BeforeEach(func(done Done) {
 			host.sendMessage(common.NewNewGameMessage(true, 0))
+			receiveMessage(&host)(done)
 		})
 
-		It("should send a new game board to the host", func(done Done) {
-			Eventually(host.receiveMessage).Should(WithTransform(getBoard, Equal(newGameBoard)))
-			close(done)
+		// TODO: The opponent should ideally not receive the response as well.
+		BeforeEach(func() {
+			// Throw away the opponent message.
+			<-opponent.messages
+		})
+
+		It("should be a new game board", func() {
+			Expect(message.Board).To(Equal(newGameBoard))
 		})
 
 		Context("opponent joins the game", func() {
-			BeforeEach(func() {
+			BeforeEach(func(done Done) {
 				opponent.sendMessage(common.NewJoinGameMessage())
+				receiveMessage(&opponent)(done)
 			})
 
-			It("should send a new game board to the opponent", func(done Done) {
-				Eventually(opponent.receiveMessage).Should(WithTransform(getBoard, Equal(newGameBoard)))
-				close(done)
+			It("should send a new game board to the opponent", func() {
+				Expect(message.Board).To(Equal(newGameBoard))
 			})
 
 			When("host makes the first move", func() {
@@ -146,20 +171,33 @@ var _ = Describe("Server", func() {
 					host.sendMessage(common.NewPlaceDiskMessage(1, 2, 4))
 				})
 
-				expectedBoard := buildBoard([]move{{3, 3}, {4, 4}, {3, 4}, {2, 4}}, []move{{4, 3}})
-				expectBoardUpdatedMessage := And(
-					WithTransform(getBoard, Equal(expectedBoard)),
-					WithTransform(whoseTurn, Equal(2)),
+				expectedBoardAfterFirstMove := buildBoard(
+					[]move{{3, 3}, {4, 4}, {3, 4}, {2, 4}},
+					[]move{{4, 3}},
 				)
 
-				It("should send the resulting board to the host", func(done Done) {
-					Eventually(host.receiveMessage).Should(expectBoardUpdatedMessage)
-					close(done)
+				When("host receives message", func() {
+					BeforeEach(receiveMessage(&host))
+
+					It("should receive the updated board", func() {
+						Expect(message.Board).To(Equal(expectedBoardAfterFirstMove))
+					})
+
+					It("should be player 2's turn", func() {
+						Expect(message.Player).To(Equal(common.Player2))
+					})
 				})
 
-				It("should send the resulting board to the opponent", func(done Done) {
-					Eventually(opponent.receiveMessage).Should(expectBoardUpdatedMessage)
-					close(done)
+				When("opponent receives message", func() {
+					BeforeEach(receiveMessage(&opponent))
+
+					It("should receive the updated board", func() {
+						Expect(message.Board).To(Equal(expectedBoardAfterFirstMove))
+					})
+
+					It("should be player 2's turn", func() {
+						Expect(message.Player).To(Equal(common.Player2))
+					})
 				})
 			})
 		})
@@ -232,6 +270,8 @@ func setupMessagesChannel() (listen listenFunc, sendMessageHandler SendMessageHa
 	// Start a background routine of routing messages to the correct connection-id-specific listener.
 	go func() {
 		for msg := range messages {
+			log.Printf("%+v\n", msg)
+
 			listenersMu.Lock()
 			listener, ok := listeners[msg.connID]
 			listenersMu.Unlock()
@@ -333,12 +373,6 @@ func (c *clientConnection) sendType(typ string, message interface{}) {
 	Expect(err).NotTo(HaveOccurred())
 }
 
-// receiveMessage returns the next message received by the client. It blocks until a message is
-// available.
-func (c *clientConnection) receiveMessage() interface{} {
-	return <-c.messages
-}
-
 // close cleans up the client and sends a DISCONNECT message to Handler.
 func (c *clientConnection) close() {
 	c.sendType("DISCONNECT", nil)
@@ -358,19 +392,4 @@ func buildBoard(p1, p2 []move) (board common.Board) {
 	}
 
 	return board
-}
-
-// gomega matcher Transform functions, used in assertions.
-
-func getBoard(message common.UpdateBoardMessage) common.Board {
-	return message.Board
-}
-
-func countDisks(message common.UpdateBoardMessage) int {
-	p1, p2 := common.KeepScore(message.Board)
-	return p1 + p2
-}
-
-func whoseTurn(message common.UpdateBoardMessage) int {
-	return int(message.Player)
 }

@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"log"
 
 	"github.com/aws/aws-lambda-go/events"
 	"golang.org/x/sync/errgroup"
@@ -27,11 +28,12 @@ func broadcastMessage(ctx context.Context, reqCtx events.APIGatewayWebsocketProx
 }
 
 func reply(ctx context.Context, reqCtx events.APIGatewayWebsocketProxyRequestContext, message interface{}) error {
-	return getSendMessageHandler(ctx)(ctx, reqCtx, reqCtx.ConnectionID, message)
+	return sendMessage(ctx, reqCtx, reqCtx.ConnectionID, message)()
 }
 
 func sendMessage(ctx context.Context, reqCtx events.APIGatewayWebsocketProxyRequestContext, connectionID string, message interface{}) func() error {
 	return func() error {
+		log.Printf("Sending message to connection %s", connectionID)
 		return getSendMessageHandler(ctx)(ctx, reqCtx, connectionID, message)
 	}
 }

@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"os"
 
 	"github.com/aws/aws-lambda-go/events"
@@ -78,8 +77,6 @@ func defaultSendMessageHandler(ctx context.Context, reqCtx events.APIGatewayWebs
 
 	endpoint := fmt.Sprintf("https://%s/%s/", reqCtx.DomainName, reqCtx.Stage)
 	client := apigatewaymanagementapi.New(session.Must(session.NewSession(aws.NewConfig().WithEndpoint(endpoint))))
-
-	log.Printf("Sending message to connection %s", connectionID)
 
 	_, err = client.PostToConnectionWithContext(ctx, &apigatewaymanagementapi.PostToConnectionInput{
 		ConnectionId: &connectionID,
