@@ -318,13 +318,18 @@ func (c *clientConnection) sendType(typ string, message interface{}) {
 	if err != nil {
 		panic(err)
 	}
-	_, err = Handler(c.ctx, events.APIGatewayWebsocketProxyRequest{
+
+	ctx, cancel := context.WithTimeout(c.ctx, time.Second)
+	defer cancel()
+
+	_, err = Handler(ctx, events.APIGatewayWebsocketProxyRequest{
 		Body: string(b),
 		RequestContext: events.APIGatewayWebsocketProxyRequestContext{
 			ConnectionID: c.connID,
 			EventType:    typ,
 		},
 	})
+
 	Expect(err).NotTo(HaveOccurred())
 }
 
