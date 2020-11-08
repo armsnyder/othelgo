@@ -70,105 +70,198 @@ var _ = Describe("Server", func() {
 	// Common test constants.
 	newGameBoard := buildBoard([]move{{3, 3}, {4, 4}}, []move{{3, 4}, {4, 3}})
 
-	// Setup host and opponent client connections.
+	// Setup some client connections.
 
-	var host, opponent *clientConnection
+	var flame, zinger, craig *clientConnection
 
 	BeforeEach(func() {
-		host = clientConnectionFactory()
-		opponent = clientConnectionFactory()
+		flame = clientConnectionFactory()
+		zinger = clientConnectionFactory()
+		craig = clientConnectionFactory()
 	})
 
 	AfterEach(func() {
-		host.close()
-		opponent.close()
+		flame.close()
+		zinger.close()
+		craig.close()
 	})
 
 	// Placeholder for a current message to run assertions on.
-	var message common.UpdateBoardMessage
+	var message interface{}
 
 	// receiveMessage loads the next message from a particular clientConnection.
 	receiveMessage := func(client **clientConnection) func(Done) {
 		return func(done Done) {
-			messageOfUnknownType := <-(*client).messages
-			Expect(messageOfUnknownType).To(BeAssignableToTypeOf(common.UpdateBoardMessage{}))
-			message = messageOfUnknownType.(common.UpdateBoardMessage)
+			message = <-(*client).messages
 			close(done)
 		}
 	}
 
 	// Tests start here.
 
-	Context("new singleplayer game", func() {
+	When("no games", func() {
+		When("zinger lists open games", func() {
+			BeforeEach(func(done Done) {
+				zinger.sendMessage(common.NewListOpenGamesMessage())
+				receiveMessage(&zinger)(done)
+			})
+
+			It("should have no open games", func() {
+				hosts := message.(common.OpenGamesMessage).Hosts
+				Expect(hosts).To(BeEmpty())
+			})
+		})
+	})
+
+	When("flame starts a solo game", func() {
 		BeforeEach(func(done Done) {
-			host.sendMessage(common.NewNewGameMessage(false, 0))
-			receiveMessage(&host)(done)
+			flame.sendMessage(common.NewStartSoloGameMessage("flame", 0))
+			receiveMessage(&flame)(done)
 		})
 
 		It("should be a new game board", func() {
-			Expect(message.Board).To(Equal(newGameBoard))
+			board := message.(common.UpdateBoardMessage).Board
+			Expect(board).To(Equal(newGameBoard))
+		})
+
+		When("zinger lists open games", func() {
+			BeforeEach(func(done Done) {
+				zinger.sendMessage(common.NewListOpenGamesMessage())
+				receiveMessage(&zinger)(done)
+			})
+
+			It("should have no open games", func() {
+				hosts := message.(common.OpenGamesMessage).Hosts
+				Expect(hosts).To(BeEmpty())
+			})
 		})
 
 		When("player moves", func() {
 			BeforeEach(func(done Done) {
-				host.sendMessage(common.NewPlaceDiskMessage(1, 2, 4))
-				receiveMessage(&host)(done)
+				flame.sendMessage(common.NewPlaceDiskMessage("flame", "flame", 2, 4))
+				receiveMessage(&flame)(done)
 			})
 
 			It("should update the board", func() {
 				expectedBoard := buildBoard([]move{{3, 3}, {4, 4}, {3, 4}, {2, 4}}, []move{{4, 3}})
-				Expect(message.Board).To(Equal(expectedBoard))
+				board := message.(common.UpdateBoardMessage).Board
+				Expect(board).To(Equal(expectedBoard))
 			})
 
 			It("should be player 2's turn", func() {
-				Expect(message.Player).To(Equal(common.Player2))
+				player := message.(common.UpdateBoardMessage).Player
+				Expect(player).To(Equal(common.Player2))
 			})
 
 			When("AI moves", func() {
-				BeforeEach(receiveMessage(&host))
+				BeforeEach(receiveMessage(&flame))
 
 				It("should update the board with the AI move", func() {
-					p1, p2 := common.KeepScore(message.Board)
+					board := message.(common.UpdateBoardMessage).Board
+					p1, p2 := common.KeepScore(board)
 					totalDisks := p1 + p2
 					Expect(totalDisks).To(Equal(6))
 				})
 
 				It("should be player 1's turn", func() {
-					Expect(message.Player).To(Equal(common.Player1))
+					player := message.(common.UpdateBoardMessage).Player
+					Expect(player).To(Equal(common.Player1))
+				})
+
+				Context("zinger", func() {
+					It("should not have received any messages", func() {
+						Expect(zinger.messages).NotTo(Receive())
+					})
 				})
 			})
 		})
 	})
 
-	Context("new multiplayer game", func() {
+	When("flame hosts a game", func() {
 		BeforeEach(func(done Done) {
-			host.sendMessage(common.NewNewGameMessage(true, 0))
-			receiveMessage(&host)(done)
-		})
-
-		// TODO: The opponent should ideally not receive the response as well.
-		BeforeEach(func() {
-			// Throw away the opponent message.
-			<-opponent.messages
+			flame.sendMessage(common.NewHostGameMessage("flame"))
+			receiveMessage(&flame)(done)
 		})
 
 		It("should be a new game board", func() {
-			Expect(message.Board).To(Equal(newGameBoard))
+			board := message.(common.UpdateBoardMessage).Board
+			Expect(board).To(Equal(newGameBoard))
 		})
 
-		Context("opponent joins the game", func() {
+		When("craig hosts a game", func() {
 			BeforeEach(func(done Done) {
-				opponent.sendMessage(common.NewJoinGameMessage())
-				receiveMessage(&opponent)(done)
+				craig.sendMessage(common.NewHostGameMessage("craig"))
+				receiveMessage(&craig)(done)
 			})
 
-			It("should send a new game board to the opponent", func() {
-				Expect(message.Board).To(Equal(newGameBoard))
+			It("should be a new game board", func() {
+				board := message.(common.UpdateBoardMessage).Board
+				Expect(board).To(Equal(newGameBoard))
 			})
 
-			When("host makes the first move", func() {
+			When("zinger lists open games", func() {
+				BeforeEach(func(done Done) {
+					zinger.sendMessage(common.NewListOpenGamesMessage())
+					receiveMessage(&zinger)(done)
+				})
+
+				It("should show both flame and craig's games are open", func() {
+					hosts := message.(common.OpenGamesMessage).Hosts
+					Expect(hosts).To(ConsistOf("flame", "craig"))
+				})
+			})
+		})
+
+		When("zinger lists open games", func() {
+			BeforeEach(func(done Done) {
+				zinger.sendMessage(common.NewListOpenGamesMessage())
+				receiveMessage(&zinger)(done)
+			})
+
+			It("should show flame's game is open", func() {
+				hosts := message.(common.OpenGamesMessage).Hosts
+				Expect(hosts).To(Equal([]string{"flame"}))
+			})
+		})
+
+		When("craig lists open games", func() {
+			BeforeEach(func(done Done) {
+				craig.sendMessage(common.NewListOpenGamesMessage())
+				receiveMessage(&craig)(done)
+			})
+
+			It("should show flame's game is open", func() {
+				hosts := message.(common.OpenGamesMessage).Hosts
+				Expect(hosts).To(Equal([]string{"flame"}))
+			})
+		})
+
+		Context("zinger joins the game", func() {
+			BeforeEach(func(done Done) {
+				zinger.sendMessage(common.NewJoinGameMessage("zinger", "flame"))
+				receiveMessage(&zinger)(done)
+			})
+
+			It("should send a new game board to zinger", func() {
+				board := message.(common.UpdateBoardMessage).Board
+				Expect(board).To(Equal(newGameBoard))
+			})
+
+			When("craig lists open games", func() {
+				BeforeEach(func(done Done) {
+					craig.sendMessage(common.NewListOpenGamesMessage())
+					receiveMessage(&craig)(done)
+				})
+
+				It("should have no open games", func() {
+					hosts := message.(common.OpenGamesMessage).Hosts
+					Expect(hosts).To(BeEmpty())
+				})
+			})
+
+			When("flame makes the first move", func() {
 				BeforeEach(func() {
-					host.sendMessage(common.NewPlaceDiskMessage(1, 2, 4))
+					flame.sendMessage(common.NewPlaceDiskMessage("flame", "flame", 2, 4))
 				})
 
 				expectedBoardAfterFirstMove := buildBoard(
@@ -176,27 +269,37 @@ var _ = Describe("Server", func() {
 					[]move{{4, 3}},
 				)
 
-				When("host receives message", func() {
-					BeforeEach(receiveMessage(&host))
-
-					It("should receive the updated board", func() {
-						Expect(message.Board).To(Equal(expectedBoardAfterFirstMove))
-					})
-
-					It("should be player 2's turn", func() {
-						Expect(message.Player).To(Equal(common.Player2))
+				Context("craig", func() {
+					It("should not have received any messages", func() {
+						Expect(craig.messages).NotTo(Receive())
 					})
 				})
 
-				When("opponent receives message", func() {
-					BeforeEach(receiveMessage(&opponent))
+				When("flame receives message", func() {
+					BeforeEach(receiveMessage(&flame))
 
 					It("should receive the updated board", func() {
-						Expect(message.Board).To(Equal(expectedBoardAfterFirstMove))
+						board := message.(common.UpdateBoardMessage).Board
+						Expect(board).To(Equal(expectedBoardAfterFirstMove))
 					})
 
 					It("should be player 2's turn", func() {
-						Expect(message.Player).To(Equal(common.Player2))
+						player := message.(common.UpdateBoardMessage).Player
+						Expect(player).To(Equal(common.Player2))
+					})
+				})
+
+				When("zinger receives message", func() {
+					BeforeEach(receiveMessage(&zinger))
+
+					It("should receive the updated board", func() {
+						board := message.(common.UpdateBoardMessage).Board
+						Expect(board).To(Equal(expectedBoardAfterFirstMove))
+					})
+
+					It("should be player 2's turn", func() {
+						player := message.(common.UpdateBoardMessage).Player
+						Expect(player).To(Equal(common.Player2))
 					})
 				})
 			})
@@ -207,7 +310,7 @@ var _ = Describe("Server", func() {
 // testTableName returns a table name that is unique for the ginkgo test node, allowing tests to
 // run in parallel using different tables.
 func testTableName() *string {
-	return aws.String(fmt.Sprintf("othelgo-%d", GinkgoParallelNode()))
+	return aws.String(fmt.Sprintf("Othelgo-%d", GinkgoParallelNode()))
 }
 
 // testDynamoClient returns a DynamoDB client for a local DynamoDB.
@@ -228,10 +331,27 @@ func clearOthelgoTable() {
 	})
 
 	_, err := testDynamoClient().CreateTableWithContext(ctx, &dynamodb.CreateTableInput{
-		TableName:            testTableName(),
-		AttributeDefinitions: []*dynamodb.AttributeDefinition{{AttributeName: aws.String("id"), AttributeType: aws.String("S")}},
-		KeySchema:            []*dynamodb.KeySchemaElement{{AttributeName: aws.String("id"), KeyType: aws.String("HASH")}},
-		BillingMode:          aws.String("PAY_PER_REQUEST"),
+		TableName: testTableName(),
+		AttributeDefinitions: []*dynamodb.AttributeDefinition{
+			{AttributeName: aws.String("Host"), AttributeType: aws.String("S")},
+			{AttributeName: aws.String("Opponent"), AttributeType: aws.String("S")},
+		},
+		KeySchema: []*dynamodb.KeySchemaElement{
+			{AttributeName: aws.String("Host"), KeyType: aws.String(dynamodb.KeyTypeHash)},
+		},
+		GlobalSecondaryIndexes: []*dynamodb.GlobalSecondaryIndex{
+			{
+				IndexName: aws.String("ByOpponent"),
+				KeySchema: []*dynamodb.KeySchemaElement{
+					{AttributeName: aws.String("Opponent"), KeyType: aws.String(dynamodb.KeyTypeHash)},
+					{AttributeName: aws.String("Host"), KeyType: aws.String(dynamodb.KeyTypeRange)},
+				},
+				Projection: &dynamodb.Projection{
+					ProjectionType: aws.String(dynamodb.ProjectionTypeKeysOnly),
+				},
+			},
+		},
+		BillingMode: aws.String("PAY_PER_REQUEST"),
 	})
 
 	Expect(err).NotTo(HaveOccurred(), "failed to clear dynamodb table")

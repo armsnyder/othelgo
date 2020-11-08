@@ -3,134 +3,156 @@ package server
 import (
 	"context"
 	"encoding/json"
-	"log"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
+	"github.com/aws/aws-sdk-go/service/dynamodb/expression"
 
 	"github.com/armsnyder/othelgo/pkg/common"
 )
 
-var (
-	connectionsKey       = makeKey("connections")
-	boardKeyValue        = "board"
-	connectionsAttribute = "connections"
+// This file has methods for querying the database. The methods are "dumb" in all respects, with
+// the exception that it is able to marshal and unmarshal the Game JSON. They don't know what the
+// data is used for, only how to access it. Add new methods whenever new access patterns are needed
+// by the handler.
+
+const (
+	attribHost        = "Host"
+	attribOpponent    = "Opponent"
+	attribGame        = "Game"
+	attribConnections = "Connections"
 )
 
-type gameItem struct {
-	Board       common.Board `json:"-"`
-	Player      common.Disk  `json:"-"`
-	Multiplayer bool         `json:"multiplayer"`
-	Difficulty  int          `json:"difficulty"`
-
-	ID        string `json:"id"`
-	BoardRaw  []byte `json:"board"`
-	PlayerRaw int    `json:"player"`
+type game struct {
+	Board      common.Board
+	Difficulty int
+	Player     common.Disk
 }
 
-func getAllConnectionIDs(ctx context.Context) ([]string, error) {
+func getGameAndOpponentAndConnectionIDs(ctx context.Context, host string) (game, string, []string, error) {
+	// Get the whole item from DynamoDB.
 	output, err := getDynamoClient(ctx).GetItemWithContext(ctx, &dynamodb.GetItemInput{
 		TableName: getTableName(ctx),
-		Key:       connectionsKey,
+		Key:       hostKey(host),
+	})
+	if err != nil {
+		return game{}, "", nil, err
+	}
+
+	// Read the attributes into a struct.
+	var item struct {
+		Game        []byte
+		Opponent    string
+		Connections map[string]string
+	}
+	if err := dynamodbattribute.UnmarshalMap(output.Item, &item); err != nil {
+		return game{}, "", nil, err
+	}
+
+	// Unmarshal the game JSON.
+	var game game
+	if err := json.Unmarshal(item.Game, &game); err != nil {
+		return game, "", nil, err
+	}
+
+	// Get just the connection ID values.
+	var connectionIDs []string
+	for _, v := range item.Connections {
+		connectionIDs = append(connectionIDs, v)
+	}
+
+	return game, item.Opponent, connectionIDs, err
+}
+
+func updateGame(ctx context.Context, host string, game game) error {
+	gameBytes, err := json.Marshal(&game)
+	if err != nil {
+		return err
+	}
+
+	update := expression.Set(expression.Name(attribGame), expression.Value(gameBytes))
+
+	_, err = updateItem(ctx, host, update, false)
+	return err
+}
+
+func updateGameOpponentSetConnection(ctx context.Context, host string, game game, opponent, connName, connID string) error {
+	gameBytes, err := json.Marshal(&game)
+	if err != nil {
+		return err
+	}
+
+	update := expression.
+		Set(expression.Name(attribGame), expression.Value(gameBytes)).
+		Set(expression.Name(attribOpponent), expression.Value(opponent)).
+		Set(expression.Name(attribConnections), expression.Value(map[string]string{connName: connID}))
+
+	_, err = updateItem(ctx, host, update, false)
+	return err
+}
+
+func updateOpponentConnectionGetGame(ctx context.Context, host, opponent, connName, connID string) (game, error) {
+	update := expression.
+		Set(expression.Name(attribOpponent), expression.Value(opponent)).
+		Set(expression.Name(attribConnections+"."+connName), expression.Value(connID))
+
+	output, err := updateItem(ctx, host, update, true)
+	if err != nil {
+		return game{}, err
+	}
+
+	var game game
+	err = json.Unmarshal(output.Attributes[attribGame].B, &game)
+
+	return game, err
+}
+
+func getHostsByOpponent(ctx context.Context, opponent string) ([]string, error) {
+	output, err := getDynamoClient(ctx).QueryWithContext(ctx, &dynamodb.QueryInput{
+		TableName: getTableName(ctx),
+		IndexName: aws.String("ByOpponent"),
+		KeyConditions: map[string]*dynamodb.Condition{
+			attribOpponent: {
+				ComparisonOperator: aws.String(dynamodb.ComparisonOperatorEq),
+				AttributeValueList: []*dynamodb.AttributeValue{{S: aws.String(opponent)}},
+			},
+		},
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	var result []string
-	for _, connectionID := range output.Item[connectionsAttribute].SS {
-		result = append(result, *connectionID)
+	var hosts []string
+	for _, item := range output.Items {
+		hosts = append(hosts, *item[attribHost].S)
 	}
 
-	return result, nil
+	return hosts, nil
 }
 
-func saveConnection(ctx context.Context, connectionID string) error {
-	_, err := getDynamoClient(ctx).UpdateItemWithContext(ctx, &dynamodb.UpdateItemInput{
-		TableName:        getTableName(ctx),
-		Key:              connectionsKey,
-		UpdateExpression: aws.String("ADD #c :v"),
-		ExpressionAttributeNames: map[string]*string{
-			"#c": &connectionsAttribute,
-		},
-		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
-			":v": {SS: aws.StringSlice([]string{connectionID})},
-		},
-	})
-
-	return err
-}
-
-func forgetConnection(ctx context.Context, connectionID string) error {
-	_, err := getDynamoClient(ctx).UpdateItemWithContext(ctx, &dynamodb.UpdateItemInput{
-		TableName:        getTableName(ctx),
-		Key:              connectionsKey,
-		UpdateExpression: aws.String("DELETE #c :v"),
-		ExpressionAttributeNames: map[string]*string{
-			"#c": &connectionsAttribute,
-		},
-		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
-			":v": {SS: aws.StringSlice([]string{connectionID})},
-		},
-	})
-
-	return err
-}
-
-func loadGame(ctx context.Context) (gameItem, error) {
-	var gameItem gameItem
-
-	log.Println("Loading game")
-
-	output, err := getDynamoClient(ctx).GetItemWithContext(ctx, &dynamodb.GetItemInput{
-		TableName: getTableName(ctx),
-		Key:       makeKey(boardKeyValue),
-	})
+// updateItem wraps dynamodb.UpdateItemWithContext.
+func updateItem(ctx context.Context, host string, update expression.UpdateBuilder, returnOldValues bool) (*dynamodb.UpdateItemOutput, error) {
+	exp, err := expression.NewBuilder().WithUpdate(update).Build()
 	if err != nil {
-		return gameItem, err
+		return nil, err
 	}
 
-	if err := dynamodbattribute.UnmarshalMap(output.Item, &gameItem); err != nil {
-		return gameItem, err
+	input := &dynamodb.UpdateItemInput{
+		TableName:                 getTableName(ctx),
+		Key:                       hostKey(host),
+		UpdateExpression:          exp.Update(),
+		ExpressionAttributeNames:  exp.Names(),
+		ExpressionAttributeValues: exp.Values(),
 	}
 
-	var board common.Board
-	if err := json.Unmarshal(gameItem.BoardRaw, &board); err != nil {
-		return gameItem, err
+	if returnOldValues {
+		input.ReturnValues = aws.String(dynamodb.ReturnValueAllOld)
 	}
 
-	gameItem.Board = board
-	gameItem.Player = common.Disk(gameItem.PlayerRaw)
-
-	return gameItem, err
+	return getDynamoClient(ctx).UpdateItemWithContext(ctx, input)
 }
 
-func saveGame(ctx context.Context, game gameItem) error {
-	log.Println("Saving game")
-
-	b, err := json.Marshal(game.Board)
-	if err != nil {
-		return err
-	}
-
-	game.ID = boardKeyValue
-	game.BoardRaw = b
-	game.PlayerRaw = int(game.Player)
-
-	item, err := dynamodbattribute.MarshalMap(game)
-	if err != nil {
-		return err
-	}
-
-	_, err = getDynamoClient(ctx).PutItemWithContext(ctx, &dynamodb.PutItemInput{
-		TableName: getTableName(ctx),
-		Item:      item,
-	})
-
-	return err
-}
-
-func makeKey(key string) map[string]*dynamodb.AttributeValue {
-	return map[string]*dynamodb.AttributeValue{"id": {S: &key}}
+func hostKey(host string) map[string]*dynamodb.AttributeValue {
+	return map[string]*dynamodb.AttributeValue{attribHost: {S: aws.String(host)}}
 }

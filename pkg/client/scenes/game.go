@@ -31,9 +31,9 @@ func (g *Game) Setup(changeScene ChangeScene, sendMessage SendMessage) error {
 
 	var message interface{}
 	if g.player == 1 {
-		message = common.NewNewGameMessage(g.multiplayer, g.difficulty)
+		message = common.NewNewGameMessageOLD(g.multiplayer, g.difficulty)
 	} else {
-		message = common.NewJoinGameMessage()
+		message = common.NewJoinGameMessageOLD()
 	}
 
 	return sendMessage(message)
@@ -58,7 +58,7 @@ func (g *Game) OnTerminalEvent(event termbox.Event) error {
 		board, updated := common.ApplyMove(g.board, g.curSquareX, g.curSquareY, g.player)
 		if updated {
 			g.board = board
-			message := common.NewPlaceDiskMessage(g.player, g.curSquareX, g.curSquareY)
+			message := common.NewPlaceDiskMessageOLD(g.player, g.curSquareX, g.curSquareY)
 			if err := g.SendMessage(message); err != nil {
 				return err
 			}

@@ -8,16 +8,9 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-func broadcastMessage(ctx context.Context, reqCtx events.APIGatewayWebsocketProxyRequestContext, message interface{}) error {
-	connectionIDs, err := getAllConnectionIDs(ctx)
-	if err != nil {
-		return err
-	}
-
+func broadcast(ctx context.Context, reqCtx events.APIGatewayWebsocketProxyRequestContext, message interface{}, connectionIDs []string) error {
 	// Send message to all connections concurrently.
-
 	group, groupCtx := errgroup.WithContext(ctx)
-
 	for _, connectionID := range connectionIDs {
 		// sendMessage happens in the background.
 		group.Go(sendMessage(groupCtx, reqCtx, connectionID, message))
