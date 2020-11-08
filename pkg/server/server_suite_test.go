@@ -2,25 +2,23 @@ package server_test
 
 import (
 	"context"
-	"crypto/rand"
-	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"log"
-	"sync"
+	"net"
+	"net/http"
 	"testing"
 	"time"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
+	"github.com/gorilla/websocket"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
 	"github.com/armsnyder/othelgo/pkg/common"
 	. "github.com/armsnyder/othelgo/pkg/server"
+	"github.com/armsnyder/othelgo/pkg/server/gatewayadapter"
 )
 
 func TestServer(t *testing.T) {
@@ -39,30 +37,14 @@ func TestServer(t *testing.T) {
 //
 // See: https://onsi.github.io/ginkgo/#getting-started-writing-your-first-test
 var _ = Describe("Server", func() {
-	// clientConnectionFactory creates a new test client each time it is invoked, with a new
-	// connection ID. The resulting client can be used to send messages to the main Handler function
-	// as well as receive messages sent from the server.
-	var clientConnectionFactory func() *clientConnection
+	var addr string
 
 	BeforeSuite(func() {
-		// Initialize the in-memory messages channel, which is used to deliver outgoing messages
-		// from the server to any listening clients.
-		listen, sendMessageHandler := setupMessagesChannel()
-
-		// Define some test implementations for external dependencies of the main Handler function.
-		// Note that these tests can be run in parallel. The ctx is passed to Handler each time it
-		// is invoked during a test.
-		ctx := NewHandlerContext(context.Background()).
-			WithDynamoClient(testDynamoClient()).
-			WithTableName(testTableName()).
-			WithSendMessageHandler(sendMessageHandler)
-
-		clientConnectionFactory = func() *clientConnection {
-			return newClientConnection(ctx, listen)
-		}
-
 		// Auto-hide server log output for passing tests.
 		log.SetOutput(GinkgoWriter)
+
+		// Start the server.
+		addr = startServer()
 	})
 
 	BeforeEach(clearOthelgoTable)
@@ -75,9 +57,9 @@ var _ = Describe("Server", func() {
 	var flame, zinger, craig *clientConnection
 
 	BeforeEach(func() {
-		flame = clientConnectionFactory()
-		zinger = clientConnectionFactory()
-		craig = clientConnectionFactory()
+		flame = newClientConnection(addr)
+		zinger = newClientConnection(addr)
+		craig = newClientConnection(addr)
 	})
 
 	AfterEach(func() {
@@ -107,7 +89,7 @@ var _ = Describe("Server", func() {
 			})
 
 			It("should have no open games", func() {
-				hosts := message.(common.OpenGamesMessage).Hosts
+				hosts := message.(*common.OpenGamesMessage).Hosts
 				Expect(hosts).To(BeEmpty())
 			})
 		})
@@ -120,7 +102,7 @@ var _ = Describe("Server", func() {
 		})
 
 		It("should be a new game board", func() {
-			board := message.(common.UpdateBoardMessage).Board
+			board := message.(*common.UpdateBoardMessage).Board
 			Expect(board).To(Equal(newGameBoard))
 		})
 
@@ -131,7 +113,7 @@ var _ = Describe("Server", func() {
 			})
 
 			It("should have no open games", func() {
-				hosts := message.(common.OpenGamesMessage).Hosts
+				hosts := message.(*common.OpenGamesMessage).Hosts
 				Expect(hosts).To(BeEmpty())
 			})
 		})
@@ -144,12 +126,12 @@ var _ = Describe("Server", func() {
 
 			It("should update the board", func() {
 				expectedBoard := buildBoard([]move{{3, 3}, {4, 4}, {3, 4}, {2, 4}}, []move{{4, 3}})
-				board := message.(common.UpdateBoardMessage).Board
+				board := message.(*common.UpdateBoardMessage).Board
 				Expect(board).To(Equal(expectedBoard))
 			})
 
 			It("should be player 2's turn", func() {
-				player := message.(common.UpdateBoardMessage).Player
+				player := message.(*common.UpdateBoardMessage).Player
 				Expect(player).To(Equal(common.Player2))
 			})
 
@@ -157,14 +139,14 @@ var _ = Describe("Server", func() {
 				BeforeEach(receiveMessage(&flame))
 
 				It("should update the board with the AI move", func() {
-					board := message.(common.UpdateBoardMessage).Board
+					board := message.(*common.UpdateBoardMessage).Board
 					p1, p2 := common.KeepScore(board)
 					totalDisks := p1 + p2
 					Expect(totalDisks).To(Equal(6))
 				})
 
 				It("should be player 1's turn", func() {
-					player := message.(common.UpdateBoardMessage).Player
+					player := message.(*common.UpdateBoardMessage).Player
 					Expect(player).To(Equal(common.Player1))
 				})
 
@@ -184,7 +166,7 @@ var _ = Describe("Server", func() {
 		})
 
 		It("should be a new game board", func() {
-			board := message.(common.UpdateBoardMessage).Board
+			board := message.(*common.UpdateBoardMessage).Board
 			Expect(board).To(Equal(newGameBoard))
 		})
 
@@ -195,7 +177,7 @@ var _ = Describe("Server", func() {
 			})
 
 			It("should be a new game board", func() {
-				board := message.(common.UpdateBoardMessage).Board
+				board := message.(*common.UpdateBoardMessage).Board
 				Expect(board).To(Equal(newGameBoard))
 			})
 
@@ -206,7 +188,7 @@ var _ = Describe("Server", func() {
 				})
 
 				It("should show both flame and craig's games are open", func() {
-					hosts := message.(common.OpenGamesMessage).Hosts
+					hosts := message.(*common.OpenGamesMessage).Hosts
 					Expect(hosts).To(ConsistOf("flame", "craig"))
 				})
 			})
@@ -219,7 +201,7 @@ var _ = Describe("Server", func() {
 			})
 
 			It("should show flame's game is open", func() {
-				hosts := message.(common.OpenGamesMessage).Hosts
+				hosts := message.(*common.OpenGamesMessage).Hosts
 				Expect(hosts).To(Equal([]string{"flame"}))
 			})
 		})
@@ -231,7 +213,7 @@ var _ = Describe("Server", func() {
 			})
 
 			It("should show flame's game is open", func() {
-				hosts := message.(common.OpenGamesMessage).Hosts
+				hosts := message.(*common.OpenGamesMessage).Hosts
 				Expect(hosts).To(Equal([]string{"flame"}))
 			})
 		})
@@ -243,7 +225,7 @@ var _ = Describe("Server", func() {
 			})
 
 			It("should send a new game board to zinger", func() {
-				board := message.(common.UpdateBoardMessage).Board
+				board := message.(*common.UpdateBoardMessage).Board
 				Expect(board).To(Equal(newGameBoard))
 			})
 
@@ -254,7 +236,7 @@ var _ = Describe("Server", func() {
 				})
 
 				It("should have no open games", func() {
-					hosts := message.(common.OpenGamesMessage).Hosts
+					hosts := message.(*common.OpenGamesMessage).Hosts
 					Expect(hosts).To(BeEmpty())
 				})
 			})
@@ -279,12 +261,12 @@ var _ = Describe("Server", func() {
 					BeforeEach(receiveMessage(&flame))
 
 					It("should receive the updated board", func() {
-						board := message.(common.UpdateBoardMessage).Board
+						board := message.(*common.UpdateBoardMessage).Board
 						Expect(board).To(Equal(expectedBoardAfterFirstMove))
 					})
 
 					It("should be player 2's turn", func() {
-						player := message.(common.UpdateBoardMessage).Player
+						player := message.(*common.UpdateBoardMessage).Player
 						Expect(player).To(Equal(common.Player2))
 					})
 				})
@@ -293,12 +275,12 @@ var _ = Describe("Server", func() {
 					BeforeEach(receiveMessage(&zinger))
 
 					It("should receive the updated board", func() {
-						board := message.(common.UpdateBoardMessage).Board
+						board := message.(*common.UpdateBoardMessage).Board
 						Expect(board).To(Equal(expectedBoardAfterFirstMove))
 					})
 
 					It("should be player 2's turn", func() {
-						player := message.(common.UpdateBoardMessage).Player
+						player := message.(*common.UpdateBoardMessage).Player
 						Expect(player).To(Equal(common.Player2))
 					})
 				})
@@ -307,18 +289,39 @@ var _ = Describe("Server", func() {
 	})
 })
 
-// testTableName returns a table name that is unique for the ginkgo test node, allowing tests to
-// run in parallel using different tables.
-func testTableName() *string {
-	return aws.String(fmt.Sprintf("Othelgo-%d", GinkgoParallelNode()))
+func startServer() string {
+	// Setup the adapter which provides a real websocket API and calls our Handler.
+	var adapter gatewayadapter.GatewayAdapter
+
+	args := Args{
+		DB:        LocalDB(),
+		TableName: testTableName(),
+		GatewayFactory: func(_ events.APIGatewayWebsocketProxyRequestContext) Gateway {
+			return &adapter
+		},
+	}
+
+	adapter.LambdaHandler = func(ctx context.Context, req events.APIGatewayWebsocketProxyRequest) (events.APIGatewayProxyResponse, error) {
+		return Handle(ctx, req, args)
+	}
+
+	// Start listening for websocket connections.
+	lis, err := net.Listen("tcp", "127.0.0.1:0")
+	Expect(err).NotTo(HaveOccurred())
+
+	go func() {
+		defer GinkgoRecover()
+		err := http.Serve(lis, &adapter)
+		Expect(err).NotTo(HaveOccurred())
+	}()
+
+	return "ws://" + lis.Addr().String()
 }
 
-// testDynamoClient returns a DynamoDB client for a local DynamoDB.
-func testDynamoClient() *dynamodb.DynamoDB {
-	return dynamodb.New(session.Must(session.NewSession(aws.NewConfig().
-		WithRegion("us-west-2").
-		WithEndpoint("http://127.0.0.1:8042").
-		WithCredentials(credentials.NewStaticCredentials("foo", "bar", "")))))
+// testTableName returns a table name that is unique for the ginkgo test node, allowing tests to
+// run in parallel using different tables.
+func testTableName() string {
+	return fmt.Sprintf("Othelgo-%d", GinkgoParallelNode())
 }
 
 // clearOthelgoTable deletes and recreates the othelgo dynamodb table.
@@ -326,177 +329,70 @@ func clearOthelgoTable() {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
-	_, _ = testDynamoClient().DeleteTableWithContext(ctx, &dynamodb.DeleteTableInput{
-		TableName: testTableName(),
+	db := LocalDB()
+	tableName := testTableName()
+
+	_, _ = db.DeleteTableWithContext(ctx, &dynamodb.DeleteTableInput{
+		TableName: aws.String(tableName),
 	})
 
-	_, err := testDynamoClient().CreateTableWithContext(ctx, &dynamodb.CreateTableInput{
-		TableName: testTableName(),
-		AttributeDefinitions: []*dynamodb.AttributeDefinition{
-			{AttributeName: aws.String("Host"), AttributeType: aws.String("S")},
-			{AttributeName: aws.String("Opponent"), AttributeType: aws.String("S")},
-		},
-		KeySchema: []*dynamodb.KeySchemaElement{
-			{AttributeName: aws.String("Host"), KeyType: aws.String(dynamodb.KeyTypeHash)},
-		},
-		GlobalSecondaryIndexes: []*dynamodb.GlobalSecondaryIndex{
-			{
-				IndexName: aws.String("ByOpponent"),
-				KeySchema: []*dynamodb.KeySchemaElement{
-					{AttributeName: aws.String("Opponent"), KeyType: aws.String(dynamodb.KeyTypeHash)},
-					{AttributeName: aws.String("Host"), KeyType: aws.String(dynamodb.KeyTypeRange)},
-				},
-				Projection: &dynamodb.Projection{
-					ProjectionType: aws.String(dynamodb.ProjectionTypeKeysOnly),
-				},
-			},
-		},
-		BillingMode: aws.String("PAY_PER_REQUEST"),
-	})
+	err := EnsureTable(ctx, db, tableName)
 
 	Expect(err).NotTo(HaveOccurred(), "failed to clear dynamodb table")
 }
 
-// listenFunc is a function that can be called to start receiving messages for a particular
-// connection ID.
-type listenFunc func(connID string) (messages <-chan interface{}, removeListener func())
+type clientConnection struct {
+	ws       *websocket.Conn
+	closed   chan<- interface{}
+	messages <-chan interface{}
+}
 
-// setupMessagesChannel intercepts outgoing messages from the lambda server and returns a function
-// which can be invoked to receive messages for a particular connection ID.
-func setupMessagesChannel() (listen listenFunc, sendMessageHandler SendMessageHandler) {
-	type message struct {
-		connID  string
-		message interface{}
+// newClientConnection creates a client that can be used to send and receive messages over a
+// websocket connection.
+func newClientConnection(addr string) *clientConnection {
+	ws, res, err := websocket.DefaultDialer.Dial(addr, nil)
+	Expect(err).NotTo(HaveOccurred())
+	if res.Body != nil {
+		res.Body.Close()
 	}
 
-	messages := make(chan message)
+	closed := make(chan interface{})
+	messages := make(chan interface{})
 
-	// Create a handler for the server, which, instead of invoking the real API Gateway Management
-	// API, sends messages to an in-memory messages channel.
-	sendMessageHandler = func(ctx context.Context, reqCtx events.APIGatewayWebsocketProxyRequestContext, connectionID string, msg interface{}) error {
-		messages <- message{
-			connID:  connectionID,
-			message: msg,
-		}
-		return nil
-	}
-
-	// Collection of connection-id-specific listeners.
-	var (
-		listenersMu sync.Mutex
-		listeners   = make(map[string]chan<- interface{})
-	)
-
-	// Start a background routine of routing messages to the correct connection-id-specific listener.
 	go func() {
-		for msg := range messages {
-			log.Printf("%+v\n", msg)
+		defer GinkgoRecover()
 
-			listenersMu.Lock()
-			listener, ok := listeners[msg.connID]
-			listenersMu.Unlock()
-
-			if !ok {
-				continue
+		for {
+			var message common.AnyMessage
+			if err := ws.ReadJSON(&message); err != nil {
+				select {
+				case <-closed:
+				default:
+					Expect(err).NotTo(HaveOccurred())
+				}
+				return
 			}
-
-			// This is non-blocking, so if the listener buffer is full the message is dropped.
-			select {
-			case listener <- msg.message:
-			default:
-			}
+			messages <- message.Message
 		}
 	}()
 
-	listen = func(connID string) (messages <-chan interface{}, removeListener func()) {
-		// Create a buffered channel for messages in case the test is not ready to receive messages right away.
-		c := make(chan interface{}, 100)
-
-		// Add the new channel as a new listener.
-		listenersMu.Lock()
-		listeners[connID] = c
-		listenersMu.Unlock()
-
-		removeListener = func() {
-			// Remove the listener.
-			listenersMu.Lock()
-			delete(listeners, connID)
-			listenersMu.Unlock()
-		}
-
-		return c, removeListener
+	return &clientConnection{
+		ws:       ws,
+		closed:   closed,
+		messages: messages,
 	}
-
-	return listen, sendMessageHandler
 }
 
-// clientConnection encapsulates the behavior of a websocket client, since in this test we invoke
-// the Handler function directly instead of really using websockets.
-type clientConnection struct {
-	ctx            context.Context
-	connID         string
-	messages       <-chan interface{}
-	removeListener func()
-}
-
-// newClientConnection creates a new clientConnection and sends a CONNECT message to Handler.
-// The ctx argument is sent to Handler on every invocation.
-// The listen argument is a function for splitting off a new channel for receiving messages for a
-// particular connection ID.
-func newClientConnection(ctx context.Context, listen listenFunc) *clientConnection {
-	// Generate a random connection ID.
-	var connIDSrc [8]byte
-	if _, err := rand.Read(connIDSrc[:]); err != nil {
-		panic(err)
-	}
-	connID := base64.StdEncoding.EncodeToString(connIDSrc[:])
-
-	// setup a new channel for receiving messages for our new connection ID.
-	messages, removeListener := listen(connID)
-
-	clientConnection := &clientConnection{
-		ctx:            ctx,
-		connID:         connID,
-		messages:       messages,
-		removeListener: removeListener,
-	}
-
-	// Send a CONNECT message before returning.
-	clientConnection.sendType("CONNECT", nil)
-
-	return clientConnection
-}
-
-// sendMessage sends a new message to Handler.
 func (c *clientConnection) sendMessage(message interface{}) {
-	c.sendType("MESSAGE", message)
-}
-
-// sendType sends a new message to Handler and lets you specify the message type.
-func (c *clientConnection) sendType(typ string, message interface{}) {
-	b, err := json.Marshal(message)
-	if err != nil {
-		panic(err)
-	}
-
-	ctx, cancel := context.WithTimeout(c.ctx, time.Second)
-	defer cancel()
-
-	_, err = Handler(ctx, events.APIGatewayWebsocketProxyRequest{
-		Body: string(b),
-		RequestContext: events.APIGatewayWebsocketProxyRequestContext{
-			ConnectionID: c.connID,
-			EventType:    typ,
-		},
-	})
-
+	err := c.ws.WriteJSON(message)
 	Expect(err).NotTo(HaveOccurred())
 }
 
-// close cleans up the client and sends a DISCONNECT message to Handler.
 func (c *clientConnection) close() {
-	c.sendType("DISCONNECT", nil)
-	c.removeListener()
+	if c != nil {
+		close(c.closed)
+		c.ws.Close()
+	}
 }
 
 type move [2]int

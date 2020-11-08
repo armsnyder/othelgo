@@ -7,5 +7,5 @@ import (
 )
 
 func main() {
-	lambda.Start(server.Handler)
+	lambda.Start(server.DefaultHandler)
 }

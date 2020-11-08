@@ -15,28 +15,28 @@ import (
 
 // Handlers for messages pertaining to gameplay.
 
-func handlePlaceDisk(ctx context.Context, req events.APIGatewayWebsocketProxyRequest) error {
+func handlePlaceDisk(ctx context.Context, req events.APIGatewayWebsocketProxyRequest, args Args) error {
 	var message common.PlaceDiskMessage
 	if err := json.Unmarshal([]byte(req.Body), &message); err != nil {
 		return err
 	}
 
-	game, opponent, connectionIDs, err := getGameAndOpponentAndConnectionIDs(ctx, message.Nickname)
+	game, opponent, connectionIDs, err := getGameAndOpponentAndConnectionIDs(ctx, args, message.Nickname)
 	if err != nil {
 		return fmt.Errorf("failed to load game state: %w", err)
 	}
 
 	if opponent == "" {
-		return handlePlaceDiskSolo(ctx, req.RequestContext, message, game)
+		return handlePlaceDiskSolo(ctx, req.RequestContext, args, message, game)
 	}
 
-	return handlePlaceDiskMultiplayer(ctx, req.RequestContext, message, game, opponent, connectionIDs)
+	return handlePlaceDiskMultiplayer(ctx, req.RequestContext, args, message, game, opponent, connectionIDs)
 }
 
-func handlePlaceDiskSolo(ctx context.Context, reqCtx events.APIGatewayWebsocketProxyRequestContext, message common.PlaceDiskMessage, game game) error {
+func handlePlaceDiskSolo(ctx context.Context, reqCtx events.APIGatewayWebsocketProxyRequestContext, args Args, message common.PlaceDiskMessage, game game) error {
 	board, updated := common.ApplyMove(game.Board, message.X, message.Y, 1)
 	if !updated {
-		return reply(ctx, reqCtx, common.NewUpdateBoardMessage(board, game.Player))
+		return reply(ctx, reqCtx, args, common.NewUpdateBoardMessage(board, game.Player))
 	}
 
 	game.Board = board
@@ -45,11 +45,11 @@ func handlePlaceDiskSolo(ctx context.Context, reqCtx events.APIGatewayWebsocketP
 		game.Player = game.Player%2 + 1
 	}
 
-	if err := updateGame(ctx, message.Host, game); err != nil {
+	if err := updateGame(ctx, args, message.Host, game); err != nil {
 		return fmt.Errorf("failed to save updated game state: %w", err)
 	}
 
-	if err := reply(ctx, reqCtx, common.NewUpdateBoardMessage(board, game.Player)); err != nil {
+	if err := reply(ctx, reqCtx, args, common.NewUpdateBoardMessage(board, game.Player)); err != nil {
 		return err
 	}
 
@@ -69,11 +69,11 @@ func handlePlaceDiskSolo(ctx context.Context, reqCtx events.APIGatewayWebsocketP
 			game.Player = 1
 		}
 
-		if err := updateGame(ctx, message.Host, game); err != nil {
+		if err := updateGame(ctx, args, message.Host, game); err != nil {
 			return fmt.Errorf("failed to save updated game state: %w", err)
 		}
 
-		if err := reply(ctx, reqCtx, common.NewUpdateBoardMessage(game.Board, game.Player)); err != nil {
+		if err := reply(ctx, reqCtx, args, common.NewUpdateBoardMessage(game.Board, game.Player)); err != nil {
 			return err
 		}
 	}
@@ -81,7 +81,7 @@ func handlePlaceDiskSolo(ctx context.Context, reqCtx events.APIGatewayWebsocketP
 	return nil
 }
 
-func handlePlaceDiskMultiplayer(ctx context.Context, reqCtx events.APIGatewayWebsocketProxyRequestContext, message common.PlaceDiskMessage, game game, opponent string, connectionIDs []string) error {
+func handlePlaceDiskMultiplayer(ctx context.Context, reqCtx events.APIGatewayWebsocketProxyRequestContext, args Args, message common.PlaceDiskMessage, game game, opponent string, connectionIDs []string) error {
 	player := common.Player1
 	if message.Nickname == opponent {
 		player = common.Player2
@@ -89,16 +89,16 @@ func handlePlaceDiskMultiplayer(ctx context.Context, reqCtx events.APIGatewayWeb
 
 	board, updated := common.ApplyMove(game.Board, message.X, message.Y, player)
 	if !updated {
-		return reply(ctx, reqCtx, common.NewUpdateBoardMessage(board, game.Player))
+		return reply(ctx, reqCtx, args, common.NewUpdateBoardMessage(board, game.Player))
 	}
 
 	if common.HasMoves(game.Board, player%2+1) {
 		game.Player = player%2 + 1
 	}
 
-	if err := updateGame(ctx, message.Host, game); err != nil {
+	if err := updateGame(ctx, args, message.Host, game); err != nil {
 		return fmt.Errorf("failed to save updated game state: %w", err)
 	}
 
-	return broadcast(ctx, reqCtx, common.NewUpdateBoardMessage(board, game.Player), connectionIDs)
+	return broadcast(ctx, reqCtx, args, common.NewUpdateBoardMessage(board, game.Player), connectionIDs)
 }
