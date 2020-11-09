@@ -39,9 +39,9 @@ func sendMessage(ctx context.Context, reqCtx events.APIGatewayWebsocketProxyRequ
 			return err
 		}
 
-		gateway := args.GatewayFactory(reqCtx)
+		client := args.APIGatewayManagementAPIClientFactory(reqCtx)
 
-		_, err = gateway.PostToConnectionWithContext(ctx, &apigatewaymanagementapi.PostToConnectionInput{
+		_, err = client.PostToConnectionWithContext(ctx, &apigatewaymanagementapi.PostToConnectionInput{
 			ConnectionId: &connectionID,
 			Data:         data,
 		})
@@ -50,14 +50,14 @@ func sendMessage(ctx context.Context, reqCtx events.APIGatewayWebsocketProxyRequ
 	}
 }
 
-type GatewayFactory func(events.APIGatewayWebsocketProxyRequestContext) Gateway
+type APIGatewayManagementAPIClientFactory func(events.APIGatewayWebsocketProxyRequestContext) APIGatewayManagementAPIClient
 
-type Gateway interface {
+type APIGatewayManagementAPIClient interface {
 	PostToConnectionWithContext(ctx aws.Context, input *apigatewaymanagementapi.PostToConnectionInput, opts ...request.Option) (*apigatewaymanagementapi.PostToConnectionOutput, error)
 }
 
-func defaultGatewayFactory() func(reqCtx events.APIGatewayWebsocketProxyRequestContext) Gateway {
-	return func(reqCtx events.APIGatewayWebsocketProxyRequestContext) Gateway {
+func defaultAPIGatewayManagementAPIClientFactory() func(reqCtx events.APIGatewayWebsocketProxyRequestContext) APIGatewayManagementAPIClient {
+	return func(reqCtx events.APIGatewayWebsocketProxyRequestContext) APIGatewayManagementAPIClient {
 		endpoint := fmt.Sprintf("https://%s/%s/", reqCtx.DomainName, reqCtx.Stage)
 		return apigatewaymanagementapi.New(session.Must(session.NewSession(aws.NewConfig().WithEndpoint(endpoint))))
 	}

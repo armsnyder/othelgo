@@ -18,7 +18,7 @@ func main() {
 	args := server.Args{
 		DB:        server.LocalDB(),
 		TableName: "Othelgo",
-		GatewayFactory: func(_ events.APIGatewayWebsocketProxyRequestContext) server.Gateway {
+		APIGatewayManagementAPIClientFactory: func(_ events.APIGatewayWebsocketProxyRequestContext) server.APIGatewayManagementAPIClient {
 			return &adapter
 		},
 	}

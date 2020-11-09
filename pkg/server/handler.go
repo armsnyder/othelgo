@@ -16,18 +16,18 @@ import (
 
 // Args represent external dependencies of the server, which may be replaced in test environments.
 type Args struct {
-	DB             *dynamodb.DynamoDB
-	TableName      string
-	GatewayFactory GatewayFactory
+	DB                                   *dynamodb.DynamoDB
+	TableName                            string
+	APIGatewayManagementAPIClientFactory APIGatewayManagementAPIClientFactory
 }
 
 // DefaultHandler is an AWS Lambda handler that uses default arguments, as it would in a real
 // deployment environment. It can be invoked with lambda.Start(server.DefaultHandler).
 func DefaultHandler(ctx context.Context, req events.APIGatewayWebsocketProxyRequest) (resp events.APIGatewayProxyResponse, err error) {
 	defaultArgs := Args{
-		DB:             defaultDB(),
-		TableName:      "Othelgo",
-		GatewayFactory: defaultGatewayFactory(),
+		DB:                                   defaultDB(),
+		TableName:                            "Othelgo",
+		APIGatewayManagementAPIClientFactory: defaultAPIGatewayManagementAPIClientFactory(),
 	}
 
 	return Handle(ctx, req, defaultArgs)

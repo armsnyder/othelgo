@@ -296,7 +296,7 @@ func startServer() string {
 	args := Args{
 		DB:        LocalDB(),
 		TableName: testTableName(),
-		GatewayFactory: func(_ events.APIGatewayWebsocketProxyRequestContext) Gateway {
+		APIGatewayManagementAPIClientFactory: func(_ events.APIGatewayWebsocketProxyRequestContext) APIGatewayManagementAPIClient {
 			return &adapter
 		},
 	}
