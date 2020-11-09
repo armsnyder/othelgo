@@ -47,6 +47,10 @@ func Handle(ctx context.Context, req events.APIGatewayWebsocketProxyRequest, arg
 	default:
 		err = fmt.Errorf("unrecognized event type %q", req.RequestContext.EventType)
 	}
+	if err != nil {
+		log.Printf("here's an error: %s", err)
+		err = reply(ctx, req.RequestContext, args, common.NewErrorMessage("<insert error string here>"))
+	}
 
 	return events.APIGatewayProxyResponse{StatusCode: 200}, err
 }

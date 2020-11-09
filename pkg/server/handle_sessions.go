@@ -66,7 +66,7 @@ func handleJoinGame(ctx context.Context, req events.APIGatewayWebsocketProxyRequ
 		return err
 	}
 
-	game, err := updateOpponentConnectionGetGame(ctx, args, message.Host, message.Nickname, message.Nickname, req.RequestContext.ConnectionID)
+	game, err := updateOpponentConnectionGetGame(ctx, args, message.Host, message.Nickname, message.Nickname, req.RequestContext.ConnectionID, [2]string{waiting, message.Nickname})
 	if err != nil {
 		return err
 	}

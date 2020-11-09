@@ -18,6 +18,8 @@ const (
 	PlaceDiskAction   = "placeDisk"
 	UpdateBoardAction = "updateBoard"
 
+	ErrorAction = "error"
+
 	// TODO: Delete
 	PlaceDiskActionOLD = "placeDiskOLD"
 	NewGameActionOLD   = "newGameOLD"
@@ -34,6 +36,8 @@ var actionToMessage = map[string]interface{}{
 
 	PlaceDiskAction:   PlaceDiskMessage{},
 	UpdateBoardAction: UpdateBoardMessage{},
+
+	ErrorAction: ErrorMessage{},
 
 	// TODO: Delete
 	PlaceDiskActionOLD: PlaceDiskMessageOLD{},
@@ -166,6 +170,19 @@ func NewUpdateBoardMessage(board Board, player Disk) UpdateBoardMessage {
 	}
 }
 
+type ErrorMessage struct {
+	Action string `json:"action"`
+	Error  string `json:"error"`
+}
+
+func NewErrorMessage(err string) ErrorMessage {
+	return ErrorMessage{
+		Action: ErrorAction,
+		Error:  err,
+	}
+}
+
+// TODO: Delete
 type PlaceDiskMessageOLD struct {
 	Action string `json:"action"`
 	Player Disk   `json:"player"`

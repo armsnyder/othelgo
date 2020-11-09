@@ -152,6 +152,7 @@ var _ = Describe("Server", func() {
 
 				Context("zinger", func() {
 					It("should not have received any messages", func() {
+						sleep()
 						Expect(zinger.messages).NotTo(Receive())
 					})
 				})
@@ -218,7 +219,7 @@ var _ = Describe("Server", func() {
 			})
 		})
 
-		Context("zinger joins the game", func() {
+		When("zinger joins the game", func() {
 			BeforeEach(func(done Done) {
 				zinger.sendMessage(common.NewJoinGameMessage("zinger", "flame"))
 				receiveMessage(&zinger)(done)
@@ -241,6 +242,18 @@ var _ = Describe("Server", func() {
 				})
 			})
 
+			When("craig tries to join the game anyway", func() {
+				BeforeEach(func(done Done) {
+					craig.sendMessage(common.NewJoinGameMessage("craig", "flame"))
+					receiveMessage(&craig)(done)
+				})
+
+				It("should receive error message", func() {
+					err := message.(*common.ErrorMessage).Error
+					Expect(err).NotTo(BeEmpty())
+				})
+			})
+
 			When("flame makes the first move", func() {
 				BeforeEach(func() {
 					flame.sendMessage(common.NewPlaceDiskMessage("flame", "flame", 2, 4))
@@ -253,6 +266,7 @@ var _ = Describe("Server", func() {
 
 				Context("craig", func() {
 					It("should not have received any messages", func() {
+						sleep()
 						Expect(craig.messages).NotTo(Receive())
 					})
 				})
@@ -408,4 +422,8 @@ func buildBoard(p1, p2 []move) (board common.Board) {
 	}
 
 	return board
+}
+
+func sleep() {
+	time.Sleep(time.Millisecond * 500)
 }
