@@ -37,7 +37,7 @@ func (j *Join) OnMessage(message common.AnyMessage) error {
 
 func (j *Join) OnTerminalEvent(event termbox.Event) error {
 	if event.Key == termbox.KeyEnter && len(j.hosts) > 0 {
-		return j.ChangeScene(&Game{player: 2, multiplayer: true, nickname: j.nickname, opponent: j.hosts[j.selected]})
+		return j.ChangeScene(&Game{player: 2, multiplayer: true, nickname: j.nickname, host: j.hosts[j.selected]})
 	}
 	_, dy := getDirectionPressed(event)
 	switch {
@@ -56,6 +56,7 @@ func (j *Join) OnTerminalEvent(event termbox.Event) error {
 func (j *Join) Draw() {
 	drawGameBoyBorder()
 	draw(topRight, normal, fmt.Sprintf("Your name is %s!", j.nickname))
+	draw(botRight, normal, "[M] MENU  [Q] QUIT")
 
 	if len(j.hosts) > 0 {
 		buttonColors := [6]color{}
@@ -63,9 +64,10 @@ func (j *Join) Draw() {
 			buttonColors[i] = normal
 		}
 		buttonColors[j.selected] = inverted
-		draw(topLeft, normal, "OPEN GAMES")
+		draw(offset(centerRight, -9, 0), normal, "=== OPEN GAMES ===")
 		for i, h := range j.hosts {
-			draw(offset(topLeft, 0, i*2+2), buttonColors[i], fmt.Sprintf("[ %s ]", h))
+			os := -(len(h) + 4) / 2
+			draw(offset(centerRight, os, i*2+2), buttonColors[i], fmt.Sprintf("[ %s ]", h))
 		}
 	} else {
 		draw(centerTop, normal, "MORE LIKE \"NO GAME\"")

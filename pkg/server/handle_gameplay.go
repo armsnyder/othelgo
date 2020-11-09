@@ -21,7 +21,7 @@ func handlePlaceDisk(ctx context.Context, req events.APIGatewayWebsocketProxyReq
 		return err
 	}
 
-	game, opponent, connectionIDs, err := getGameAndOpponentAndConnectionIDs(ctx, args, message.Nickname)
+	game, opponent, connectionIDs, err := getGameAndOpponentAndConnectionIDs(ctx, args, message.Host)
 	if err != nil {
 		return fmt.Errorf("failed to load game state: %w", err)
 	}
@@ -91,6 +91,8 @@ func handlePlaceDiskMultiplayer(ctx context.Context, reqCtx events.APIGatewayWeb
 	if !updated {
 		return reply(ctx, reqCtx, args, common.NewUpdateBoardMessage(board, game.Player))
 	}
+
+	game.Board = board
 
 	if common.HasMoves(game.Board, player%2+1) {
 		game.Player = player%2 + 1
