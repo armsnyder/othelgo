@@ -162,6 +162,7 @@ func drawGameBoyBorder() {
 	rightX := (termWidth + gameBoyWidth) / 2
 
 	borderRunes := []rune{'🎃', '🧟', '🔮', '🧛', '🍬', '👻'}
+	borderRunes = []rune{'🦃', '🍁', '🌽', '🏈', '🥧', '🙏'}
 
 	for i := 0; i < gameBoyWidth/2; i++ {
 		ch := borderRunes[i%len(borderRunes)]
