@@ -66,11 +66,11 @@ func (m *Menu) OnTerminalEvent(event termbox.Event) error {
 	if event.Key == termbox.KeyEnter {
 		switch m.button {
 		case buttonEasy:
-			return m.ChangeScene(&Game{player: 1, difficulty: 0, nickname: m.nickname})
+			return m.ChangeScene(&Game{player: 1, difficulty: 0, nickname: m.nickname, host: m.nickname})
 		case buttonNormal:
-			return m.ChangeScene(&Game{player: 1, difficulty: 1, nickname: m.nickname})
+			return m.ChangeScene(&Game{player: 1, difficulty: 1, nickname: m.nickname, host: m.nickname})
 		case buttonHard:
-			return m.ChangeScene(&Game{player: 1, difficulty: 2, nickname: m.nickname})
+			return m.ChangeScene(&Game{player: 1, difficulty: 2, nickname: m.nickname, host: m.nickname})
 		case buttonHostGame:
 			return m.ChangeScene(&Game{player: 1, multiplayer: true, nickname: m.nickname, host: m.nickname})
 		case buttonJoinGame:
