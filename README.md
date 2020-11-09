@@ -20,7 +20,7 @@ In one terminal window, start the local server with `make serve`.
 $ make serve
 ```
 
-In a second and third terminal window, start the client in local mode by with `make playlocal`.
+In a second and third terminal window, start the client in local mode with `make playlocal`.
 
 ```sh
 $ make playlocal
