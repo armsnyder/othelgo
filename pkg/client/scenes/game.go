@@ -19,6 +19,7 @@ type Game struct {
 	p2Score     int
 	confetti    confetti
 	nickname    string
+	opponent    string
 	whoseTurn   common.Disk
 	multiplayer bool
 	difficulty  int
@@ -31,9 +32,10 @@ func (g *Game) Setup(changeScene ChangeScene, sendMessage SendMessage) error {
 
 	var message interface{}
 	if g.player == 1 {
-		message = common.NewNewGameMessageOLD(g.multiplayer, g.difficulty)
+		// message = common.NewNewGameMessageOLD(g.multiplayer, g.difficulty)
+		message = common.NewHostGameMessage(g.nickname)
 	} else {
-		message = common.NewJoinGameMessageOLD()
+		message = common.NewJoinGameMessage(g.nickname, g.opponent)
 	}
 
 	return sendMessage(message)
