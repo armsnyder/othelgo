@@ -326,7 +326,7 @@ func testTableName() string {
 
 // clearOthelgoTable deletes and recreates the othelgo dynamodb table.
 func clearOthelgoTable() {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
 
 	db := LocalDB()
