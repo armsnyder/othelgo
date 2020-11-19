@@ -16,9 +16,7 @@ import (
 	"github.com/armsnyder/othelgo/pkg/common"
 )
 
-var firstScene = new(scenes.Nickname)
-
-func Run() (err error) {
+func Run(local bool) (err error) {
 	// Setup log file.
 	finish, err := setupFileLogger()
 	if err != nil {
@@ -28,6 +26,9 @@ func Run() (err error) {
 
 	// Setup websocket.
 	addr := "wss://1y9vcb5geb.execute-api.us-west-2.amazonaws.com/development"
+	if local {
+		addr = "ws://127.0.0.1:9000"
+	}
 	log.Printf("Dialing websocket %q", addr)
 	c, _, err := websocket.DefaultDialer.Dial(addr, nil)
 	if err != nil {
@@ -44,7 +45,10 @@ func Run() (err error) {
 
 	// Setup a handler for changing scenes, and start the first scene.
 	var currentScene scenes.Scene
-	if err := setupChangeSceneHandler(&currentScene, c); err != nil {
+	// We always want to prompt for a nickname when running locally because there will be more than
+	// one client.
+	firstScene := &scenes.Nickname{ChangeNickname: local}
+	if err := setupChangeSceneHandler(&currentScene, firstScene, c); err != nil {
 		return err
 	}
 
@@ -134,7 +138,7 @@ func setupFileLogger() (finish func(err error), err error) {
 	return finish, nil
 }
 
-func setupChangeSceneHandler(currentScene *scenes.Scene, c *websocket.Conn) error {
+func setupChangeSceneHandler(currentScene *scenes.Scene, firstScene scenes.Scene, c *websocket.Conn) error {
 	sendMessage := func(v interface{}) error {
 		action := reflect.ValueOf(v).FieldByName("Action").String()
 		log.Printf("Sending message (action=%q)", action)

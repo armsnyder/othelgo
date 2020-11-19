@@ -16,6 +16,12 @@ lint:
 run:
 	go run ./cmd/client
 
+playlocal:
+	go run ./cmd/client -local
+
+serve:
+	./scripts/serve.sh
+
 deploy:
 	test -f aws-creds.sh && source aws-creds.sh; ./scripts/deploy_server.sh
 
@@ -25,4 +31,4 @@ logs:
 perf:
 	./scripts/perf_test.sh
 
-.PHONY: default build test e2etest lint run deploy logs perf
+.PHONY: default build test e2etest lint run playlocal serve deploy logs perf

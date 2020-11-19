@@ -19,6 +19,7 @@ type Game struct {
 	p2Score     int
 	confetti    confetti
 	nickname    string
+	host        string
 	whoseTurn   common.Disk
 	multiplayer bool
 	difficulty  int
@@ -30,10 +31,14 @@ func (g *Game) Setup(changeScene ChangeScene, sendMessage SendMessage) error {
 	}
 
 	var message interface{}
-	if g.player == 1 {
-		message = common.NewNewGameMessage(g.multiplayer, g.difficulty)
+	if g.multiplayer {
+		if g.player == 1 {
+			message = common.NewHostGameMessage(g.nickname)
+		} else {
+			message = common.NewJoinGameMessage(g.nickname, g.host)
+		}
 	} else {
-		message = common.NewJoinGameMessage()
+		message = common.NewStartSoloGameMessage(g.nickname, g.difficulty)
 	}
 
 	return sendMessage(message)
@@ -58,7 +63,7 @@ func (g *Game) OnTerminalEvent(event termbox.Event) error {
 		board, updated := common.ApplyMove(g.board, g.curSquareX, g.curSquareY, g.player)
 		if updated {
 			g.board = board
-			message := common.NewPlaceDiskMessage(g.player, g.curSquareX, g.curSquareY)
+			message := common.NewPlaceDiskMessage(g.nickname, g.host, g.curSquareX, g.curSquareY)
 			if err := g.SendMessage(message); err != nil {
 				return err
 			}

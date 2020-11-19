@@ -8,17 +8,41 @@ import (
 )
 
 const (
+	HostGameAction      = "hostGame"
+	StartSoloGameAction = "startSoloGame"
+	JoinGameAction      = "joinGame"
+
+	ListOpenGamesAction = "listOpenGames"
+	OpenGamesAction     = "openGames"
+
 	PlaceDiskAction   = "placeDisk"
 	UpdateBoardAction = "updateBoard"
-	NewGameAction     = "newGame"
-	JoinGameAction    = "joinGame"
+
+	ErrorAction = "error"
+
+	// TODO: Delete
+	PlaceDiskActionOLD = "placeDiskOLD"
+	NewGameActionOLD   = "newGameOLD"
+	JoinGameActionOLD  = "joinGameOLD"
 )
 
 var actionToMessage = map[string]interface{}{
+	HostGameAction:      HostGameMessage{},
+	StartSoloGameAction: StartSoloGameMessage{},
+	JoinGameAction:      JoinGameMessage{},
+
+	ListOpenGamesAction: BaseMessage{},
+	OpenGamesAction:     OpenGamesMessage{},
+
 	PlaceDiskAction:   PlaceDiskMessage{},
 	UpdateBoardAction: UpdateBoardMessage{},
-	NewGameAction:     NewGameMessage{},
-	JoinGameAction:    JoinGameMessage{},
+
+	ErrorAction: ErrorMessage{},
+
+	// TODO: Delete
+	PlaceDiskActionOLD: PlaceDiskMessageOLD{},
+	NewGameActionOLD:   NewGameMessageOLD{},
+	JoinGameActionOLD:  JoinGameMessageOLD{},
 }
 
 const BoardSize = 8
@@ -58,19 +82,77 @@ type BaseMessage struct {
 	Action string `json:"action"`
 }
 
-type PlaceDiskMessage struct {
-	Action string `json:"action"`
-	Player Disk   `json:"player"`
-	X      int    `json:"x"`
-	Y      int    `json:"y"`
+type HostGameMessage struct {
+	Action   string `json:"action"`
+	Nickname string `json:"host"`
 }
 
-func NewPlaceDiskMessage(player Disk, x, y int) PlaceDiskMessage {
+func NewHostGameMessage(nickname string) HostGameMessage {
+	return HostGameMessage{
+		Action:   HostGameAction,
+		Nickname: nickname,
+	}
+}
+
+type StartSoloGameMessage struct {
+	Action     string `json:"action"`
+	Nickname   string `json:"nickname"`
+	Difficulty int    `json:"difficulty"`
+}
+
+func NewStartSoloGameMessage(nickname string, difficulty int) StartSoloGameMessage {
+	return StartSoloGameMessage{
+		Action:     StartSoloGameAction,
+		Nickname:   nickname,
+		Difficulty: difficulty,
+	}
+}
+
+type JoinGameMessage struct {
+	Action   string `json:"action"`
+	Nickname string `json:"nickname"`
+	Host     string `json:"host"`
+}
+
+func NewJoinGameMessage(nickname, host string) JoinGameMessage {
+	return JoinGameMessage{
+		Action:   JoinGameAction,
+		Nickname: nickname,
+		Host:     host,
+	}
+}
+
+func NewListOpenGamesMessage() BaseMessage {
+	return BaseMessage{Action: ListOpenGamesAction}
+}
+
+type OpenGamesMessage struct {
+	Action string   `json:"action"`
+	Hosts  []string `json:"hosts"`
+}
+
+func NewOpenGamesMessage(hosts []string) OpenGamesMessage {
+	return OpenGamesMessage{
+		Action: OpenGamesAction,
+		Hosts:  hosts,
+	}
+}
+
+type PlaceDiskMessage struct {
+	Action   string `json:"action"`
+	Nickname string `json:"nickname"`
+	Host     string `json:"host"`
+	X        int    `json:"x"`
+	Y        int    `json:"y"`
+}
+
+func NewPlaceDiskMessage(nickname, host string, x, y int) PlaceDiskMessage {
 	return PlaceDiskMessage{
-		Action: PlaceDiskAction,
-		Player: player,
-		X:      x,
-		Y:      y,
+		Action:   PlaceDiskAction,
+		Nickname: nickname,
+		Host:     host,
+		X:        x,
+		Y:        y,
 	}
 }
 
@@ -88,24 +170,57 @@ func NewUpdateBoardMessage(board Board, player Disk) UpdateBoardMessage {
 	}
 }
 
-type NewGameMessage struct {
+type ErrorMessage struct {
+	Action string `json:"action"`
+	Error  string `json:"error"`
+}
+
+func NewErrorMessage(err string) ErrorMessage {
+	return ErrorMessage{
+		Action: ErrorAction,
+		Error:  err,
+	}
+}
+
+// TODO: Delete
+type PlaceDiskMessageOLD struct {
+	Action string `json:"action"`
+	Player Disk   `json:"player"`
+	X      int    `json:"x"`
+	Y      int    `json:"y"`
+}
+
+func NewPlaceDiskMessageOLD(player Disk, x, y int) PlaceDiskMessageOLD {
+	return PlaceDiskMessageOLD{
+		Action: PlaceDiskActionOLD,
+		Player: player,
+		X:      x,
+		Y:      y,
+	}
+}
+
+// TODO: Delete
+type NewGameMessageOLD struct {
 	Action      string `json:"action"`
 	Multiplayer bool   `json:"multiplayer"`
 	Difficulty  int    `json:"difficulty"`
 }
 
-func NewNewGameMessage(multiplayer bool, difficulty int) NewGameMessage {
-	return NewGameMessage{
-		Action:      NewGameAction,
+// TODO: Delete
+func NewNewGameMessageOLD(multiplayer bool, difficulty int) NewGameMessageOLD {
+	return NewGameMessageOLD{
+		Action:      NewGameActionOLD,
 		Multiplayer: multiplayer,
 		Difficulty:  difficulty,
 	}
 }
 
-type JoinGameMessage BaseMessage
+// TODO: Delete
+type JoinGameMessageOLD BaseMessage
 
-func NewJoinGameMessage() JoinGameMessage {
-	return JoinGameMessage{Action: JoinGameAction}
+// TODO: Delete
+func NewJoinGameMessageOLD() JoinGameMessageOLD {
+	return JoinGameMessageOLD{Action: JoinGameActionOLD}
 }
 
 type AnyMessage struct {

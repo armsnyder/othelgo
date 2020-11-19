@@ -15,7 +15,7 @@ const maxNicknameLen = 10
 type Nickname struct {
 	scene
 	nickname       string
-	changeNickname bool
+	ChangeNickname bool
 }
 
 func (n *Nickname) Setup(changeScene ChangeScene, sendMessage SendMessage) error {
@@ -27,7 +27,7 @@ func (n *Nickname) Setup(changeScene ChangeScene, sendMessage SendMessage) error
 		return err
 	}
 
-	if n.nickname != "" && !n.changeNickname {
+	if n.nickname != "" && !n.ChangeNickname {
 		return n.ChangeScene(&Menu{nickname: n.nickname})
 	}
 
