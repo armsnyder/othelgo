@@ -19,11 +19,6 @@ const (
 	UpdateBoardAction = "updateBoard"
 
 	ErrorAction = "error"
-
-	// TODO: Delete
-	PlaceDiskActionOLD = "placeDiskOLD"
-	NewGameActionOLD   = "newGameOLD"
-	JoinGameActionOLD  = "joinGameOLD"
 )
 
 var actionToMessage = map[string]interface{}{
@@ -38,11 +33,6 @@ var actionToMessage = map[string]interface{}{
 	UpdateBoardAction: UpdateBoardMessage{},
 
 	ErrorAction: ErrorMessage{},
-
-	// TODO: Delete
-	PlaceDiskActionOLD: PlaceDiskMessageOLD{},
-	NewGameActionOLD:   NewGameMessageOLD{},
-	JoinGameActionOLD:  JoinGameMessageOLD{},
 }
 
 const BoardSize = 8
@@ -180,47 +170,6 @@ func NewErrorMessage(err string) ErrorMessage {
 		Action: ErrorAction,
 		Error:  err,
 	}
-}
-
-// TODO: Delete
-type PlaceDiskMessageOLD struct {
-	Action string `json:"action"`
-	Player Disk   `json:"player"`
-	X      int    `json:"x"`
-	Y      int    `json:"y"`
-}
-
-func NewPlaceDiskMessageOLD(player Disk, x, y int) PlaceDiskMessageOLD {
-	return PlaceDiskMessageOLD{
-		Action: PlaceDiskActionOLD,
-		Player: player,
-		X:      x,
-		Y:      y,
-	}
-}
-
-// TODO: Delete
-type NewGameMessageOLD struct {
-	Action      string `json:"action"`
-	Multiplayer bool   `json:"multiplayer"`
-	Difficulty  int    `json:"difficulty"`
-}
-
-// TODO: Delete
-func NewNewGameMessageOLD(multiplayer bool, difficulty int) NewGameMessageOLD {
-	return NewGameMessageOLD{
-		Action:      NewGameActionOLD,
-		Multiplayer: multiplayer,
-		Difficulty:  difficulty,
-	}
-}
-
-// TODO: Delete
-type JoinGameMessageOLD BaseMessage
-
-// TODO: Delete
-func NewJoinGameMessageOLD() JoinGameMessageOLD {
-	return JoinGameMessageOLD{Action: JoinGameActionOLD}
 }
 
 type AnyMessage struct {
