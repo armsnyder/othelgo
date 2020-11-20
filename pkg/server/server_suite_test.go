@@ -63,6 +63,7 @@ var _ = Describe("Server", func() {
 
 		// Read the decoration message on hello.
 		for _, c := range []*clientConnection{flame, zinger, craig} {
+			c.sendMessage(common.NewHelloMessage())
 			m := <-c.messages
 			decoration := m.(*common.DecorateMessage).Decoration
 			Expect(decoration).NotTo(BeEmpty())

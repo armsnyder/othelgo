@@ -8,6 +8,8 @@ import (
 )
 
 const (
+	HelloAction = "hello"
+
 	HostGameAction      = "hostGame"
 	StartSoloGameAction = "startSoloGame"
 	JoinGameAction      = "joinGame"
@@ -23,6 +25,8 @@ const (
 )
 
 var actionToMessage = map[string]interface{}{
+	HelloAction: BaseMessage{},
+
 	HostGameAction:      HostGameMessage{},
 	StartSoloGameAction: StartSoloGameMessage{},
 	JoinGameAction:      JoinGameMessage{},
@@ -72,6 +76,10 @@ func (b Board) String() string {
 
 type BaseMessage struct {
 	Action string `json:"action"`
+}
+
+func NewHelloMessage() BaseMessage {
+	return BaseMessage{Action: HelloAction}
 }
 
 type HostGameMessage struct {

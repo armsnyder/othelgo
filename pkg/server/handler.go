@@ -41,7 +41,6 @@ func Handle(ctx context.Context, req events.APIGatewayWebsocketProxyRequest, arg
 
 	switch req.RequestContext.EventType {
 	case "CONNECT":
-		err = handleConnect(ctx, req, args)
 	case "DISCONNECT":
 	case "MESSAGE":
 		err = handleMessage(ctx, req, args)
@@ -70,6 +69,7 @@ func handleMessage(ctx context.Context, req events.APIGatewayWebsocketProxyReque
 		common.JoinGameAction:      handleJoinGame,
 		common.ListOpenGamesAction: handleListOpenGames,
 		common.PlaceDiskAction:     handlePlaceDisk,
+		common.HelloAction:         handleHello,
 	}[message.Action]
 
 	if handler == nil {

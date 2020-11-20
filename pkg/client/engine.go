@@ -126,6 +126,10 @@ func setupWebsocket(local bool) (*websocket.Conn, func(), error) {
 	if err != nil {
 		return nil, nil, err
 	}
+	err = c.WriteJSON(common.NewHelloMessage())
+	if err != nil {
+		return nil, nil, err
+	}
 	return c, func() { c.Close() }, nil
 }
 

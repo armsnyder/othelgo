@@ -10,6 +10,6 @@ import (
 
 // Handlers for clients connecting and disconnecting.
 
-func handleConnect(ctx context.Context, req events.APIGatewayWebsocketProxyRequest, args Args) error {
+func handleHello(ctx context.Context, req events.APIGatewayWebsocketProxyRequest, args Args) error {
 	return reply(ctx, req.RequestContext, args, common.NewDecorateMessage("🦃🍁🌽🏈🥧🙏"))
 }
