@@ -40,6 +40,12 @@
             color: var(--bg-color);
             cursor: pointer;
         }
+
+        .text {
+            margin-top: 1.5em;
+            color: inherit;
+            text-decoration: inherit;
+        }
     </style>
 </head>
 
@@ -52,7 +58,8 @@
         &nbsp\___/&nbsp\__|_|&nbsp|_|\___|_|\__,&nbsp|\___/&nbsp<br>
         &nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp|___/&nbsp&nbsp&nbsp&nbsp&nbsp
     </div>
-    <a class="button" id="download">[ Download ]</a>
+    <a class="button" id="download" onclick="downloading()">[ Download ]</a>
+    <a class="text" id="checksum"></a>
     <script>
         var url = "https://www.google.com/"
         var checksums
@@ -60,11 +67,11 @@
 
         var platform = window.navigator.platform
         if (platform.toLowerCase().includes('linux')) {
-            re = /(othelgo.*Linux_x86_64.tar.gz)/
+            re = /(\w*)  (othelgo.*Linux_x86_64.tar.gz)/
         } else if (platform.toLowerCase().includes('mac')) {
-            re = /(othelgo.*Darwin_x86_64.tar.gz)/
+            re = /(\w*)  (othelgo.*Darwin_x86_64.tar.gz)/
         } else if (platform.toLowerCase().includes('win')) {
-            re = /(othelgo.*Windows_x86_64.tar.gz)/
+            re = /(\w*)  (othelgo.*Windows_x86_64.tar.gz)/
         } else {
             alert("Unsupported OS")
             console.log("Unsupported OS")
@@ -76,9 +83,13 @@
             checksums = data
             url = checksums.match(re)
             if (url != null) {
-                document.getElementById("download").href = "https://github.com/armsnyder/othelgo/releases/latest/download/" + url[0]
+                document.getElementById("download").href = "https://github.com/armsnyder/othelgo/releases/latest/download/" + url[2]
             }
         }).catch(console.error);
+
+        function downloading() {
+            document.getElementById("checksum").innerHTML = "Checksum: " + url[1];
+        }
 
     </script>
 </body>
