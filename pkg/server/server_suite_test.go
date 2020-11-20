@@ -56,10 +56,19 @@ var _ = Describe("Server", func() {
 
 	var flame, zinger, craig *clientConnection
 
-	BeforeEach(func() {
+	BeforeEach(func(done Done) {
 		flame = newClientConnection(addr)
 		zinger = newClientConnection(addr)
 		craig = newClientConnection(addr)
+
+		// Read the decoration message on hello.
+		for _, c := range []*clientConnection{flame, zinger, craig} {
+			m := <-c.messages
+			decoration := m.(*common.DecorateMessage).Decoration
+			Expect(decoration).NotTo(BeEmpty())
+		}
+
+		close(done)
 	})
 
 	AfterEach(func() {
