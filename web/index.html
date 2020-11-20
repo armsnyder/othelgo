@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+    <head>OTHELGO</head>
+    <br>
+    <body>
+        <button type="button">Download</button>
+    </body>
+    <script>
+        var platform = window.navigator.platform
+        if (platform.toLowerCase().includes('linux')) {
+            alert('detected LINUX')
+        } else if (platform.toLowerCase().includes('mac')) {
+            alert("detected MACINTOSH")
+        } else if (platform.toLowerCase().includes('win')) {
+            alert("detected WINDOWS")
+        }
+    </script>
+</html>
