@@ -54,16 +54,32 @@
     </div>
     <a class="button" id="download">[ Download ]</a>
     <script>
-        // var platform = window.navigator.platform
-        // if (platform.toLowerCase().includes('linux')) {
-        //     alert('detected LINUX')
-        // } else if (platform.toLowerCase().includes('mac')) {
-        //     alert("detected MACINTOSH")
-        // } else if (platform.toLowerCase().includes('win')) {
-        //     alert("detected WINDOWS")
-        // }
-        var b = document.getElementById("download")
-        b.href = "https://www.google.com/"
+        var url = "https://www.google.com/"
+        var checksums
+        var re
+
+        var platform = window.navigator.platform
+        if (platform.toLowerCase().includes('linux')) {
+            re = /(othelgo.*Linux_x86_64.tar.gz)/
+        } else if (platform.toLowerCase().includes('mac')) {
+            re = /(othelgo.*Darwin_x86_64.tar.gz)/
+        } else if (platform.toLowerCase().includes('win')) {
+            re = /(othelgo.*Windows_x86_64.tar.gz)/
+        } else {
+            alert("Unsupported OS")
+            console.log("Unsupported OS")
+        }
+
+        fetch('/dist/checksums.txt')
+        .then(response => response.text())
+        .then(data => {
+            checksums = data
+            url = checksums.match(re)
+            if (url != null) {
+                document.getElementById("download").href = "https://github.com/armsnyder/othelgo/releases/latest/download/" + url[0]
+            }
+        }).catch(console.error);
+
     </script>
 </body>
 
