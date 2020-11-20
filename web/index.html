@@ -1,18 +1,70 @@
 <!DOCTYPE html>
 <html>
-    <head>OTHELGO</head>
-    <br>
-    <body>
-        <button type="button">Download</button>
-    </body>
-    <script>
-        var platform = window.navigator.platform
-        if (platform.toLowerCase().includes('linux')) {
-            alert('detected LINUX')
-        } else if (platform.toLowerCase().includes('mac')) {
-            alert("detected MACINTOSH")
-        } else if (platform.toLowerCase().includes('win')) {
-            alert("detected WINDOWS")
+
+<head>
+    <title>othelgo</title>
+    <meta charset="utf-8">
+    <style>
+        :root {
+            --bg-color: #170f2b;
+            --fg-color: rgb(146, 146, 146);
+            --accent-color: gainsboro;
         }
+
+        body {
+            background: var(--bg-color);
+            color: var(--fg-color);
+            font-family: "Source Code Pro", monospace;
+            font-size: 18pt;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            user-select: none;
+        }
+
+        .banner {
+            color: var(--accent-color);
+            text-shadow: 0 0 2px var(--accent-color), 0 0 5px var(--accent-color);
+            cursor: default;
+            margin-top: 3em;
+        }
+
+        .button {
+            margin-top: 1.5em;
+            color: inherit;
+            text-decoration: inherit;
+        }
+
+        .button:hover {
+            background: var(--accent-color);
+            color: var(--bg-color);
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="banner">
+        &nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp_&nbsp&nbsp&nbsp_&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp_&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp<br>
+        &nbsp&nbsp___&nbsp|&nbsp|_|&nbsp|__&nbsp&nbsp&nbsp___|&nbsp|&nbsp__&nbsp_&nbsp&nbsp___&nbsp&nbsp<br>
+        &nbsp/&nbsp_&nbsp\|&nbsp__|&nbsp'_&nbsp\&nbsp/&nbsp_&nbsp\&nbsp|/&nbsp_`&nbsp|/&nbsp_&nbsp\&nbsp<br>
+        |&nbsp(_)&nbsp|&nbsp|_|&nbsp|&nbsp|&nbsp|&nbsp&nbsp__/&nbsp|&nbsp(_|&nbsp|&nbsp(_)&nbsp|<br>
+        &nbsp\___/&nbsp\__|_|&nbsp|_|\___|_|\__,&nbsp|\___/&nbsp<br>
+        &nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp|___/&nbsp&nbsp&nbsp&nbsp&nbsp
+    </div>
+    <a class="button" id="download">[ Download ]</a>
+    <script>
+        // var platform = window.navigator.platform
+        // if (platform.toLowerCase().includes('linux')) {
+        //     alert('detected LINUX')
+        // } else if (platform.toLowerCase().includes('mac')) {
+        //     alert("detected MACINTOSH")
+        // } else if (platform.toLowerCase().includes('win')) {
+        //     alert("detected WINDOWS")
+        // }
+        var b = document.getElementById("download")
+        b.href = "https://www.google.com/"
     </script>
+</body>
+
 </html>
