@@ -43,8 +43,12 @@
 
         .text {
             margin-top: 1.5em;
-            color: inherit;
-            text-decoration: inherit;
+            user-select: text; 
+        }
+        
+        .text::selection {
+            background-color: var(--accent-color);
+            color: var(--bg-color);
         }
     </style>
 </head>
