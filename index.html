@@ -41,6 +41,12 @@
             cursor: pointer;
         }
 
+        #github {
+            position: absolute;
+            bottom: 1.5em;
+            right: 1em;
+        }
+
         .text {
             margin-top: 1.5em;
             user-select: text; 
@@ -49,12 +55,6 @@
         .text::selection {
             background-color: var(--accent-color);
             color: var(--bg-color);
-        }
-
-        .link {
-            position: absolute;
-            bottom: 1.5em;
-            right: 1em;
         }
     </style>
 </head>
@@ -70,7 +70,7 @@
     </div>
     <a class="button" id="download" onclick="downloading()">[ Download ]</a>
     <a class="text" id="checksum"></a>
-    <iframe class="link" src="https://ghbtns.com/github-btn.html?user=armsnyder&repo=othelgo&type=star&count=true&size=large" frameborder="0" scrolling="0" width="170" height="30" title="GitHub"></iframe>
+    <a class="button" id="github" href="https://github.com/armsnyder/othelgo">[ GitHub ]</a>
     <script>
         var url = "https://www.google.com/"
         var checksums
