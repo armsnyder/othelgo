@@ -83,7 +83,7 @@ func Run(local bool) (err error) {
 			}
 
 		case err := <-messageErrors:
-			return err
+			log.Printf("error reading message from server: %v", err)
 		}
 	}
 }
