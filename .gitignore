@@ -34,3 +34,6 @@ othelgo.log
 
 # Benchmark results
 perf
+
+# Goreleaser
+dist
