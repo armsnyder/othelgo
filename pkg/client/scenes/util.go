@@ -4,6 +4,8 @@ import (
 	"unicode"
 
 	"github.com/nsf/termbox-go"
+
+	"github.com/armsnyder/othelgo/pkg/client/draw"
 )
 
 func getDirectionPressed(event termbox.Event) (dx, dy int) {
@@ -32,23 +34,8 @@ func getDirectionPressed(event termbox.Event) (dx, dy int) {
 	return dx, dy
 }
 
-func maxLength(ss []string) int {
-	result := 0
-	for _, s := range ss {
-		result = max(result, len(s))
-	}
-	return result
-}
-
 func min(a, b int) int {
 	if a < b {
-		return a
-	}
-	return b
-}
-
-func max(a, b int) int {
-	if a > b {
 		return a
 	}
 	return b
@@ -63,4 +50,15 @@ func clamp(val, min, max int) int {
 	default:
 		return val
 	}
+}
+
+func drawSplash() {
+	draw.Draw(draw.Offset(draw.CenterTop, 0, 1), draw.Normal, `
+       _   _          _             
+  ___ | |_| |__   ___| | __ _  ___  
+ / _ \| __| '_ \ / _ \ |/ _`+"`"+` |/ _ \ 
+| (_) | |_| | | |  __/ | (_| | (_) |
+ \___/ \__|_| |_|\___|_|\__, |\___/ 
+                        |___/       
+`)
 }

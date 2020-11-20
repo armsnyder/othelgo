@@ -4,6 +4,8 @@ import (
 	"math/rand"
 
 	"github.com/nsf/termbox-go"
+
+	"github.com/armsnyder/othelgo/pkg/client/draw"
 )
 
 var confettiColors = []termbox.Attribute{
@@ -21,7 +23,7 @@ var confettiShapes = []rune{'▪', '▮', '▰', '▴', '▸', '▾', '◂', '�
 
 type paper struct {
 	x, y  int
-	color color
+	color draw.Color
 }
 
 type confetti []*paper
@@ -71,6 +73,6 @@ func (c *confetti) draw() {
 
 	for _, p := range *c {
 		shape := confettiShapes[rand.Intn(len(confettiShapes))] //nolint:gosec
-		draw(offset(center, p.x, p.y), p.color, shape)
+		draw.Draw(draw.Offset(draw.Center, p.x, p.y), p.color, shape)
 	}
 }

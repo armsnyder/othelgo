@@ -53,6 +53,14 @@ func (a *GatewayAdapter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	connID := base64.StdEncoding.EncodeToString(connIDSrc[:])
 
+	// Register a hook for writing back to the connection, indexed by its connection ID.
+	a.writersMu.Lock()
+	if a.writers == nil {
+		a.writers = make(map[string]io.Writer)
+	}
+	a.writers[connID] = &wsTextWriter{ws: ws}
+	a.writersMu.Unlock()
+
 	// Invoke CONNECT handler.
 	if err := a.invokeHandler(connID, "CONNECT", ""); err != nil {
 		log.Println("handler:", err)
@@ -65,14 +73,6 @@ func (a *GatewayAdapter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			log.Println("handler:", err)
 		}
 	}()
-
-	// Register a hook for writing back to the connection, indexed by its connection ID.
-	a.writersMu.Lock()
-	if a.writers == nil {
-		a.writers = make(map[string]io.Writer)
-	}
-	a.writers[connID] = &wsTextWriter{ws: ws}
-	a.writersMu.Unlock()
 
 	defer func() {
 		a.writersMu.Lock()

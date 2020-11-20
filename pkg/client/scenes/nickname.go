@@ -8,6 +8,8 @@ import (
 	"unicode"
 
 	"github.com/nsf/termbox-go"
+
+	"github.com/armsnyder/othelgo/pkg/client/draw"
 )
 
 const maxNicknameLen = 10
@@ -93,10 +95,9 @@ func getLetter(ch rune) rune {
 }
 
 func (n *Nickname) Draw() {
-	drawGameBoyBorder()
 	drawSplash()
 
-	draw(offset(center, 0, 2), normal, "Enter your name:")
+	draw.Draw(draw.Offset(draw.Center, 0, 2), draw.Normal, "Enter your name:")
 
 	var sb strings.Builder
 	sb.WriteString(n.nickname)
@@ -104,10 +105,10 @@ func (n *Nickname) Draw() {
 		sb.WriteRune('_')
 	}
 
-	draw(offset(center, 0, 4), normal, sb.String())
+	draw.Draw(draw.Offset(draw.Center, 0, 4), draw.Normal, sb.String())
 
 	cursorX := min(len(n.nickname), maxNicknameLen-1) - maxNicknameLen/2
-	setCursor(offset(center, cursorX, 4))
+	draw.SetCursor(draw.Offset(draw.Center, cursorX, 4))
 }
 
 func (n *Nickname) HasFreeKeyboardInput() bool {

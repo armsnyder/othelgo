@@ -18,7 +18,8 @@ const (
 	PlaceDiskAction   = "placeDisk"
 	UpdateBoardAction = "updateBoard"
 
-	ErrorAction = "error"
+	ErrorAction    = "error"
+	DecorateAction = "decorate"
 )
 
 var actionToMessage = map[string]interface{}{
@@ -32,7 +33,8 @@ var actionToMessage = map[string]interface{}{
 	PlaceDiskAction:   PlaceDiskMessage{},
 	UpdateBoardAction: UpdateBoardMessage{},
 
-	ErrorAction: ErrorMessage{},
+	ErrorAction:    ErrorMessage{},
+	DecorateAction: DecorateMessage{},
 }
 
 const BoardSize = 8
@@ -169,6 +171,18 @@ func NewErrorMessage(err string) ErrorMessage {
 	return ErrorMessage{
 		Action: ErrorAction,
 		Error:  err,
+	}
+}
+
+type DecorateMessage struct {
+	Action     string `json:"action"`
+	Decoration string `json:"decoration"`
+}
+
+func NewDecorateMessage(decoration string) DecorateMessage {
+	return DecorateMessage{
+		Action:     DecorateAction,
+		Decoration: decoration,
 	}
 }
 

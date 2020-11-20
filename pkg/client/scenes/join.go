@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"unicode"
 
+	"github.com/armsnyder/othelgo/pkg/client/draw"
 	"github.com/armsnyder/othelgo/pkg/common"
 
 	"github.com/nsf/termbox-go"
@@ -54,22 +55,21 @@ func (j *Join) OnTerminalEvent(event termbox.Event) error {
 }
 
 func (j *Join) Draw() {
-	drawGameBoyBorder()
-	draw(topRight, normal, fmt.Sprintf("Your name is %s!", j.nickname))
-	draw(botRight, normal, "[M] MENU  [Q] QUIT")
+	draw.Draw(draw.TopRight, draw.Normal, fmt.Sprintf("Your name is %s!", j.nickname))
+	draw.Draw(draw.BotRight, draw.Normal, "[M] MENU  [Q] QUIT")
 
 	if len(j.hosts) > 0 {
-		buttonColors := [6]color{}
+		buttonColors := [6]draw.Color{}
 		for i := range buttonColors {
-			buttonColors[i] = normal
+			buttonColors[i] = draw.Normal
 		}
-		buttonColors[j.selected] = inverted
-		draw(offset(centerRight, -9, 0), normal, "=== OPEN GAMES ===")
+		buttonColors[j.selected] = draw.Inverted
+		draw.Draw(draw.Offset(draw.CenterRight, -9, 0), draw.Normal, "=== OPEN GAMES ===")
 		for i, h := range j.hosts {
 			os := -(len(h) + 4) / 2
-			draw(offset(centerRight, os, i*2+2), buttonColors[i], fmt.Sprintf("[ %s ]", h))
+			draw.Draw(draw.Offset(draw.CenterRight, os, i*2+2), buttonColors[i], fmt.Sprintf("[ %s ]", h))
 		}
 	} else {
-		draw(centerTop, normal, "MORE LIKE \"NO GAME\"")
+		draw.Draw(draw.CenterTop, draw.Normal, "MORE LIKE \"NO GAME\"")
 	}
 }

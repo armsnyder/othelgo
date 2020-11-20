@@ -4,6 +4,8 @@ import (
 	"fmt"
 
 	"github.com/nsf/termbox-go"
+
+	"github.com/armsnyder/othelgo/pkg/client/draw"
 )
 
 const (
@@ -85,32 +87,31 @@ func (m *Menu) OnTerminalEvent(event termbox.Event) error {
 }
 
 func (m *Menu) Draw() {
-	drawGameBoyBorder()
 	drawSplash()
 
-	draw(topRight, normal, fmt.Sprintf("Did you know? Your name is %s!", m.nickname))
+	draw.Draw(draw.TopRight, draw.Normal, fmt.Sprintf("Did you know? Your name is %s!", m.nickname))
 
-	buttonColors := [6]color{normal, normal, normal, normal, normal, normal}
-	buttonColors[m.button] = inverted
+	buttonColors := [6]draw.Color{draw.Normal, draw.Normal, draw.Normal, draw.Normal, draw.Normal, draw.Normal}
+	buttonColors[m.button] = draw.Inverted
 
-	multiplayerButtonColor := normal
-	multiplayerOffset := offset(centerRight, 1, 3)
+	multiplayerButtonColor := draw.Normal
+	multiplayerOffset := draw.Offset(draw.CenterRight, 1, 3)
 	if m.button == buttonHostGame || m.button == buttonJoinGame {
-		multiplayerButtonColor = inverted
-		draw(offset(multiplayerOffset, 1, 2), buttonColors[buttonHostGame], "[ HOST GAME ]")
-		draw(offset(multiplayerOffset, 1, 4), buttonColors[buttonJoinGame], "[ JOIN GAME ]")
+		multiplayerButtonColor = draw.Inverted
+		draw.Draw(draw.Offset(multiplayerOffset, 1, 2), buttonColors[buttonHostGame], "[ HOST GAME ]")
+		draw.Draw(draw.Offset(multiplayerOffset, 1, 4), buttonColors[buttonJoinGame], "[ JOIN GAME ]")
 	}
 
-	singleplayerButtonColor := normal
-	singleplayerOffset := offset(centerLeft, -1, 3)
+	singleplayerButtonColor := draw.Normal
+	singleplayerOffset := draw.Offset(draw.CenterLeft, -1, 3)
 	if m.button == buttonEasy || m.button == buttonNormal || m.button == buttonHard {
-		singleplayerButtonColor = inverted
-		draw(offset(singleplayerOffset, -4, 2), buttonColors[buttonEasy], "[ EASY ]")
-		draw(offset(singleplayerOffset, -3, 4), buttonColors[buttonNormal], "[ NORMAL ]")
-		draw(offset(singleplayerOffset, -4, 6), buttonColors[buttonHard], "[ HARD ]")
+		singleplayerButtonColor = draw.Inverted
+		draw.Draw(draw.Offset(singleplayerOffset, -4, 2), buttonColors[buttonEasy], "[ EASY ]")
+		draw.Draw(draw.Offset(singleplayerOffset, -3, 4), buttonColors[buttonNormal], "[ NORMAL ]")
+		draw.Draw(draw.Offset(singleplayerOffset, -4, 6), buttonColors[buttonHard], "[ HARD ]")
 	}
 
-	draw(offset(centerLeft, -1, 3), singleplayerButtonColor, "[ SINGLEPLAYER ]")
-	draw(multiplayerOffset, multiplayerButtonColor, "[ MULTIPLAYER ]")
-	draw(offset(topRight, 0, 2), buttonColors[buttonChangeName], "[ CHANGE NAME ]")
+	draw.Draw(draw.Offset(draw.CenterLeft, -1, 3), singleplayerButtonColor, "[ SINGLEPLAYER ]")
+	draw.Draw(multiplayerOffset, multiplayerButtonColor, "[ MULTIPLAYER ]")
+	draw.Draw(draw.Offset(draw.TopRight, 0, 2), buttonColors[buttonChangeName], "[ CHANGE NAME ]")
 }

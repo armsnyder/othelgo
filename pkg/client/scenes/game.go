@@ -6,6 +6,7 @@ import (
 
 	"github.com/nsf/termbox-go"
 
+	"github.com/armsnyder/othelgo/pkg/client/draw"
 	"github.com/armsnyder/othelgo/pkg/common"
 )
 
@@ -95,28 +96,27 @@ func (g *Game) Tick() bool {
 }
 
 func (g *Game) Draw() {
-	drawGameBoyBorder()
 	g.drawYouAre()
 	g.drawScore()
-	draw(topRight, normal, fmt.Sprintf("Your name is %s!", g.nickname))
-	draw(botRight, normal, "[M] MENU  [Q] QUIT")
+	draw.Draw(draw.TopRight, draw.Normal, fmt.Sprintf("Your name is %s!", g.nickname))
+	draw.Draw(draw.BotRight, draw.Normal, "[M] MENU  [Q] QUIT")
 	drawBoardOutline()
 	g.drawDisks()
 	g.drawCursor()
 	g.confetti.draw()
 }
 
-var playerColors = map[common.Disk]color{1: magenta, 2: green}
+var playerColors = map[common.Disk]draw.Color{1: draw.Magenta, 2: draw.Green}
 
-func drawDisk(anchor anchor, player common.Disk) {
+func drawDisk(anchor draw.Anchor, player common.Disk) {
 	// The extra space prevents a half-circle on some terminals.
-	draw(anchor, playerColors[player], "⬤ ")
+	draw.Draw(anchor, playerColors[player], "⬤ ")
 }
 
 func (g *Game) drawYouAre() {
 	youAreText := "You are: "
-	draw(topLeft, normal, youAreText)
-	drawDisk(offset(topLeft, len(youAreText), 0), g.player)
+	draw.Draw(draw.TopLeft, draw.Normal, youAreText)
+	drawDisk(draw.Offset(draw.TopLeft, len(youAreText), 0), g.player)
 }
 
 var (
@@ -127,15 +127,15 @@ var (
 func (g *Game) drawScore() {
 	// Text.
 	scoreText := "Score: "
-	draw(offset(middleRight, len(scoreText)-20, 0), normal, scoreText)
+	draw.Draw(draw.Offset(draw.MiddleRight, len(scoreText)-20, 0), draw.Normal, scoreText)
 
 	// P1 score.
-	drawDisk(offset(middleRight, -8, 0), 1)
-	draw(offset(middleRight, -7, 0), normal, fmt.Sprintf("%2d", g.p1Score))
+	drawDisk(draw.Offset(draw.MiddleRight, -8, 0), 1)
+	draw.Draw(draw.Offset(draw.MiddleRight, -7, 0), draw.Normal, fmt.Sprintf("%2d", g.p1Score))
 
 	// P2 score.
-	drawDisk(offset(middleRight, -1, 0), 2)
-	draw(middleRight, normal, fmt.Sprintf("%2d", g.p2Score))
+	drawDisk(draw.Offset(draw.MiddleRight, -1, 0), 2)
+	draw.Draw(draw.MiddleRight, draw.Normal, fmt.Sprintf("%2d", g.p2Score))
 
 	// Current turn indicator
 	if !common.GameOver(g.board) {
@@ -145,7 +145,7 @@ func (g *Game) drawScore() {
 		} else {
 			xOffset = -2
 		}
-		draw(offset(middleRight, xOffset, 1), normal, "﹌")
+		draw.Draw(draw.Offset(draw.MiddleRight, xOffset, 1), draw.Normal, "﹌")
 	}
 }
 
@@ -169,7 +169,7 @@ func drawBoardOutline() {
 				value = '|'
 			}
 
-			draw(offset(center, x, y), normal, value)
+			draw.Draw(draw.Offset(draw.Center, x, y), draw.Normal, value)
 		}
 	}
 }
@@ -185,7 +185,7 @@ func (g *Game) drawDisks() {
 			x := (i+1-common.BoardSize/2)*squareWidth - 1
 			y := (j + 1 - common.BoardSize/2) * squareHeight
 
-			drawDisk(offset(center, x, y), player)
+			drawDisk(draw.Offset(draw.Center, x, y), player)
 		}
 	}
 }
@@ -197,6 +197,6 @@ func (g *Game) drawCursor() {
 		x := (g.curSquareX+1-common.BoardSize/2)*squareWidth - 3
 		y := (g.curSquareY + 1 - common.BoardSize/2) * squareHeight
 
-		setCursor(offset(center, x, y))
+		draw.SetCursor(draw.Offset(draw.Center, x, y))
 	}
 }

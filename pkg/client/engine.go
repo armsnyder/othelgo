@@ -1,6 +1,7 @@
 package client
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -11,6 +12,7 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/nsf/termbox-go"
 
+	"github.com/armsnyder/othelgo/pkg/client/draw"
 	"github.com/armsnyder/othelgo/pkg/client/scenes"
 
 	"github.com/armsnyder/othelgo/pkg/common"
@@ -25,16 +27,11 @@ func Run(local bool) (err error) {
 	defer finish(err)
 
 	// Setup websocket.
-	addr := "wss://1y9vcb5geb.execute-api.us-west-2.amazonaws.com/development"
-	if local {
-		addr = "ws://127.0.0.1:9000"
-	}
-	log.Printf("Dialing websocket %q", addr)
-	c, _, err := websocket.DefaultDialer.Dial(addr, nil)
+	c, finish2, err := setupWebsocket(local)
 	if err != nil {
 		return err
 	}
-	defer c.Close()
+	defer finish2()
 
 	// Setup terminal.
 	log.Println("Initializing terminal")
@@ -45,10 +42,12 @@ func Run(local bool) (err error) {
 
 	// Setup a handler for changing scenes, and start the first scene.
 	var currentScene scenes.Scene
+	var gameBorderDecoration string
 	// We always want to prompt for a nickname when running locally because there will be more than
 	// one client.
 	firstScene := &scenes.Nickname{ChangeNickname: local}
-	if err := setupChangeSceneHandler(&currentScene, firstScene, c); err != nil {
+	drawAndFlush := func() error { return drawAndFlushScene(currentScene, gameBorderDecoration) }
+	if err := setupChangeSceneHandler(&currentScene, firstScene, drawAndFlush, c); err != nil {
 		return err
 	}
 
@@ -69,38 +68,17 @@ func Run(local bool) (err error) {
 	for {
 		select {
 		case <-ticker.C:
-			if currentScene.Tick() {
-				if err := drawAndFlush(currentScene); err != nil {
-					return err
-				}
-			}
-
-		case event := <-terminalEvents:
-			log.Printf("Received terminal event (type=%d)", event.Type)
-
-			if shouldInterrupt(event, currentScene) {
-				log.Println("Interrupting terminal")
-				termbox.Interrupt()
-
-				return nil
-			}
-
-			if err := currentScene.OnTerminalEvent(event); err != nil {
+			if err := handleTick(currentScene, drawAndFlush); err != nil {
 				return err
 			}
 
-			if err := drawAndFlush(currentScene); err != nil {
+		case event := <-terminalEvents:
+			if err := handleTerminalEvent(event, currentScene, drawAndFlush); err != nil {
 				return err
 			}
 
 		case message := <-messageQueue:
-			log.Printf("Received message (action=%q)", message.Action)
-
-			if err := currentScene.OnMessage(message); err != nil {
-				return err
-			}
-
-			if err := drawAndFlush(currentScene); err != nil {
+			if err := handleMessage(message, func(decoration string) { gameBorderDecoration = decoration }, currentScene, drawAndFlush); err != nil {
 				return err
 			}
 
@@ -138,7 +116,20 @@ func setupFileLogger() (finish func(err error), err error) {
 	return finish, nil
 }
 
-func setupChangeSceneHandler(currentScene *scenes.Scene, firstScene scenes.Scene, c *websocket.Conn) error {
+func setupWebsocket(local bool) (*websocket.Conn, func(), error) {
+	addr := "wss://1y9vcb5geb.execute-api.us-west-2.amazonaws.com/development"
+	if local {
+		addr = "ws://127.0.0.1:9000"
+	}
+	log.Printf("Dialing websocket %q", addr)
+	c, _, err := websocket.DefaultDialer.Dial(addr, nil)
+	if err != nil {
+		return nil, nil, err
+	}
+	return c, func() { c.Close() }, nil
+}
+
+func setupChangeSceneHandler(currentScene *scenes.Scene, firstScene scenes.Scene, drawAndFlush func() error, c *websocket.Conn) error {
 	sendMessage := func(v interface{}) error {
 		action := reflect.ValueOf(v).FieldByName("Action").String()
 		log.Printf("Sending message (action=%q)", action)
@@ -160,7 +151,7 @@ func setupChangeSceneHandler(currentScene *scenes.Scene, firstScene scenes.Scene
 			return err
 		}
 
-		return drawAndFlush(*currentScene)
+		return drawAndFlush()
 	}
 
 	return changeScene(firstScene)
@@ -191,7 +182,7 @@ func shouldInterrupt(event termbox.Event, scene scenes.Scene) bool {
 	return event.Key == termbox.KeyCtrlC || event.Key == termbox.KeyEsc
 }
 
-func drawAndFlush(scene scenes.Scene) error {
+func drawAndFlushScene(scene scenes.Scene, decoration string) error {
 	log.Println("Drawing")
 
 	if err := termbox.Clear(termbox.ColorDefault, termbox.ColorDefault); err != nil {
@@ -200,5 +191,50 @@ func drawAndFlush(scene scenes.Scene) error {
 
 	scene.Draw()
 
+	draw.Border(decoration)
+
 	return termbox.Flush()
+}
+
+func handleTick(currentScene scenes.Scene, drawAndFlush func() error) error {
+	if currentScene.Tick() {
+		if err := drawAndFlush(); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func handleTerminalEvent(event termbox.Event, currentScene scenes.Scene, drawAndFlush func() error) error {
+	log.Printf("Received terminal event (type=%d)", event.Type)
+
+	if shouldInterrupt(event, currentScene) {
+		log.Println("Interrupting terminal")
+		termbox.Interrupt()
+
+		return errors.New("interrupt")
+	}
+
+	if err := currentScene.OnTerminalEvent(event); err != nil {
+		return err
+	}
+
+	return drawAndFlush()
+}
+
+func handleMessage(message common.AnyMessage, changeGameBorderDecoration func(string), currentScene scenes.Scene, drawAndFlush func() error) error {
+	log.Printf("Received message (action=%q message=%T)", message.Action, message.Message)
+
+	if m, ok := message.Message.(*common.DecorateMessage); ok {
+		changeGameBorderDecoration(m.Decoration)
+	}
+
+	if err := currentScene.OnMessage(message); err != nil {
+		return err
+	}
+
+	if err := drawAndFlush(); err != nil {
+		return err
+	}
+	return nil
 }
