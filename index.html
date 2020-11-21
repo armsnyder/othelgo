@@ -4,6 +4,7 @@
 <head>
     <title>othelgo</title>
     <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
         :root {
             --bg-color: #170f2b;
@@ -11,15 +12,31 @@
             --accent-color: gainsboro;
         }
 
+        html, body {
+            height: 100%;
+            margin: 0;
+        }
+
         body {
             background: var(--bg-color);
             color: var(--fg-color);
             font-family: "Source Code Pro", monospace;
-            font-size: 18pt;
             display: flex;
             flex-direction: column;
             align-items: center;
             user-select: none;
+        }
+
+        @media (min-width: 600px) {
+            body {
+                font-size: x-large;
+            }
+        }
+
+        @media (max-width: 380px) {
+            body {
+                font-size: x-small;
+            }
         }
 
         .banner {
@@ -27,12 +44,14 @@
             text-shadow: 0 0 2px var(--accent-color), 0 0 5px var(--accent-color);
             cursor: default;
             margin-top: 3em;
+            font-family: inherit;
         }
 
         .button {
             margin-top: 1.5em;
             color: inherit;
             text-decoration: inherit;
+            white-space: nowrap;
         }
 
         .button:hover {
@@ -60,14 +79,13 @@
 </head>
 
 <body>
-    <div class="banner">
-        &nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp_&nbsp&nbsp&nbsp_&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp_&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp<br>
-        &nbsp&nbsp___&nbsp|&nbsp|_|&nbsp|__&nbsp&nbsp&nbsp___|&nbsp|&nbsp__&nbsp_&nbsp&nbsp___&nbsp&nbsp<br>
-        &nbsp/&nbsp_&nbsp\|&nbsp__|&nbsp'_&nbsp\&nbsp/&nbsp_&nbsp\&nbsp|/&nbsp_`&nbsp|/&nbsp_&nbsp\&nbsp<br>
-        |&nbsp(_)&nbsp|&nbsp|_|&nbsp|&nbsp|&nbsp|&nbsp&nbsp__/&nbsp|&nbsp(_|&nbsp|&nbsp(_)&nbsp|<br>
-        &nbsp\___/&nbsp\__|_|&nbsp|_|\___|_|\__,&nbsp|\___/&nbsp<br>
-        &nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp|___/&nbsp&nbsp&nbsp&nbsp&nbsp
-    </div>
+        <pre class="banner">
+       _   _          _
+  ___ | |_| |__   ___| | __ _  ___
+ / _ \| __| '_ \ / _ \ |/ _` |/ _ \
+| (_) | |_| | | |  __/ | (_| | (_) |
+ \___/ \__|_| |_|\___|_|\__, |\___/
+                        |___/</pre>
     <a class="button" id="download" onclick="downloading()">[ Download ]</a>
     <a class="text" id="checksum"></a>
     <a class="button" id="github" href="https://github.com/armsnyder/othelgo">[ GitHub ]</a>
