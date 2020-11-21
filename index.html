@@ -68,9 +68,9 @@
 
         .text {
             margin-top: 1.5em;
-            user-select: text; 
+            user-select: text;
         }
-        
+
         .text::selection {
             background-color: var(--accent-color);
             color: var(--bg-color);
@@ -107,14 +107,15 @@
         }
 
         fetch('/dist/checksums.txt')
-        .then(response => response.text())
-        .then(data => {
-            checksums = data
-            url = checksums.match(re)
-            if (url != null) {
-                document.getElementById("download").href = "https://github.com/armsnyder/othelgo/releases/latest/download/" + url[2]
-            }
-        }).catch(console.error);
+            .then(response => response.text())
+            .then(data => {
+                checksums = data
+                url = checksums.match(re)
+                if (url != null) {
+                    document.getElementById("download").href = "https://github.com/armsnyder/othelgo/releases/latest/download/" + url[2]
+                }
+            })
+            .catch(console.error);
 
         function downloading() {
             document.getElementById("checksum").innerHTML = "Checksum: " + url[1];
