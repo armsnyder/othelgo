@@ -357,6 +357,17 @@ var _ = Describe("Server", func() {
 					msg := message.(*common.GameOverMessage).Message
 					Expect(msg).To(Equal("flame left the game"))
 				})
+
+				When("zinger leaves the game", func() {
+					BeforeEach(func() {
+						zinger.sendMessage(common.NewLeaveGameMessage("zinger", "flame"))
+					})
+
+					It("should not error", func() {
+						sleep()
+						Expect(zinger.messages).NotTo(Receive())
+					})
+				})
 			})
 
 			When("zinger leaves the game", func() {
