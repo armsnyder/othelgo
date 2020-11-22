@@ -179,12 +179,51 @@ func drawBoardOutline() {
 			var value rune
 
 			switch {
+
+			// Crossing.
 			case y%squareHeight == 0 && x%squareWidth == 0:
-				value = '+'
+				switch {
+
+				// Top row crossing.
+				case y == -boardHeight/2:
+					switch x {
+					case -boardWidth / 2:
+						value = '┌'
+					case boardWidth / 2:
+						value = '┐'
+					default:
+						value = '┬'
+					}
+
+				// Bottom row crossing.
+				case y == boardHeight/2:
+					switch x {
+					case -boardWidth / 2:
+						value = '└'
+					case boardWidth / 2:
+						value = '┘'
+					default:
+						value = '┴'
+					}
+
+				// Left side crossing.
+				case x == -boardWidth/2:
+					value = '├'
+
+				// Right side crossing.
+				case x == boardWidth/2:
+					value = '┤'
+
+				// Inner crossing.
+				default:
+					value = '┼'
+				}
+
 			case y%squareHeight == 0:
-				value = '-'
+				value = '─'
+
 			case x%squareWidth == 0:
-				value = '|'
+				value = '│'
 			}
 
 			draw.Draw(draw.Offset(draw.Center, x, y), draw.Normal, value)
