@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -26,6 +27,7 @@ const (
 	attribOpponent    = "Opponent"
 	attribGame        = "Game"
 	attribConnections = "Connections"
+	attribTTL         = "TTL"
 )
 
 const indexByOpponent = "ByOpponent"
@@ -78,8 +80,8 @@ func updateGame(ctx context.Context, args Args, host string, game game) error {
 	}
 
 	update := expression.Set(expression.Name(attribGame), expression.Value(gameBytes))
-	builder := expression.NewBuilder().WithUpdate(update)
-	_, err = updateItem(ctx, args, host, builder, false)
+
+	_, err = updateItem(ctx, args, host, update, false)
 	return err
 }
 
@@ -94,8 +96,7 @@ func updateGameOpponentSetConnection(ctx context.Context, args Args, host string
 		Set(expression.Name(attribOpponent), expression.Value(opponent)).
 		Set(expression.Name(attribConnections), expression.Value(map[string]string{connName: connID}))
 
-	builder := expression.NewBuilder().WithUpdate(update)
-	_, err = updateItem(ctx, args, host, builder, false)
+	_, err = updateItem(ctx, args, host, update, false)
 	return err
 }
 
@@ -104,8 +105,8 @@ func updateOpponentConnectionGetGame(ctx context.Context, args Args, host, oppon
 		Set(expression.Name(attribOpponent), expression.Value(opponent)).
 		Set(expression.Name(attribConnections+"."+connName), expression.Value(connID))
 	condition := expression.In(expression.Name(attribOpponent), expression.Value(expectedOpponents[0]), expression.Value(expectedOpponents[1]))
-	builder := expression.NewBuilder().WithUpdate(update).WithCondition(condition)
-	output, err := updateItem(ctx, args, host, builder, true)
+
+	output, err := updateItemWithCondition(ctx, args, host, update, condition, true)
 	if err != nil {
 		return game{}, err
 	}
@@ -140,7 +141,21 @@ func getHostsByOpponent(ctx context.Context, args Args, opponent string) ([]stri
 }
 
 // updateItem wraps dynamodb.UpdateItemWithContext.
-func updateItem(ctx context.Context, args Args, host string, builder expression.Builder, returnOldValues bool) (*dynamodb.UpdateItemOutput, error) {
+func updateItem(ctx context.Context, args Args, host string, update expression.UpdateBuilder, returnOldValues bool) (*dynamodb.UpdateItemOutput, error) {
+	update = update.Set(expression.Name(attribTTL), expression.Value(time.Now().Add(time.Hour).Unix()))
+	builder := expression.NewBuilder().WithUpdate(update)
+	return updateItemWithBuilder(ctx, args, host, builder, returnOldValues)
+}
+
+// updateItemWithCondition wraps dynamodb.UpdateItemWithContext.
+func updateItemWithCondition(ctx context.Context, args Args, host string, update expression.UpdateBuilder, condition expression.ConditionBuilder, returnOldValues bool) (*dynamodb.UpdateItemOutput, error) {
+	update = update.Set(expression.Name(attribTTL), expression.Value(time.Now().Add(time.Hour).Unix()))
+	builder := expression.NewBuilder().WithUpdate(update).WithCondition(condition)
+	return updateItemWithBuilder(ctx, args, host, builder, returnOldValues)
+}
+
+// updateItemWithBuilder wraps dynamodb.UpdateItemWithContext.
+func updateItemWithBuilder(ctx context.Context, args Args, host string, builder expression.Builder, returnOldValues bool) (*dynamodb.UpdateItemOutput, error) {
 	exp, err := builder.Build()
 	if err != nil {
 		return nil, err
@@ -204,7 +219,15 @@ func EnsureTable(ctx context.Context, db *dynamodb.DynamoDB, name string) error 
 		return err
 	}
 
-	return nil
+	_, err = db.UpdateTimeToLiveWithContext(ctx, &dynamodb.UpdateTimeToLiveInput{
+		TableName: aws.String(name),
+		TimeToLiveSpecification: &dynamodb.TimeToLiveSpecification{
+			AttributeName: aws.String(attribTTL),
+			Enabled:       aws.Bool(true),
+		},
+	})
+
+	return err
 }
 
 func defaultDB() *dynamodb.DynamoDB {

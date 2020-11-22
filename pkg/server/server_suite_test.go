@@ -6,6 +6,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"strconv"
 	"testing"
 	"time"
 
@@ -179,6 +180,23 @@ var _ = Describe("Server", func() {
 		It("should be a new game board", func() {
 			board := message.(*common.UpdateBoardMessage).Board
 			Expect(board).To(Equal(newGameBoard))
+		})
+
+		It("should have a TTL", func(done Done) {
+			output, err := LocalDB().Scan(&dynamodb.ScanInput{TableName: aws.String(testTableName())})
+			if err != nil {
+				panic(err)
+			}
+			Expect(output.Items).NotTo(BeEmpty())
+			now := time.Now().Unix()
+			for _, item := range output.Items {
+				ttl, err := strconv.ParseInt(*item["TTL"].N, 10, 64)
+				if err != nil {
+					panic(err)
+				}
+				Expect(ttl).To(BeNumerically(">", now))
+			}
+			close(done)
 		})
 
 		When("craig hosts a game", func() {
