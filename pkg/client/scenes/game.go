@@ -2,6 +2,8 @@ package scenes
 
 import (
 	"fmt"
+	"log"
+	"strings"
 	"unicode"
 
 	"github.com/nsf/termbox-go"
@@ -12,18 +14,19 @@ import (
 
 type Game struct {
 	scene
-	player      common.Disk
-	curSquareX  int
-	curSquareY  int
-	board       common.Board
-	p1Score     int
-	p2Score     int
-	confetti    confetti
-	nickname    string
-	host        string
-	whoseTurn   common.Disk
-	multiplayer bool
-	difficulty  int
+	player          common.Disk
+	curSquareX      int
+	curSquareY      int
+	board           common.Board
+	p1Score         int
+	p2Score         int
+	confetti        confetti
+	nickname        string
+	host            string
+	whoseTurn       common.Disk
+	multiplayer     bool
+	difficulty      int
+	gaveOverMessage string
 }
 
 func (g *Game) Setup(changeScene ChangeScene, sendMessage SendMessage) error {
@@ -46,16 +49,28 @@ func (g *Game) Setup(changeScene ChangeScene, sendMessage SendMessage) error {
 }
 
 func (g *Game) OnMessage(message common.AnyMessage) error {
-	if m, ok := message.Message.(*common.UpdateBoardMessage); ok {
+	switch m := message.Message.(type) {
+	case *common.UpdateBoardMessage:
 		g.board = m.Board
 		g.whoseTurn = m.Player
 		g.p1Score, g.p2Score = common.KeepScore(g.board)
+	case *common.GameOverMessage:
+		g.gaveOverMessage = m.Message
 	}
 
 	return nil
 }
 
 func (g *Game) OnTerminalEvent(event termbox.Event) error {
+	if unicode.ToUpper(event.Ch) == 'M' {
+		g.OnQuit()
+		return g.ChangeScene(&Menu{nickname: g.nickname})
+	}
+
+	if g.gaveOverMessage != "" {
+		return nil
+	}
+
 	dx, dy := getDirectionPressed(event)
 	g.curSquareX = clamp(g.curSquareX+dx, 0, common.BoardSize)
 	g.curSquareY = clamp(g.curSquareY+dy, 0, common.BoardSize)
@@ -71,11 +86,13 @@ func (g *Game) OnTerminalEvent(event termbox.Event) error {
 		}
 	}
 
-	if unicode.ToUpper(event.Ch) == 'M' {
-		return g.ChangeScene(&Menu{nickname: g.nickname})
-	}
-
 	return nil
+}
+
+func (g *Game) OnQuit() {
+	if err := g.SendMessage(common.NewLeaveGameMessage(g.nickname, g.host)); err != nil {
+		log.Print(err)
+	}
 }
 
 func (g *Game) Tick() bool {
@@ -104,6 +121,7 @@ func (g *Game) Draw() {
 	g.drawDisks()
 	g.drawCursor()
 	g.confetti.draw()
+	g.drawGameOver()
 }
 
 var playerColors = map[common.Disk]draw.Color{1: draw.Magenta, 2: draw.Green}
@@ -130,20 +148,20 @@ func (g *Game) drawScore() {
 	draw.Draw(draw.Offset(draw.MiddleRight, len(scoreText)-20, 0), draw.Normal, scoreText)
 
 	// P1 score.
-	drawDisk(draw.Offset(draw.MiddleRight, -8, 0), 1)
+	drawDisk(draw.Offset(draw.MiddleRight, -9, 0), 1)
 	draw.Draw(draw.Offset(draw.MiddleRight, -7, 0), draw.Normal, fmt.Sprintf("%2d", g.p1Score))
 
 	// P2 score.
-	drawDisk(draw.Offset(draw.MiddleRight, -1, 0), 2)
+	drawDisk(draw.Offset(draw.MiddleRight, -2, 0), 2)
 	draw.Draw(draw.MiddleRight, draw.Normal, fmt.Sprintf("%2d", g.p2Score))
 
 	// Current turn indicator
 	if !common.GameOver(g.board) {
 		var xOffset int
 		if g.whoseTurn == 1 {
-			xOffset = -9
+			xOffset = -10
 		} else {
-			xOffset = -2
+			xOffset = -3
 		}
 		draw.Draw(draw.Offset(draw.MiddleRight, xOffset, 1), draw.Normal, "﹌")
 	}
@@ -182,7 +200,7 @@ func (g *Game) drawDisks() {
 				continue
 			}
 
-			x := (i+1-common.BoardSize/2)*squareWidth - 1
+			x := (i+1-common.BoardSize/2)*squareWidth - 2
 			y := (j + 1 - common.BoardSize/2) * squareHeight
 
 			drawDisk(draw.Offset(draw.Center, x, y), player)
@@ -191,7 +209,7 @@ func (g *Game) drawDisks() {
 }
 
 func (g *Game) drawCursor() {
-	if common.GameOver(g.board) || g.whoseTurn != g.player {
+	if common.GameOver(g.board) || g.whoseTurn != g.player || g.gaveOverMessage != "" {
 		termbox.HideCursor()
 	} else {
 		x := (g.curSquareX+1-common.BoardSize/2)*squareWidth - 3
@@ -199,4 +217,35 @@ func (g *Game) drawCursor() {
 
 		draw.SetCursor(draw.Offset(draw.Center, x, y))
 	}
+}
+
+func (g *Game) drawGameOver() {
+	if g.gaveOverMessage == "" {
+		return
+	}
+
+	var sb strings.Builder
+
+	writeLine := func(first rune, content string, last rune) {
+		sb.WriteRune(first)
+		sb.WriteString(content)
+		sb.WriteRune(last)
+		sb.WriteRune('\n')
+	}
+
+	fillLine := func(first, ch, last rune) {
+		content := make([]rune, len(g.gaveOverMessage)+4)
+		for i := 0; i < len(content); i++ {
+			content[i] = ch
+		}
+		writeLine(first, string(content), last)
+	}
+
+	fillLine('╔', '═', '╗')
+	fillLine('║', ' ', '║')
+	writeLine('║', fmt.Sprintf("  %s  ", g.gaveOverMessage), '║')
+	fillLine('║', ' ', '║')
+	fillLine('╚', '═', '╝')
+
+	draw.Draw(draw.Center, draw.Normal, sb.String())
 }

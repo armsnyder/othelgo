@@ -15,6 +15,7 @@ type Scene interface {
 	Tick() bool
 	Draw()
 	HasFreeKeyboardInput() bool
+	OnQuit()
 }
 
 // types for Scene setup method.
@@ -48,4 +49,8 @@ func (s *scene) Tick() bool {
 
 func (s *scene) HasFreeKeyboardInput() bool {
 	return false
+}
+
+func (s *scene) OnQuit() {
+	// Default implementation is a no-op.
 }

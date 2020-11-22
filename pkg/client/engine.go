@@ -213,6 +213,9 @@ func handleTerminalEvent(event termbox.Event, currentScene scenes.Scene, drawAnd
 	log.Printf("Received terminal event (type=%d)", event.Type)
 
 	if shouldInterrupt(event, currentScene) {
+		log.Println("Quitting scene")
+		currentScene.OnQuit()
+
 		log.Println("Interrupting terminal")
 		termbox.Interrupt()
 

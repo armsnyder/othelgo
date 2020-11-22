@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/nsf/termbox-go"
 )
@@ -183,7 +184,7 @@ func Border(decoration string) {
 func maxLength(ss []string) int {
 	result := 0
 	for _, s := range ss {
-		result = max(result, len(s))
+		result = max(result, utf8.RuneCountInString(s))
 	}
 	return result
 }
