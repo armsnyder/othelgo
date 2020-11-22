@@ -11,6 +11,16 @@
             --bg-color: #170f2b;
             --fg-color: rgb(146, 146, 146);
             --accent-color: gainsboro;
+            --line-height: 1.25rem;
+        }
+
+        /* Works well with flexbox styling, allowing us to use padding. */
+        * {
+            box-sizing: border-box;
+        }
+
+        html {
+            font-size: 12pt;
         }
 
         html, body {
@@ -27,33 +37,21 @@
             align-items: center;
         }
 
-        @media (min-width: 600px) {
-            body {
-                font-size: x-large;
-            }
-        }
-
-        @media (max-width: 380px) {
-            .banner {
-                font-size: x-small;
-            }
-        }
-
         header {
-            padding: 32px;
             user-select: none;
             width: 100%;
-            box-sizing: border-box;
             display: flex;
             flex-direction: column;
             align-items: center;
+            padding: var(--line-height);
         }
 
         .banner {
+            margin: 0;
+            font-size: smaller;
             color: var(--accent-color);
             text-shadow: 0 0 2px var(--accent-color), 0 0 5px var(--accent-color);
             cursor: default;
-            margin-top: 3em;
             font-family: inherit;
         }
 
@@ -63,14 +61,14 @@
             display: flex;
             flex-direction: column;
             align-items: center;
+            padding: 0 var(--line-height);
         }
 
         footer {
             width: 100%;
-            box-sizing: border-box;
-            padding: 32px;
             display: flex;
             justify-content: flex-end;
+            padding: var(--line-height);
         }
 
         .button {
@@ -90,6 +88,57 @@
             color: var(--bg-color);
             background: var(--accent-color);
         }
+
+        #checksum {
+            overflow-wrap: anywhere;
+            font-size: smaller;
+        }
+
+        p {
+            margin: var(--line-height) 0;
+        }
+
+        /*
+        Responsive CSS
+        Breakpoints borrowed from Bootstrap: https://getbootstrap.com/docs/4.1/layout/overview/#responsive-breakpoints
+        */
+
+        /* Small devices (landscape phones) */
+        @media (min-width: 576px) {
+            html {
+                font-size: 14pt;
+            }
+
+            .banner {
+                font-size: inherit;
+            }
+        }
+
+        /* Medium devices (tablets) */
+        @media (min-width: 768px) {
+            html {
+                font-size: 18pt;
+            }
+        }
+
+        /* Large devices (desktops) */
+        @media (min-width: 992px) {
+            html {
+                font-size: 22pt;
+            }
+
+            .banner {
+                padding-top: calc(2 * var(--line-height));
+            }
+        }
+
+        /* Extra large devices (large desktops) */
+        @media (min-width: 1200px) {
+            #checksum {
+                font-size: inherit;
+            }
+        }
+
     </style>
 </head>
 
@@ -106,7 +155,7 @@
 
     <main>
         <a class="button" id="download" onclick="downloading()">[ Download ]</a>
-        <p id="checksum"></p>
+        <p id="checksum" hidden></p>
     </main>
 
     <footer>
@@ -142,7 +191,9 @@
             .catch(console.error);
 
         function downloading() {
-            document.getElementById("checksum").innerHTML = "Checksum: " + url[1];
+            var el = document.getElementById("checksum");
+            el.hidden = false;
+            el.innerHTML = "Checksum: " + url[1];
         }
 
     </script>
