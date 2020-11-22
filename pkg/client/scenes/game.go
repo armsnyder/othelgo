@@ -179,11 +179,9 @@ func drawBoardOutline() {
 			var value rune
 
 			switch {
-
 			// Crossing.
 			case y%squareHeight == 0 && x%squareWidth == 0:
 				switch {
-
 				// Top row crossing.
 				case y == -boardHeight/2:
 					switch x {
