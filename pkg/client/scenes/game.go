@@ -148,20 +148,20 @@ func (g *Game) drawScore() {
 	draw.Draw(draw.Offset(draw.MiddleRight, len(scoreText)-20, 0), draw.Normal, scoreText)
 
 	// P1 score.
-	drawDisk(draw.Offset(draw.MiddleRight, -9, 0), 1)
-	draw.Draw(draw.Offset(draw.MiddleRight, -7, 0), draw.Normal, fmt.Sprintf("%2d", g.p1Score))
+	drawDisk(draw.Offset(draw.MiddleRight, -10, 0), 1)
+	draw.Draw(draw.Offset(draw.MiddleRight, -7, 0), draw.Normal, fmt.Sprintf("%-2d", g.p1Score))
 
 	// P2 score.
-	drawDisk(draw.Offset(draw.MiddleRight, -2, 0), 2)
-	draw.Draw(draw.MiddleRight, draw.Normal, fmt.Sprintf("%2d", g.p2Score))
+	drawDisk(draw.Offset(draw.MiddleRight, -3, 0), 2)
+	draw.Draw(draw.MiddleRight, draw.Normal, fmt.Sprintf("%-2d", g.p2Score))
 
 	// Current turn indicator
 	if !common.GameOver(g.board) {
 		var xOffset int
 		if g.whoseTurn == 1 {
-			xOffset = -10
+			xOffset = -11
 		} else {
-			xOffset = -3
+			xOffset = -4
 		}
 		draw.Draw(draw.Offset(draw.MiddleRight, xOffset, 1), draw.Normal, "﹌")
 	}
