@@ -140,6 +140,31 @@ func getHostsByOpponent(ctx context.Context, args Args, opponent string) ([]stri
 	return hosts, nil
 }
 
+func deleteGameGetConnectionIDs(ctx context.Context, args Args, host string) ([]string, error) {
+	output, err := args.DB.DeleteItemWithContext(ctx, &dynamodb.DeleteItemInput{
+		TableName:    aws.String(args.TableName),
+		Key:          hostKey(host),
+		ReturnValues: aws.String(dynamodb.ReturnValueAllOld),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	// Read the attributes into a struct.
+	var item struct{ Connections map[string]string }
+	if err := dynamodbattribute.UnmarshalMap(output.Attributes, &item); err != nil {
+		return nil, err
+	}
+
+	// Get just the connection ID values.
+	var connectionIDs []string
+	for _, v := range item.Connections {
+		connectionIDs = append(connectionIDs, v)
+	}
+
+	return connectionIDs, err
+}
+
 // updateItem wraps dynamodb.UpdateItemWithContext.
 func updateItem(ctx context.Context, args Args, host string, update expression.UpdateBuilder, returnOldValues bool) (*dynamodb.UpdateItemOutput, error) {
 	update = update.Set(expression.Name(attribTTL), expression.Value(time.Now().Add(time.Hour).Unix()))

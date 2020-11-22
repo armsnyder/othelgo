@@ -223,6 +223,25 @@ var _ = Describe("Server", func() {
 			})
 		})
 
+		When("flame leaves the game", func() {
+			BeforeEach(func(done Done) {
+				flame.sendMessage(common.NewLeaveGameMessage("flame", "flame"))
+				receiveMessage(&flame)(done)
+			})
+
+			When("zinger lists open games", func() {
+				BeforeEach(func(done Done) {
+					zinger.sendMessage(common.NewListOpenGamesMessage())
+					receiveMessage(&zinger)(done)
+				})
+
+				It("should have no open games", func() {
+					hosts := message.(*common.OpenGamesMessage).Hosts
+					Expect(hosts).To(BeEmpty())
+				})
+			})
+		})
+
 		When("zinger lists open games", func() {
 			BeforeEach(func(done Done) {
 				zinger.sendMessage(common.NewListOpenGamesMessage())
@@ -325,6 +344,30 @@ var _ = Describe("Server", func() {
 						player := message.(*common.UpdateBoardMessage).Player
 						Expect(player).To(Equal(common.Player2))
 					})
+				})
+			})
+
+			When("flame leaves the game", func() {
+				BeforeEach(func(done Done) {
+					flame.sendMessage(common.NewLeaveGameMessage("flame", "flame"))
+					receiveMessage(&zinger)(done)
+				})
+
+				It("zinger is notified", func() {
+					msg := message.(*common.GameOverMessage).Message
+					Expect(msg).To(Equal("flame left the game"))
+				})
+			})
+
+			When("zinger leaves the game", func() {
+				BeforeEach(func(done Done) {
+					zinger.sendMessage(common.NewLeaveGameMessage("zinger", "flame"))
+					receiveMessage(&flame)(done)
+				})
+
+				It("flame is notified", func() {
+					msg := message.(*common.GameOverMessage).Message
+					Expect(msg).To(Equal("zinger left the game"))
 				})
 			})
 		})

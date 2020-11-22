@@ -82,3 +82,17 @@ func handleListOpenGames(ctx context.Context, req events.APIGatewayWebsocketProx
 
 	return reply(ctx, req.RequestContext, args, common.NewOpenGamesMessage(hosts))
 }
+
+func handleLeaveGame(ctx context.Context, req events.APIGatewayWebsocketProxyRequest, args Args) error {
+	var message common.LeaveGameMessage
+	if err := json.Unmarshal([]byte(req.Body), &message); err != nil {
+		return err
+	}
+
+	connectionIDs, err := deleteGameGetConnectionIDs(ctx, args, message.Host)
+	if err != nil {
+		return err
+	}
+
+	return broadcast(ctx, req.RequestContext, args, common.NewGameOverMessage(fmt.Sprintf("%s left the game", message.Nickname)), connectionIDs)
+}

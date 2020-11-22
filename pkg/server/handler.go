@@ -67,6 +67,7 @@ func handleMessage(ctx context.Context, req events.APIGatewayWebsocketProxyReque
 		common.HostGameAction:      handleHostGame,
 		common.StartSoloGameAction: handleStartSoloGame,
 		common.JoinGameAction:      handleJoinGame,
+		common.LeaveGameAction:     handleLeaveGame,
 		common.ListOpenGamesAction: handleListOpenGames,
 		common.PlaceDiskAction:     handlePlaceDisk,
 		common.HelloAction:         handleHello,
