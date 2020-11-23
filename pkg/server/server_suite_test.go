@@ -267,14 +267,27 @@ var _ = Describe("Server", func() {
 		})
 
 		When("zinger joins the game", func() {
+			var (
+				zingerMessage interface{}
+				flameMessage  interface{}
+			)
+
 			BeforeEach(func(done Done) {
 				zinger.sendMessage(common.NewJoinGameMessage("zinger", "flame"))
-				receiveMessage(&zinger)(done)
+				zingerMessage = <-zinger.messages
+				flameMessage = <-flame.messages
+				close(done)
 			})
 
 			It("should send a new game board to zinger", func() {
-				board := message.(*common.UpdateBoardMessage).Board
+				board := zingerMessage.(*common.UpdateBoardMessage).Board
 				Expect(board).To(Equal(newGameBoard))
+			})
+
+			It("should notify flame", func(done Done) {
+				opponent := flameMessage.(*common.JoinedMessage).Nickname
+				Expect(opponent).To(Equal("zinger"))
+				close(done)
 			})
 
 			When("craig lists open games", func() {

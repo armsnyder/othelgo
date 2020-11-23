@@ -100,7 +100,7 @@ func updateGameOpponentSetConnection(ctx context.Context, args Args, host string
 	return err
 }
 
-func updateOpponentConnectionGetGame(ctx context.Context, args Args, host, opponent, connName, connID string, expectedOpponents [2]string) (game, error) {
+func updateOpponentConnectionGetGameConnectionIDs(ctx context.Context, args Args, host, opponent, connName, connID string, expectedOpponents [2]string) (game, []string, error) {
 	update := expression.
 		Set(expression.Name(attribOpponent), expression.Value(opponent)).
 		Set(expression.Name(attribConnections+"."+connName), expression.Value(connID))
@@ -108,13 +108,31 @@ func updateOpponentConnectionGetGame(ctx context.Context, args Args, host, oppon
 
 	output, err := updateItemWithCondition(ctx, args, host, update, condition, true)
 	if err != nil {
-		return game{}, err
+		return game{}, nil, err
 	}
 
-	var game game
-	err = json.Unmarshal(output.Attributes[attribGame].B, &game)
+	// Read the attributes into a struct.
+	var item struct {
+		Game        []byte
+		Connections map[string]string
+	}
+	if err := dynamodbattribute.UnmarshalMap(output.Attributes, &item); err != nil {
+		return game{}, nil, err
+	}
 
-	return game, err
+	// Unmarshal the game JSON.
+	var game game
+	if err := json.Unmarshal(item.Game, &game); err != nil {
+		return game, nil, err
+	}
+
+	// Get just the connection ID values.
+	var connectionIDs []string
+	for _, v := range item.Connections {
+		connectionIDs = append(connectionIDs, v)
+	}
+
+	return game, connectionIDs, err
 }
 
 func getHostsByOpponent(ctx context.Context, args Args, opponent string) ([]string, error) {

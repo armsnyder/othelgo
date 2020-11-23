@@ -66,12 +66,16 @@ func handleJoinGame(ctx context.Context, req events.APIGatewayWebsocketProxyRequ
 		return err
 	}
 
-	game, err := updateOpponentConnectionGetGame(ctx, args, message.Host, message.Nickname, message.Nickname, req.RequestContext.ConnectionID, [2]string{waiting, message.Nickname})
+	game, connectionIDs, err := updateOpponentConnectionGetGameConnectionIDs(ctx, args, message.Host, message.Nickname, message.Nickname, req.RequestContext.ConnectionID, [2]string{waiting, message.Nickname})
 	if err != nil {
 		return err
 	}
 
-	return reply(ctx, req.RequestContext, args, common.NewUpdateBoardMessage(game.Board, game.Player))
+	if err := reply(ctx, req.RequestContext, args, common.NewUpdateBoardMessage(game.Board, game.Player)); err != nil {
+		return err
+	}
+
+	return broadcast(ctx, req.RequestContext, args, common.NewJoinedMessage(message.Nickname), connectionIDs)
 }
 
 func handleListOpenGames(ctx context.Context, req events.APIGatewayWebsocketProxyRequest, args Args) error {

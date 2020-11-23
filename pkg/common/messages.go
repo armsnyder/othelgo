@@ -12,9 +12,12 @@ const (
 
 	HostGameAction      = "hostGame"
 	StartSoloGameAction = "startSoloGame"
-	JoinGameAction      = "joinGame"
-	LeaveGameAction     = "leaveGame"
-	GameOverAction      = "gameOver"
+
+	JoinGameAction = "joinGame"
+	JoinedAction   = "joined"
+
+	LeaveGameAction = "leaveGame"
+	GameOverAction  = "gameOver"
 
 	ListOpenGamesAction = "listOpenGames"
 	OpenGamesAction     = "openGames"
@@ -22,7 +25,8 @@ const (
 	PlaceDiskAction   = "placeDisk"
 	UpdateBoardAction = "updateBoard"
 
-	ErrorAction    = "error"
+	ErrorAction = "error"
+
 	DecorateAction = "decorate"
 )
 
@@ -31,9 +35,12 @@ var actionToMessage = map[string]interface{}{
 
 	HostGameAction:      HostGameMessage{},
 	StartSoloGameAction: StartSoloGameMessage{},
-	JoinGameAction:      JoinGameMessage{},
-	LeaveGameAction:     LeaveGameMessage{},
-	GameOverAction:      GameOverMessage{},
+
+	JoinGameAction: JoinGameMessage{},
+	JoinedAction:   JoinedMessage{},
+
+	LeaveGameAction: LeaveGameMessage{},
+	GameOverAction:  GameOverMessage{},
 
 	ListOpenGamesAction: BaseMessage{},
 	OpenGamesAction:     OpenGamesMessage{},
@@ -41,7 +48,8 @@ var actionToMessage = map[string]interface{}{
 	PlaceDiskAction:   PlaceDiskMessage{},
 	UpdateBoardAction: UpdateBoardMessage{},
 
-	ErrorAction:    ErrorMessage{},
+	ErrorAction: ErrorMessage{},
+
 	DecorateAction: DecorateMessage{},
 }
 
@@ -131,6 +139,18 @@ func NewJoinGameMessage(nickname, host string) JoinGameMessage {
 		Action:   JoinGameAction,
 		Nickname: nickname,
 		Host:     host,
+	}
+}
+
+type JoinedMessage struct {
+	Action   string `json:"action"`
+	Nickname string `json:"nickname"`
+}
+
+func NewJoinedMessage(nickname string) JoinedMessage {
+	return JoinedMessage{
+		Action:   JoinedAction,
+		Nickname: nickname,
 	}
 }
 
