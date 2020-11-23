@@ -30,7 +30,7 @@ func Draw(anchor Anchor, color Color, text interface{}) {
 		textHeight := len(rows)
 		textWidth := maxLength(rows)
 		_, _, drawDirectionX, drawDirectionY := anchor()
-		offsetX := int(math.Round(float64(textWidth) * drawDirectionX))
+		offsetX := int(math.Ceil(float64(textWidth) * drawDirectionX))
 		offsetY := int(math.Round(float64(textHeight) * drawDirectionY))
 
 		for i, row := range rows {
