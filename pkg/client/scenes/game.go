@@ -14,24 +14,28 @@ import (
 
 type Game struct {
 	scene
-	player          common.Disk
-	curSquareX      int
-	curSquareY      int
-	board           common.Board
-	p1Score         int
-	p2Score         int
-	confetti        confetti
-	nickname        string
-	host            string
-	whoseTurn       common.Disk
-	multiplayer     bool
-	difficulty      int
-	gaveOverMessage string
+	player       common.Disk
+	curSquareX   int
+	curSquareY   int
+	board        common.Board
+	p1Score      int
+	p2Score      int
+	confetti     confetti
+	nickname     string
+	host         string
+	whoseTurn    common.Disk
+	multiplayer  bool
+	difficulty   int
+	alertMessage string
 }
 
 func (g *Game) Setup(changeScene ChangeScene, sendMessage SendMessage) error {
 	if err := g.scene.Setup(changeScene, sendMessage); err != nil {
 		return err
+	}
+
+	if g.multiplayer && g.player == 1 {
+		g.alertMessage = "Waiting for opponent"
 	}
 
 	var message interface{}
@@ -55,7 +59,9 @@ func (g *Game) OnMessage(message common.AnyMessage) error {
 		g.whoseTurn = m.Player
 		g.p1Score, g.p2Score = common.KeepScore(g.board)
 	case *common.GameOverMessage:
-		g.gaveOverMessage = m.Message
+		g.alertMessage = m.Message
+	case *common.JoinedMessage:
+		g.alertMessage = ""
 	}
 
 	return nil
@@ -67,7 +73,7 @@ func (g *Game) OnTerminalEvent(event termbox.Event) error {
 		return g.ChangeScene(&Menu{nickname: g.nickname})
 	}
 
-	if g.gaveOverMessage != "" {
+	if g.alertMessage != "" {
 		return nil
 	}
 
@@ -121,7 +127,7 @@ func (g *Game) Draw() {
 	g.drawDisks()
 	g.drawCursor()
 	g.confetti.draw()
-	g.drawGameOver()
+	g.drawAlert()
 }
 
 var playerColors = map[common.Disk]draw.Color{1: draw.Magenta, 2: draw.Green}
@@ -246,7 +252,7 @@ func (g *Game) drawDisks() {
 }
 
 func (g *Game) drawCursor() {
-	if common.GameOver(g.board) || g.whoseTurn != g.player || g.gaveOverMessage != "" {
+	if common.GameOver(g.board) || g.whoseTurn != g.player || g.alertMessage != "" {
 		termbox.HideCursor()
 	} else {
 		x := (g.curSquareX+1-common.BoardSize/2)*squareWidth - 3
@@ -256,8 +262,8 @@ func (g *Game) drawCursor() {
 	}
 }
 
-func (g *Game) drawGameOver() {
-	if g.gaveOverMessage == "" {
+func (g *Game) drawAlert() {
+	if g.alertMessage == "" {
 		return
 	}
 
@@ -271,7 +277,7 @@ func (g *Game) drawGameOver() {
 	}
 
 	fillLine := func(first, ch, last rune) {
-		content := make([]rune, len(g.gaveOverMessage)+4)
+		content := make([]rune, len(g.alertMessage)+4)
 		for i := 0; i < len(content); i++ {
 			content[i] = ch
 		}
@@ -280,7 +286,7 @@ func (g *Game) drawGameOver() {
 
 	fillLine('╔', '═', '╗')
 	fillLine('║', ' ', '║')
-	writeLine('║', fmt.Sprintf("  %s  ", g.gaveOverMessage), '║')
+	writeLine('║', fmt.Sprintf("  %s  ", g.alertMessage), '║')
 	fillLine('║', ' ', '║')
 	fillLine('╚', '═', '╝')
 
