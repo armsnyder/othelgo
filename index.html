@@ -163,37 +163,39 @@
     </footer>
 
     <script>
-        var url = "https://www.google.com/"
-        var checksums
-        var re
+        const platform = window.navigator.platform.toLowerCase();
+        let os;
 
-        var platform = window.navigator.platform
-        if (platform.toLowerCase().includes('linux')) {
-            re = /(\w*)  (othelgo.*Linux_x86_64.tar.gz)/
-        } else if (platform.toLowerCase().includes('mac')) {
-            re = /(\w*)  (othelgo.*Darwin_x86_64.tar.gz)/
-        } else if (platform.toLowerCase().includes('win')) {
-            re = /(\w*)  (othelgo.*Windows_x86_64.tar.gz)/
+        if (platform.includes('linux')) {
+            os = 'linux'
+        } else if (platform.includes('mac')) {
+            os = 'darwin'
+        } else if (platform.includes('win')) {
+            os = 'windows'
         } else {
-            alert("Unsupported OS")
-            console.log("Unsupported OS")
+            alert("Unsupported platform: " + platform)
+            console.log("Unsupported platform: " + platform)
         }
+
+        let checksum;
 
         fetch('/dist/checksums.txt')
             .then(response => response.text())
-            .then(data => {
-                checksums = data
-                url = checksums.match(re)
-                if (url != null) {
-                    document.getElementById("download").href = "https://github.com/armsnyder/othelgo/releases/latest/download/" + url[2]
+            .then(checksums => {
+                const re = RegExp(`(?<sum>\\w+)\\s+(?<file>othelgo_(?<version>.+)_${os}_(?:x86_64|amd64).tar.gz)`, 'i')
+                const match = checksums.match(re);
+                if (match) {
+                    const {groups} = match;
+                    checksum = groups['sum'];
+                    document.getElementById("download").href = `https://github.com/armsnyder/othelgo/releases/download/v${groups['version']}/${groups['file']}`
                 }
             })
             .catch(console.error);
 
         function downloading() {
-            var el = document.getElementById("checksum");
+            const el = document.getElementById("checksum");
             el.hidden = false;
-            el.innerHTML = "Checksum: " + url[1];
+            el.innerHTML = `Checksum: ${checksum}`;
         }
 
     </script>
