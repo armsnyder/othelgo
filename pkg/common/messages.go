@@ -82,8 +82,16 @@ type BaseMessage struct {
 	Action string `json:"action"`
 }
 
-func NewHelloMessage() BaseMessage {
-	return BaseMessage{Action: HelloAction}
+type HelloMessage struct {
+	Action  string `json:"action"`
+	Version string `json:"version"`
+}
+
+func NewHelloMessage(version string) HelloMessage {
+	return HelloMessage{
+		Action:  HelloAction,
+		Version: version,
+	}
 }
 
 type HostGameMessage struct {

@@ -18,7 +18,7 @@ import (
 	"github.com/armsnyder/othelgo/pkg/common"
 )
 
-func Run(local bool) (err error) {
+func Run(local bool, version string) (err error) {
 	// Setup log file.
 	finish, err := setupFileLogger()
 	if err != nil {
@@ -27,7 +27,7 @@ func Run(local bool) (err error) {
 	defer finish(err)
 
 	// Setup websocket.
-	c, finish2, err := setupWebsocket(local)
+	c, finish2, err := setupWebsocket(local, version)
 	if err != nil {
 		return err
 	}
@@ -116,7 +116,7 @@ func setupFileLogger() (finish func(err error), err error) {
 	return finish, nil
 }
 
-func setupWebsocket(local bool) (*websocket.Conn, func(), error) {
+func setupWebsocket(local bool, version string) (*websocket.Conn, func(), error) {
 	addr := "wss://1y9vcb5geb.execute-api.us-west-2.amazonaws.com/development"
 	if local {
 		addr = "ws://127.0.0.1:9000"
@@ -126,7 +126,7 @@ func setupWebsocket(local bool) (*websocket.Conn, func(), error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	err = c.WriteJSON(common.NewHelloMessage())
+	err = c.WriteJSON(common.NewHelloMessage(version))
 	if err != nil {
 		return nil, nil, err
 	}
