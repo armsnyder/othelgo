@@ -54,14 +54,14 @@ func (a *GatewayAdapter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	connID := base64.StdEncoding.EncodeToString(connIDSrc[:])
 
 	// Invoke CONNECT handler.
-	if err := a.invokeHandler(connID, "CONNECT", ""); err != nil {
+	if err := a.invokeHandler(connID, "CONNECT", "", r.Header); err != nil {
 		log.Println("handler:", err)
 		return
 	}
 
 	defer func() {
 		// Invoke DISCONNECT handler.
-		if err := a.invokeHandler(connID, "DISCONNECT", ""); err != nil {
+		if err := a.invokeHandler(connID, "DISCONNECT", "", r.Header); err != nil {
 			log.Println("handler:", err)
 		}
 	}()
@@ -110,7 +110,7 @@ func (a *GatewayAdapter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Invoke the Lambda handler
-		if err := a.invokeHandler(connID, "MESSAGE", string(message)); err != nil {
+		if err := a.invokeHandler(connID, "MESSAGE", string(message), r.Header); err != nil {
 			log.Println("handler:", err)
 			if err := writeError(ws); err != nil {
 				log.Println("write:", err)
@@ -120,7 +120,7 @@ func (a *GatewayAdapter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (a *GatewayAdapter) invokeHandler(connID, eventType, body string) error {
+func (a *GatewayAdapter) invokeHandler(connID, eventType, body string, header http.Header) error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
 	defer cancel()
 
@@ -129,7 +129,8 @@ func (a *GatewayAdapter) invokeHandler(connID, eventType, body string) error {
 			ConnectionID: connID,
 			EventType:    eventType,
 		},
-		Body: body,
+		MultiValueHeaders: header,
+		Body:              body,
 	})
 
 	if err != nil {
