@@ -373,7 +373,7 @@ func startServer() (address string, addHandlerFinishedListener func(clientID str
 				if listener != nil {
 					// Even with the listener, a tiny amount of time is needed to let the client receive any sent
 					// messages and for client goroutines to resume execution.
-					time.Sleep(time.Millisecond)
+					time.Sleep(10 * time.Millisecond)
 
 					listener <- struct{}{}
 				}
