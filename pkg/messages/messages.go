@@ -26,7 +26,7 @@ type Hello struct {
 }
 
 type HostGame struct {
-	Nickname string `json:"host"`
+	Nickname string `json:"nickname"`
 }
 
 type StartSoloGame struct {
