@@ -16,6 +16,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/armsnyder/othelgo/pkg/common"
+
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
@@ -23,7 +25,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"github.com/armsnyder/othelgo/pkg/common"
+	"github.com/armsnyder/othelgo/pkg/messages"
 	. "github.com/armsnyder/othelgo/pkg/server"
 	"github.com/armsnyder/othelgo/pkg/server/gatewayadapter"
 )
@@ -55,7 +57,7 @@ var _ = Describe("Server", func() {
 
 		initClient = func() *clientConnection {
 			client := newClientConnection(addr, addHandlerFinishedListener)
-			client.sendMessage(common.NewHelloMessage(""))
+			client.sendMessage(messages.Hello{})
 			return client
 		}
 	})
@@ -110,12 +112,12 @@ var _ = Describe("Server", func() {
 
 	When("no games", func() {
 		It("should have sent decorations", func() {
-			Expect(flame).To(haveReceived(&common.DecorateMessage{}))
+			Expect(flame).To(haveReceived(&messages.Decorate{}))
 		})
 
 		When("zinger lists open games", func() {
-			var message common.OpenGamesMessage
-			BeforeEach(sendAndReceiveMessage(&zinger, common.NewListOpenGamesMessage(), &message))
+			var message messages.OpenGames
+			BeforeEach(sendAndReceiveMessage(&zinger, messages.ListOpenGames{}, &message))
 
 			It("should have no open games", func() {
 				Expect(message.Hosts).To(BeEmpty())
@@ -124,16 +126,16 @@ var _ = Describe("Server", func() {
 	})
 
 	When("flame starts a solo game", func() {
-		var message common.UpdateBoardMessage
-		BeforeEach(sendAndReceiveMessage(&flame, common.NewStartSoloGameMessage("flame", 0), &message))
+		var message messages.UpdateBoard
+		BeforeEach(sendAndReceiveMessage(&flame, messages.StartSoloGame{Nickname: "flame"}, &message))
 
 		It("should be a new game board", func() {
 			Expect(message.Board).To(Equal(newGameBoard))
 		})
 
 		When("zinger lists open games", func() {
-			var message common.OpenGamesMessage
-			BeforeEach(sendAndReceiveMessage(&zinger, common.NewListOpenGamesMessage(), &message))
+			var message messages.OpenGames
+			BeforeEach(sendAndReceiveMessage(&zinger, messages.ListOpenGames{}, &message))
 
 			It("should have no open games", func() {
 				Expect(message.Hosts).To(BeEmpty())
@@ -141,8 +143,8 @@ var _ = Describe("Server", func() {
 		})
 
 		When("player moves", func() {
-			var message common.UpdateBoardMessage
-			BeforeEach(sendAndReceiveMessage(&flame, common.NewPlaceDiskMessage("flame", "flame", 2, 4), &message))
+			var message messages.UpdateBoard
+			BeforeEach(sendAndReceiveMessage(&flame, messages.PlaceDisk{Nickname: "flame", Host: "flame", X: 2, Y: 4}, &message))
 
 			It("should update the board with the the player and AI move", func() {
 				p1, p2 := common.KeepScore(message.Board)
@@ -155,14 +157,14 @@ var _ = Describe("Server", func() {
 			})
 
 			It("should not send zinger any board updates", func() {
-				Expect(zinger).NotTo(haveReceived(&common.UpdateBoardMessage{}))
+				Expect(zinger).NotTo(haveReceived(&messages.UpdateBoard{}))
 			})
 		})
 	})
 
 	When("flame hosts a game", func() {
-		var message common.UpdateBoardMessage
-		BeforeEach(sendAndReceiveMessage(&flame, common.NewHostGameMessage("flame"), &message))
+		var message messages.UpdateBoard
+		BeforeEach(sendAndReceiveMessage(&flame, messages.HostGame{Nickname: "flame"}, &message))
 
 		It("should be a new game board", func() {
 			Expect(message.Board).To(Equal(newGameBoard))
@@ -186,16 +188,16 @@ var _ = Describe("Server", func() {
 		})
 
 		When("craig hosts a game", func() {
-			var message common.UpdateBoardMessage
-			BeforeEach(sendAndReceiveMessage(&craig, common.NewHostGameMessage("craig"), &message))
+			var message messages.UpdateBoard
+			BeforeEach(sendAndReceiveMessage(&craig, messages.HostGame{Nickname: "craig"}, &message))
 
 			It("should be a new game board", func() {
 				Expect(message.Board).To(Equal(newGameBoard))
 			})
 
 			When("zinger lists open games", func() {
-				var message common.OpenGamesMessage
-				BeforeEach(sendAndReceiveMessage(&zinger, common.NewListOpenGamesMessage(), &message))
+				var message messages.OpenGames
+				BeforeEach(sendAndReceiveMessage(&zinger, messages.ListOpenGames{}, &message))
 
 				It("should show both flame and craig's games are open", func() {
 					Expect(message.Hosts).To(ConsistOf("flame", "craig"))
@@ -204,11 +206,11 @@ var _ = Describe("Server", func() {
 		})
 
 		When("flame leaves the game", func() {
-			BeforeEach(sendMessage(&flame, common.NewLeaveGameMessage("flame", "flame")))
+			BeforeEach(sendMessage(&flame, messages.LeaveGame{Nickname: "flame", Host: "flame"}))
 
 			When("zinger lists open games", func() {
-				var message common.OpenGamesMessage
-				BeforeEach(sendAndReceiveMessage(&zinger, common.NewListOpenGamesMessage(), &message))
+				var message messages.OpenGames
+				BeforeEach(sendAndReceiveMessage(&zinger, messages.ListOpenGames{}, &message))
 
 				It("should have no open games", func() {
 					Expect(message.Hosts).To(BeEmpty())
@@ -217,8 +219,8 @@ var _ = Describe("Server", func() {
 		})
 
 		When("zinger lists open games", func() {
-			var message common.OpenGamesMessage
-			BeforeEach(sendAndReceiveMessage(&zinger, common.NewListOpenGamesMessage(), &message))
+			var message messages.OpenGames
+			BeforeEach(sendAndReceiveMessage(&zinger, messages.ListOpenGames{}, &message))
 
 			It("should show flame's game is open", func() {
 				Expect(message.Hosts).To(Equal([]string{"flame"}))
@@ -226,8 +228,8 @@ var _ = Describe("Server", func() {
 		})
 
 		When("craig lists open games", func() {
-			var message common.OpenGamesMessage
-			BeforeEach(sendAndReceiveMessage(&craig, common.NewListOpenGamesMessage(), &message))
+			var message messages.OpenGames
+			BeforeEach(sendAndReceiveMessage(&craig, messages.ListOpenGames{}, &message))
 
 			It("should show flame's game is open", func() {
 				Expect(message.Hosts).To(Equal([]string{"flame"}))
@@ -236,12 +238,12 @@ var _ = Describe("Server", func() {
 
 		When("zinger joins the game", func() {
 			var (
-				zingerMessage common.UpdateBoardMessage
-				flameMessage  common.JoinedMessage
+				zingerMessage messages.UpdateBoard
+				flameMessage  messages.Joined
 			)
 
 			BeforeEach(func(done Done) {
-				zinger.sendMessage(common.NewJoinGameMessage("zinger", "flame"))
+				zinger.sendMessage(messages.JoinGame{Nickname: "zinger", Host: "flame"})
 				Expect(zinger).To(haveReceived(&zingerMessage))
 				Expect(flame).To(haveReceived(&flameMessage))
 				close(done)
@@ -256,8 +258,8 @@ var _ = Describe("Server", func() {
 			})
 
 			When("craig lists open games", func() {
-				var message common.OpenGamesMessage
-				BeforeEach(sendAndReceiveMessage(&craig, common.NewListOpenGamesMessage(), &message))
+				var message messages.OpenGames
+				BeforeEach(sendAndReceiveMessage(&craig, messages.ListOpenGames{}, &message))
 
 				It("should have no open games", func() {
 					Expect(message.Hosts).To(BeEmpty())
@@ -265,15 +267,15 @@ var _ = Describe("Server", func() {
 			})
 
 			When("craig tries to join the game anyway", func() {
-				BeforeEach(sendMessage(&craig, common.NewJoinGameMessage("craig", "flame")))
+				BeforeEach(sendMessage(&craig, messages.JoinGame{Nickname: "craig", Host: "flame"}))
 
 				It("should receive error message", func() {
-					Expect(craig).To(haveReceived(&common.ErrorMessage{}))
+					Expect(craig).To(haveReceived(&messages.Error{}))
 				})
 			})
 
 			When("flame makes the first move", func() {
-				BeforeEach(sendMessage(&flame, common.NewPlaceDiskMessage("flame", "flame", 2, 4)))
+				BeforeEach(sendMessage(&flame, messages.PlaceDisk{Nickname: "flame", Host: "flame", X: 2, Y: 4}))
 
 				expectedBoardAfterFirstMove := buildBoard(
 					[]move{{3, 3}, {4, 4}, {3, 4}, {2, 4}},
@@ -281,11 +283,11 @@ var _ = Describe("Server", func() {
 				)
 
 				It("should not have sent a board to craig", func() {
-					Expect(craig).NotTo(haveReceived(&common.UpdateBoardMessage{}))
+					Expect(craig).NotTo(haveReceived(&messages.UpdateBoard{}))
 				})
 
 				When("flame receives message", func() {
-					var message common.UpdateBoardMessage
+					var message messages.UpdateBoard
 					BeforeEach(receiveMessage(&flame, &message))
 
 					It("should receive the updated board", func() {
@@ -298,7 +300,7 @@ var _ = Describe("Server", func() {
 				})
 
 				When("zinger receives message", func() {
-					var message common.UpdateBoardMessage
+					var message messages.UpdateBoard
 					BeforeEach(receiveMessage(&zinger, &message))
 
 					It("should receive the updated board", func() {
@@ -312,9 +314,9 @@ var _ = Describe("Server", func() {
 			})
 
 			When("flame leaves the game", func() {
-				BeforeEach(sendMessage(&flame, common.NewLeaveGameMessage("flame", "flame")))
+				BeforeEach(sendMessage(&flame, messages.LeaveGame{Nickname: "flame", Host: "flame"}))
 
-				var message common.GameOverMessage
+				var message messages.GameOver
 				BeforeEach(receiveMessage(&zinger, &message))
 
 				It("zinger is notified", func() {
@@ -322,18 +324,18 @@ var _ = Describe("Server", func() {
 				})
 
 				When("zinger leaves the game", func() {
-					BeforeEach(sendMessage(&zinger, common.NewLeaveGameMessage("zinger", "flame")))
+					BeforeEach(sendMessage(&zinger, messages.LeaveGame{Nickname: "zinger", Host: "flame"}))
 
 					It("should not error", func() {
-						Expect(zinger).NotTo(haveReceived(&common.ErrorMessage{}))
+						Expect(zinger).NotTo(haveReceived(&messages.Error{}))
 					})
 				})
 			})
 
 			When("zinger leaves the game", func() {
-				BeforeEach(sendMessage(&zinger, common.NewLeaveGameMessage("zinger", "flame")))
+				BeforeEach(sendMessage(&zinger, messages.LeaveGame{Nickname: "zinger", Host: "flame"}))
 
-				var message common.GameOverMessage
+				var message messages.GameOver
 				BeforeEach(receiveMessage(&flame, &message))
 
 				It("flame is notified", func() {
@@ -432,7 +434,7 @@ type clientConnection struct {
 	handlerFinishedListener <-chan interface{}
 
 	messagesMu *sync.Mutex
-	messages   *[]common.AnyMessage
+	messages   *[]interface{}
 }
 
 // newClientConnection creates a client that can be used to send and receive messages over a
@@ -456,16 +458,16 @@ func newClientConnection(addr string, addHandlerFinishedListener func(clientID s
 	closed := make(chan interface{})
 
 	var (
-		messagesMu sync.Mutex
-		messages   = &[]common.AnyMessage{}
+		messagesMu  sync.Mutex
+		allMessages = &[]interface{}{}
 	)
 
 	go func() {
 		defer GinkgoRecover()
 
 		for {
-			var message common.AnyMessage
-			if err := ws.ReadJSON(&message); err != nil {
+			var wrapper messages.Wrapper
+			if err := ws.ReadJSON(&wrapper); err != nil {
 				select {
 				case <-closed:
 				default:
@@ -475,7 +477,7 @@ func newClientConnection(addr string, addHandlerFinishedListener func(clientID s
 			}
 
 			messagesMu.Lock()
-			*messages = append(*messages, message)
+			*allMessages = append(*allMessages, wrapper.Message)
 			messagesMu.Unlock()
 		}
 	}()
@@ -485,7 +487,7 @@ func newClientConnection(addr string, addHandlerFinishedListener func(clientID s
 		closed:                  closed,
 		handlerFinishedListener: addHandlerFinishedListener(clientID),
 		messagesMu:              &messagesMu,
-		messages:                messages,
+		messages:                allMessages,
 	}
 }
 
@@ -501,7 +503,7 @@ outer:
 	}
 
 	// Send a message, which will invoke the handler.
-	err := c.ws.WriteJSON(message)
+	err := c.ws.WriteJSON(messages.Wrapper{Message: message})
 
 	// Wait for the handler to return. This guarantees that this clientConnection will have loaded all response messages
 	// at the time that this sendMessage function returns.
@@ -510,11 +512,11 @@ outer:
 	Expect(err).NotTo(HaveOccurred())
 }
 
-func (c *clientConnection) messagesSafe() []common.AnyMessage {
+func (c *clientConnection) messagesSafe() []interface{} {
 	c.messagesMu.Lock()
 	defer c.messagesMu.Unlock()
 
-	var result []common.AnyMessage
+	var result []interface{}
 	result = append(result, *c.messages...)
 
 	return result
@@ -570,9 +572,9 @@ func (m *messageMatcher) Match(actual interface{}) (success bool, err error) {
 	// Iterate in reverse so that we save the most recent matching message.
 	for i := len(messages) - 1; i >= 0; i-- {
 		msg := messages[i]
-		if reflect.TypeOf(msg.Message).Elem().AssignableTo(reflect.ValueOf(m.messageRef).Elem().Type()) {
-			reflect.ValueOf(m.messageRef).Elem().Set(reflect.ValueOf(msg.Message).Elem())
-			m.savedMatch = msg.Message
+		if reflect.TypeOf(msg).Elem().AssignableTo(reflect.ValueOf(m.messageRef).Elem().Type()) {
+			reflect.ValueOf(m.messageRef).Elem().Set(reflect.ValueOf(msg).Elem())
+			m.savedMatch = msg
 			return true, nil
 		}
 	}
@@ -588,7 +590,7 @@ func (m *messageMatcher) FailureMessage(actual interface{}) (message string) {
 	if len(messages) == 0 {
 		trailer = "0 messages received."
 	} else {
-		lastMessage := messages[len(messages)-1].Message
+		lastMessage := messages[len(messages)-1]
 
 		lastMessageBytes, _ := json.Marshal(lastMessage)
 		if lastMessageBytes == nil {

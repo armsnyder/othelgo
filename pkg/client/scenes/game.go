@@ -6,10 +6,12 @@ import (
 	"strings"
 	"unicode"
 
+	"github.com/armsnyder/othelgo/pkg/common"
+
 	"github.com/nsf/termbox-go"
 
 	"github.com/armsnyder/othelgo/pkg/client/draw"
-	"github.com/armsnyder/othelgo/pkg/common"
+	"github.com/armsnyder/othelgo/pkg/messages"
 )
 
 type Game struct {
@@ -41,26 +43,26 @@ func (g *Game) Setup(changeScene ChangeScene, sendMessage SendMessage) error {
 	var message interface{}
 	if g.multiplayer {
 		if g.player == 1 {
-			message = common.NewHostGameMessage(g.nickname)
+			message = messages.HostGame{Nickname: g.nickname}
 		} else {
-			message = common.NewJoinGameMessage(g.nickname, g.host)
+			message = messages.JoinGame{Nickname: g.nickname, Host: g.host}
 		}
 	} else {
-		message = common.NewStartSoloGameMessage(g.nickname, g.difficulty)
+		message = messages.StartSoloGame{Nickname: g.nickname, Difficulty: g.difficulty}
 	}
 
 	return sendMessage(message)
 }
 
-func (g *Game) OnMessage(message common.AnyMessage) error {
-	switch m := message.Message.(type) {
-	case *common.UpdateBoardMessage:
+func (g *Game) OnMessage(message interface{}) error {
+	switch m := message.(type) {
+	case *messages.UpdateBoard:
 		g.board = m.Board
 		g.whoseTurn = m.Player
 		g.p1Score, g.p2Score = common.KeepScore(g.board)
-	case *common.GameOverMessage:
+	case *messages.GameOver:
 		g.alertMessage = m.Message
-	case *common.JoinedMessage:
+	case *messages.Joined:
 		g.alertMessage = ""
 	}
 
@@ -85,7 +87,12 @@ func (g *Game) OnTerminalEvent(event termbox.Event) error {
 		board, updated := common.ApplyMove(g.board, g.curSquareX, g.curSquareY, g.player)
 		if updated {
 			g.board = board
-			message := common.NewPlaceDiskMessage(g.nickname, g.host, g.curSquareX, g.curSquareY)
+			message := messages.PlaceDisk{
+				Nickname: g.nickname,
+				Host:     g.host,
+				X:        g.curSquareX,
+				Y:        g.curSquareY,
+			}
 			if err := g.SendMessage(message); err != nil {
 				return err
 			}
@@ -96,7 +103,7 @@ func (g *Game) OnTerminalEvent(event termbox.Event) error {
 }
 
 func (g *Game) OnQuit() {
-	if err := g.SendMessage(common.NewLeaveGameMessage(g.nickname, g.host)); err != nil {
+	if err := g.SendMessage(messages.LeaveGame{Nickname: g.nickname, Host: g.host}); err != nil {
 		log.Print(err)
 	}
 }

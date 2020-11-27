@@ -7,14 +7,14 @@ import (
 	"strings"
 	"time"
 
+	"github.com/armsnyder/othelgo/pkg/common"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 	"github.com/aws/aws-sdk-go/service/dynamodb/expression"
-
-	"github.com/armsnyder/othelgo/pkg/common"
 )
 
 // This file has methods for querying the database. The methods are "dumb" in all respects, with

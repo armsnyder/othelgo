@@ -5,7 +5,7 @@ import (
 	"unicode"
 
 	"github.com/armsnyder/othelgo/pkg/client/draw"
-	"github.com/armsnyder/othelgo/pkg/common"
+	"github.com/armsnyder/othelgo/pkg/messages"
 
 	"github.com/nsf/termbox-go"
 )
@@ -22,11 +22,11 @@ func (j *Join) Setup(changeScene ChangeScene, sendMessage SendMessage) error {
 		return err
 	}
 
-	return sendMessage(common.NewListOpenGamesMessage())
+	return sendMessage(messages.ListOpenGames{})
 }
 
-func (j *Join) OnMessage(message common.AnyMessage) error {
-	if m, ok := message.Message.(*common.OpenGamesMessage); ok {
+func (j *Join) OnMessage(message interface{}) error {
+	if m, ok := message.(*messages.OpenGames); ok {
 		j.hosts = m.Hosts
 	}
 	if len(j.hosts) > 0 {

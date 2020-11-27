@@ -9,7 +9,7 @@ import (
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 
-	"github.com/armsnyder/othelgo/pkg/common"
+	"github.com/armsnyder/othelgo/pkg/messages"
 )
 
 // Top-level routing of incoming websocket messages.
@@ -49,33 +49,40 @@ func Handle(ctx context.Context, req events.APIGatewayWebsocketProxyRequest, arg
 	}
 	if err != nil {
 		log.Printf("here's an error: %s", err)
-		err = reply(ctx, req.RequestContext, args, common.NewErrorMessage("<insert error string here>"))
+		err = reply(ctx, req.RequestContext, args, messages.Error{Error: "<insert error string here>"})
 	}
 
 	return events.APIGatewayProxyResponse{StatusCode: 200}, err
 }
 
 func handleMessage(ctx context.Context, req events.APIGatewayWebsocketProxyRequest, args Args) error {
-	var message common.BaseMessage
-	if err := json.Unmarshal([]byte(req.Body), &message); err != nil {
+	var wrapper messages.Wrapper
+	if err := json.Unmarshal([]byte(req.Body), &wrapper); err != nil {
 		return err
 	}
 
-	log.Printf("Handling message action %q", message.Action)
+	message := wrapper.Message
 
-	handler := map[string]func(context.Context, events.APIGatewayWebsocketProxyRequest, Args) error{
-		common.HostGameAction:      handleHostGame,
-		common.StartSoloGameAction: handleStartSoloGame,
-		common.JoinGameAction:      handleJoinGame,
-		common.LeaveGameAction:     handleLeaveGame,
-		common.ListOpenGamesAction: handleListOpenGames,
-		common.PlaceDiskAction:     handlePlaceDisk,
-		common.HelloAction:         handleHello,
-	}[message.Action]
+	log.Printf("Handling message %T", message)
 
-	if handler == nil {
-		return fmt.Errorf("unrecognized message action %q", message.Action)
+	switch m := message.(type) {
+	case *messages.HostGame:
+		return handleHostGame(ctx, req, args, m)
+	case *messages.StartSoloGame:
+		return handleStartSoloGame(ctx, req, args, m)
+	case *messages.JoinGame:
+		return handleJoinGame(ctx, req, args, m)
+	case *messages.LeaveGame:
+		return handleLeaveGame(ctx, req, args, m)
+	case *messages.ListOpenGames:
+		return handleListOpenGames(ctx, req, args, m)
+	case *messages.PlaceDisk:
+		return handlePlaceDisk(ctx, req, args, m)
+	case *messages.Hello:
+		return handleHello(ctx, req, args, m)
 	}
 
-	return handler(ctx, req, args)
+	log.Printf("No handler for message type %T", message)
+
+	return nil
 }

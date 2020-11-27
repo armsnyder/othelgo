@@ -2,15 +2,13 @@ package scenes
 
 import (
 	"github.com/nsf/termbox-go"
-
-	"github.com/armsnyder/othelgo/pkg/common"
 )
 
 // Scene is responsible for the logic and view of a particular page of the application.
 // It can handle websocket messages and terminal events.
 type Scene interface {
 	Setup(changeScene ChangeScene, sendMessage SendMessage) error
-	OnMessage(message common.AnyMessage) error
+	OnMessage(message interface{}) error
 	OnTerminalEvent(event termbox.Event) error
 	Tick() bool
 	Draw()
@@ -37,7 +35,7 @@ func (s *scene) Setup(changeScene ChangeScene, sendMessage SendMessage) error {
 	return nil
 }
 
-func (s *scene) OnMessage(_ common.AnyMessage) error {
+func (s *scene) OnMessage(_ interface{}) error {
 	// Default implementation is a no-op.
 	return nil
 }

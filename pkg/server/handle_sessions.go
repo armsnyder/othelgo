@@ -2,12 +2,13 @@ package server
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
+
+	"github.com/armsnyder/othelgo/pkg/common"
 
 	"github.com/aws/aws-lambda-go/events"
 
-	"github.com/armsnyder/othelgo/pkg/common"
+	"github.com/armsnyder/othelgo/pkg/messages"
 )
 
 // Handlers for messages pertaining to game session management.
@@ -15,27 +16,17 @@ import (
 // waiting is a special opponent value that signifies the host is waiting for an opponent.
 const waiting = "#waiting"
 
-func handleHostGame(ctx context.Context, req events.APIGatewayWebsocketProxyRequest, args Args) error {
-	var message common.HostGameMessage
-	if err := json.Unmarshal([]byte(req.Body), &message); err != nil {
-		return err
-	}
-
+func handleHostGame(ctx context.Context, req events.APIGatewayWebsocketProxyRequest, args Args, message *messages.HostGame) error {
 	game := newGame()
 
 	if err := updateGameOpponentSetConnection(ctx, args, message.Nickname, game, waiting, message.Nickname, req.RequestContext.ConnectionID); err != nil {
 		return fmt.Errorf("failed to save new game state: %w", err)
 	}
 
-	return reply(ctx, req.RequestContext, args, common.NewUpdateBoardMessage(game.Board, game.Player))
+	return reply(ctx, req.RequestContext, args, messages.UpdateBoard{Board: game.Board, Player: game.Player})
 }
 
-func handleStartSoloGame(ctx context.Context, req events.APIGatewayWebsocketProxyRequest, args Args) error {
-	var message common.StartSoloGameMessage
-	if err := json.Unmarshal([]byte(req.Body), &message); err != nil {
-		return err
-	}
-
+func handleStartSoloGame(ctx context.Context, req events.APIGatewayWebsocketProxyRequest, args Args, message *messages.StartSoloGame) error {
 	game := newGame()
 	game.Difficulty = message.Difficulty
 
@@ -43,7 +34,7 @@ func handleStartSoloGame(ctx context.Context, req events.APIGatewayWebsocketProx
 		return fmt.Errorf("failed to save new game state: %w", err)
 	}
 
-	return reply(ctx, req.RequestContext, args, common.NewUpdateBoardMessage(game.Board, game.Player))
+	return reply(ctx, req.RequestContext, args, messages.UpdateBoard{Board: game.Board, Player: game.Player})
 }
 
 func newGame() game {
@@ -60,43 +51,33 @@ func newGame() game {
 	}
 }
 
-func handleJoinGame(ctx context.Context, req events.APIGatewayWebsocketProxyRequest, args Args) error {
-	var message common.JoinGameMessage
-	if err := json.Unmarshal([]byte(req.Body), &message); err != nil {
-		return err
-	}
-
+func handleJoinGame(ctx context.Context, req events.APIGatewayWebsocketProxyRequest, args Args, message *messages.JoinGame) error {
 	game, connectionIDs, err := updateOpponentConnectionGetGameConnectionIDs(ctx, args, message.Host, message.Nickname, message.Nickname, req.RequestContext.ConnectionID, [2]string{waiting, message.Nickname})
 	if err != nil {
 		return err
 	}
 
-	if err := reply(ctx, req.RequestContext, args, common.NewUpdateBoardMessage(game.Board, game.Player)); err != nil {
+	if err := reply(ctx, req.RequestContext, args, messages.UpdateBoard{Board: game.Board, Player: game.Player}); err != nil {
 		return err
 	}
 
-	return broadcast(ctx, req.RequestContext, args, common.NewJoinedMessage(message.Nickname), connectionIDs)
+	return broadcast(ctx, req.RequestContext, args, messages.Joined{Nickname: message.Nickname}, connectionIDs)
 }
 
-func handleListOpenGames(ctx context.Context, req events.APIGatewayWebsocketProxyRequest, args Args) error {
+func handleListOpenGames(ctx context.Context, req events.APIGatewayWebsocketProxyRequest, args Args, _ *messages.ListOpenGames) error {
 	hosts, err := getHostsByOpponent(ctx, args, waiting)
 	if err != nil {
 		return err
 	}
 
-	return reply(ctx, req.RequestContext, args, common.NewOpenGamesMessage(hosts))
+	return reply(ctx, req.RequestContext, args, messages.OpenGames{Hosts: hosts})
 }
 
-func handleLeaveGame(ctx context.Context, req events.APIGatewayWebsocketProxyRequest, args Args) error {
-	var message common.LeaveGameMessage
-	if err := json.Unmarshal([]byte(req.Body), &message); err != nil {
-		return err
-	}
-
+func handleLeaveGame(ctx context.Context, req events.APIGatewayWebsocketProxyRequest, args Args, message *messages.LeaveGame) error {
 	connectionIDs, err := deleteGameGetConnectionIDs(ctx, args, message.Host)
 	if err != nil {
 		return err
 	}
 
-	return broadcast(ctx, req.RequestContext, args, common.NewGameOverMessage(fmt.Sprintf("%s left the game", message.Nickname)), connectionIDs)
+	return broadcast(ctx, req.RequestContext, args, messages.GameOver{Message: fmt.Sprintf("%s left the game", message.Nickname)}, connectionIDs)
 }

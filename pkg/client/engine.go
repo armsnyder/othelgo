@@ -15,7 +15,7 @@ import (
 	"github.com/armsnyder/othelgo/pkg/client/draw"
 	"github.com/armsnyder/othelgo/pkg/client/scenes"
 
-	"github.com/armsnyder/othelgo/pkg/common"
+	"github.com/armsnyder/othelgo/pkg/messages"
 )
 
 func Run(local bool, version string) (err error) {
@@ -56,7 +56,7 @@ func Run(local bool, version string) (err error) {
 	go receiveTerminalEvents(terminalEvents)
 
 	// Listen for websocket messages.
-	messageQueue := make(chan common.AnyMessage)
+	messageQueue := make(chan interface{})
 	messageErrors := make(chan error)
 	go receiveMessages(c, messageQueue, messageErrors)
 
@@ -126,7 +126,7 @@ func setupWebsocket(local bool, version string) (*websocket.Conn, func(), error)
 	if err != nil {
 		return nil, nil, err
 	}
-	err = c.WriteJSON(common.NewHelloMessage(version))
+	err = c.WriteJSON(messages.Wrapper{Message: messages.Hello{Version: version}})
 	if err != nil {
 		return nil, nil, err
 	}
@@ -135,10 +135,8 @@ func setupWebsocket(local bool, version string) (*websocket.Conn, func(), error)
 
 func setupChangeSceneHandler(currentScene *scenes.Scene, firstScene scenes.Scene, drawAndFlush func() error, c *websocket.Conn) error {
 	sendMessage := func(v interface{}) error {
-		action := reflect.ValueOf(v).FieldByName("Action").String()
-		log.Printf("Sending message (action=%q)", action)
-
-		return c.WriteJSON(v)
+		log.Printf("Sending message %T", v)
+		return c.WriteJSON(messages.Wrapper{Message: v})
 	}
 
 	var changeScene scenes.ChangeScene
@@ -168,13 +166,13 @@ func receiveTerminalEvents(ch chan<- termbox.Event) {
 	}
 }
 
-func receiveMessages(c *websocket.Conn, messageQueue chan<- common.AnyMessage, messageErrors chan<- error) {
+func receiveMessages(c *websocket.Conn, messageQueue chan<- interface{}, messageErrors chan<- error) {
 	for {
-		var message common.AnyMessage
-		if err := c.ReadJSON(&message); err != nil {
+		var wrapper messages.Wrapper
+		if err := c.ReadJSON(&wrapper); err != nil {
 			messageErrors <- fmt.Errorf("failed to read message from websocket: %w", err)
 		}
-		messageQueue <- message
+		messageQueue <- wrapper.Message
 	}
 }
 
@@ -229,10 +227,10 @@ func handleTerminalEvent(event termbox.Event, currentScene scenes.Scene, drawAnd
 	return drawAndFlush()
 }
 
-func handleMessage(message common.AnyMessage, changeGameBorderDecoration func(string), currentScene scenes.Scene, drawAndFlush func() error) error {
-	log.Printf("Received message (action=%q message=%T)", message.Action, message.Message)
+func handleMessage(message interface{}, changeGameBorderDecoration func(string), currentScene scenes.Scene, drawAndFlush func() error) error {
+	log.Printf("Received message %T", message)
 
-	if m, ok := message.Message.(*common.DecorateMessage); ok {
+	if m, ok := message.(*messages.Decorate); ok {
 		changeGameBorderDecoration(m.Decoration)
 	}
 

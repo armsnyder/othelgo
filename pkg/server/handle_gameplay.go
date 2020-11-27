@@ -2,25 +2,21 @@ package server
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
 	"os"
 	"time"
 
+	"github.com/armsnyder/othelgo/pkg/common"
+
 	"github.com/aws/aws-lambda-go/events"
 
-	"github.com/armsnyder/othelgo/pkg/common"
+	"github.com/armsnyder/othelgo/pkg/messages"
 )
 
 // Handlers for messages pertaining to gameplay.
 
-func handlePlaceDisk(ctx context.Context, req events.APIGatewayWebsocketProxyRequest, args Args) error {
-	var message common.PlaceDiskMessage
-	if err := json.Unmarshal([]byte(req.Body), &message); err != nil {
-		return err
-	}
-
+func handlePlaceDisk(ctx context.Context, req events.APIGatewayWebsocketProxyRequest, args Args, message *messages.PlaceDisk) error {
 	game, opponent, connectionIDs, err := getGameAndOpponentAndConnectionIDs(ctx, args, message.Host)
 	if err != nil {
 		return fmt.Errorf("failed to load game state: %w", err)
@@ -33,10 +29,10 @@ func handlePlaceDisk(ctx context.Context, req events.APIGatewayWebsocketProxyReq
 	return handlePlaceDiskMultiplayer(ctx, req.RequestContext, args, message, game, opponent, connectionIDs)
 }
 
-func handlePlaceDiskSolo(ctx context.Context, reqCtx events.APIGatewayWebsocketProxyRequestContext, args Args, message common.PlaceDiskMessage, game game) error {
+func handlePlaceDiskSolo(ctx context.Context, reqCtx events.APIGatewayWebsocketProxyRequestContext, args Args, message *messages.PlaceDisk, game game) error {
 	board, updated := common.ApplyMove(game.Board, message.X, message.Y, 1)
 	if !updated {
-		return reply(ctx, reqCtx, args, common.NewUpdateBoardMessage(board, game.Player))
+		return reply(ctx, reqCtx, args, messages.UpdateBoard{Board: board, Player: game.Player})
 	}
 
 	game.Board = board
@@ -49,7 +45,7 @@ func handlePlaceDiskSolo(ctx context.Context, reqCtx events.APIGatewayWebsocketP
 		return fmt.Errorf("failed to save updated game state: %w", err)
 	}
 
-	if err := reply(ctx, reqCtx, args, common.NewUpdateBoardMessage(board, game.Player)); err != nil {
+	if err := reply(ctx, reqCtx, args, messages.UpdateBoard{Board: board, Player: game.Player}); err != nil {
 		return err
 	}
 
@@ -73,7 +69,7 @@ func handlePlaceDiskSolo(ctx context.Context, reqCtx events.APIGatewayWebsocketP
 			return fmt.Errorf("failed to save updated game state: %w", err)
 		}
 
-		if err := reply(ctx, reqCtx, args, common.NewUpdateBoardMessage(game.Board, game.Player)); err != nil {
+		if err := reply(ctx, reqCtx, args, messages.UpdateBoard{Board: game.Board, Player: game.Player}); err != nil {
 			return err
 		}
 	}
@@ -81,7 +77,7 @@ func handlePlaceDiskSolo(ctx context.Context, reqCtx events.APIGatewayWebsocketP
 	return nil
 }
 
-func handlePlaceDiskMultiplayer(ctx context.Context, reqCtx events.APIGatewayWebsocketProxyRequestContext, args Args, message common.PlaceDiskMessage, game game, opponent string, connectionIDs []string) error {
+func handlePlaceDiskMultiplayer(ctx context.Context, reqCtx events.APIGatewayWebsocketProxyRequestContext, args Args, message *messages.PlaceDisk, game game, opponent string, connectionIDs []string) error {
 	player := common.Player1
 	if message.Nickname == opponent {
 		player = common.Player2
@@ -89,7 +85,7 @@ func handlePlaceDiskMultiplayer(ctx context.Context, reqCtx events.APIGatewayWeb
 
 	board, updated := common.ApplyMove(game.Board, message.X, message.Y, player)
 	if !updated {
-		return reply(ctx, reqCtx, args, common.NewUpdateBoardMessage(board, game.Player))
+		return reply(ctx, reqCtx, args, messages.UpdateBoard{Board: board, Player: game.Player})
 	}
 
 	game.Board = board
@@ -102,5 +98,5 @@ func handlePlaceDiskMultiplayer(ctx context.Context, reqCtx events.APIGatewayWeb
 		return fmt.Errorf("failed to save updated game state: %w", err)
 	}
 
-	return broadcast(ctx, reqCtx, args, common.NewUpdateBoardMessage(board, game.Player), connectionIDs)
+	return broadcast(ctx, reqCtx, args, messages.UpdateBoard{Board: board, Player: game.Player}, connectionIDs)
 }

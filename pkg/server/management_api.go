@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/armsnyder/othelgo/pkg/messages"
+
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/request"
@@ -34,7 +36,7 @@ func sendMessage(ctx context.Context, reqCtx events.APIGatewayWebsocketProxyRequ
 	return func() error {
 		log.Printf("Sending message to connection %s", connectionID)
 
-		data, err := json.Marshal(message)
+		data, err := json.Marshal(messages.Wrapper{Message: message})
 		if err != nil {
 			return err
 		}
