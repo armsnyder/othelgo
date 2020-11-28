@@ -206,6 +206,7 @@ var _ = Describe("Server", func() {
 		When("flame disconnects and reconnects", func() {
 			BeforeEach(func() {
 				flame.close()
+				time.Sleep(500 * time.Millisecond)
 				flame = initClient()
 			})
 
@@ -456,7 +457,7 @@ var _ = Describe("Server", func() {
 
 				BeforeEach(func(done Done) {
 					flame.close()
-					time.Sleep(100 * time.Millisecond)
+					time.Sleep(500 * time.Millisecond)
 					close(done)
 				})
 
@@ -487,7 +488,7 @@ var _ = Describe("Server", func() {
 
 				BeforeEach(func(done Done) {
 					zinger.close()
-					time.Sleep(100 * time.Millisecond)
+					time.Sleep(500 * time.Millisecond)
 					close(done)
 				})
 
