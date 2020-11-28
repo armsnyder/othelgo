@@ -57,7 +57,7 @@ var _ = Describe("Server", func() {
 
 		initClient = func() *clientConnection {
 			client := newClientConnection(addr, addHandlerFinishedListener)
-			client.sendMessage(messages.Hello{Version: "v0.0.0"})
+			client.sendMessage(messages.Hello{Version: "0.0.0"})
 			return client
 		}
 	})

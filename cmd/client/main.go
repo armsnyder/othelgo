@@ -9,7 +9,7 @@ import (
 )
 
 // version is set at build time using ldflags.
-var version = "v0.0.0"
+var version = "0.0.0"
 
 func main() {
 	local := flag.Bool("local", false, "If true, connect to a local server.")
