@@ -25,10 +25,16 @@ serve:
 deploy:
 	test -f aws-creds.sh && source aws-creds.sh; ./scripts/deploy_server.sh
 
+website:
+	test -f aws-creds.sh && source aws-creds.sh; aws s3 cp index.html s3://othelgo.com/index.html --cache-control max-age=300
+
+checksums:
+	test -f aws-creds.sh && source aws-creds.sh; aws s3 cp dist/checksums.txt s3://othelgo.com/dist/checksums.txt --cache-control max-age=300
+
 logs:
 	test -f aws-creds.sh && source aws-creds.sh; ./scripts/server_logs.sh
 
 perf:
 	./scripts/perf_test.sh
 
-.PHONY: default build test e2etest lint run playlocal serve deploy logs perf
+.PHONY: default build test e2etest lint run playlocal serve deploy website checksums logs perf
