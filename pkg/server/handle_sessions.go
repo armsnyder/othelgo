@@ -18,6 +18,21 @@ import (
 const waiting = "#waiting"
 
 func handleHostGame(ctx context.Context, req events.APIGatewayWebsocketProxyRequest, args Args, message *messages.HostGame) error {
+	prevNickname, prevInGame, err := updateInGame(ctx, args, req.RequestContext.ConnectionID, message.Nickname, message.Nickname)
+	if err != nil {
+		return err
+	}
+
+	if prevInGame != "" {
+		err := handleLeaveGame(ctx, req, args, &messages.LeaveGame{
+			Nickname: prevNickname,
+			Host:     prevInGame,
+		})
+		if err != nil {
+			return err
+		}
+	}
+
 	game := newGame()
 
 	if err := createGame(ctx, args, message.Nickname, game, waiting, message.Nickname, req.RequestContext.ConnectionID); err != nil {
@@ -28,6 +43,21 @@ func handleHostGame(ctx context.Context, req events.APIGatewayWebsocketProxyRequ
 }
 
 func handleStartSoloGame(ctx context.Context, req events.APIGatewayWebsocketProxyRequest, args Args, message *messages.StartSoloGame) error {
+	prevNickname, prevInGame, err := updateInGame(ctx, args, req.RequestContext.ConnectionID, message.Nickname, message.Nickname)
+	if err != nil {
+		return err
+	}
+
+	if prevInGame != "" {
+		err := handleLeaveGame(ctx, req, args, &messages.LeaveGame{
+			Nickname: prevNickname,
+			Host:     prevInGame,
+		})
+		if err != nil {
+			return err
+		}
+	}
+
 	game := newGame()
 	game.Difficulty = message.Difficulty
 
@@ -53,6 +83,21 @@ func newGame() game {
 }
 
 func handleJoinGame(ctx context.Context, req events.APIGatewayWebsocketProxyRequest, args Args, message *messages.JoinGame) error {
+	prevNickname, prevInGame, err := updateInGame(ctx, args, req.RequestContext.ConnectionID, message.Nickname, message.Host)
+	if err != nil {
+		return err
+	}
+
+	if prevInGame != "" {
+		err := handleLeaveGame(ctx, req, args, &messages.LeaveGame{
+			Nickname: prevNickname,
+			Host:     prevInGame,
+		})
+		if err != nil {
+			return err
+		}
+	}
+
 	game, connectionIDs, err := updateOpponentConnectionGetGameConnectionIDs(ctx, args, message.Host, message.Nickname, message.Nickname, req.RequestContext.ConnectionID, [2]string{waiting, message.Nickname})
 	if err != nil {
 		return err
@@ -78,6 +123,12 @@ func handleLeaveGame(ctx context.Context, req events.APIGatewayWebsocketProxyReq
 	connectionIDs, err := deleteGameGetConnectionIDs(ctx, args, message.Host, message.Nickname, req.RequestContext.ConnectionID)
 	if err != nil {
 		return err
+	}
+
+	for _, connID := range connectionIDs {
+		if err := deleteItem(ctx, args, connID); err != nil {
+			return err
+		}
 	}
 
 	return broadcast(ctx, req.RequestContext, args, messages.GameOver{Message: fmt.Sprintf("%s left the game", strings.ToUpper(message.Nickname))}, connectionIDs)

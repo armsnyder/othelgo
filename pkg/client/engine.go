@@ -130,6 +130,17 @@ func setupWebsocket(local bool, version string) (*websocket.Conn, func(), error)
 	if err != nil {
 		return nil, nil, err
 	}
+
+	// Ping the server regularly to keep the connection open.
+	go func() {
+		for {
+			if err := c.WriteMessage(websocket.PingMessage, nil); err != nil {
+				log.Printf("Failed to ping server: %v", err)
+			}
+			time.Sleep(time.Minute)
+		}
+	}()
+
 	return c, func() { c.Close() }, nil
 }
 

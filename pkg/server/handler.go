@@ -51,6 +51,7 @@ func Handle(ctx context.Context, req events.APIGatewayWebsocketProxyRequest, arg
 	switch req.RequestContext.EventType {
 	case "CONNECT":
 	case "DISCONNECT":
+		err = handleDisconnect(ctx, req, args)
 	case "MESSAGE":
 		err = handleMessage(ctx, req, args)
 	default:
@@ -58,7 +59,10 @@ func Handle(ctx context.Context, req events.APIGatewayWebsocketProxyRequest, arg
 	}
 	if err != nil {
 		log.Printf("here's an error: %s", err)
-		err = reply(ctx, req.RequestContext, args, messages.Error{Error: "<insert error string here>"})
+
+		if req.RequestContext.EventType == "MESSAGE" {
+			err = reply(ctx, req.RequestContext, args, messages.Error{Error: "<insert error string here>"})
+		}
 	}
 
 	return events.APIGatewayProxyResponse{StatusCode: 200}, err

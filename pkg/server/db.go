@@ -23,11 +23,16 @@ import (
 // by the handler.
 
 const (
-	attribHost        = "Host"
+	attribHost = "Host"
+
 	attribOpponent    = "Opponent"
 	attribGame        = "Game"
 	attribConnections = "Connections"
-	attribTTL         = "TTL"
+
+	attribNickname = "Nickname"
+	attribInGame   = "InGame"
+
+	attribTTL = "TTL"
 )
 
 const indexByOpponent = "ByOpponent"
@@ -76,7 +81,7 @@ func updateGame(ctx context.Context, args Args, host string, game game, connName
 	update := expression.Set(expression.Name(attribGame), expression.Value(gameBytes))
 	condition := expression.Name(attribConnections + "." + connName).Equal(expression.Value(connID))
 
-	_, err = updateItem(ctx, args, host, update, condition, false)
+	_, err = updateItemWithCondition(ctx, args, host, update, condition, false)
 	return err
 }
 
@@ -96,7 +101,7 @@ func createGame(ctx context.Context, args Args, host string, game game, opponent
 
 	condition := expression.Name(attribHost).AttributeNotExists()
 
-	_, err = updateItem(ctx, args, host, update, condition, false)
+	_, err = updateItemWithCondition(ctx, args, host, update, condition, false)
 	return err
 }
 
@@ -106,7 +111,7 @@ func updateOpponentConnectionGetGameConnectionIDs(ctx context.Context, args Args
 		Set(expression.Name(attribConnections+"."+connName), expression.Value(connID))
 	condition := expression.In(expression.Name(attribOpponent), expression.Value(expectedOpponents[0]), expression.Value(expectedOpponents[1]))
 
-	output, err := updateItem(ctx, args, host, update, condition, true)
+	output, err := updateItemWithCondition(ctx, args, host, update, condition, true)
 	if err != nil {
 		return game{}, nil, err
 	}
@@ -196,10 +201,74 @@ func deleteGameGetConnectionIDs(ctx context.Context, args Args, host, connName, 
 	return connectionIDs, err
 }
 
+func getInGame(ctx context.Context, args Args, host string) (nickname, inGame string, err error) {
+	output, err := args.DB.GetItemWithContext(ctx, &dynamodb.GetItemInput{
+		TableName: aws.String(args.TableName),
+		Key:       hostKey(host),
+	})
+
+	if err != nil {
+		return "", "", err
+	}
+
+	if output.Item == nil {
+		return "", "", nil
+	}
+
+	var item struct {
+		Nickname string
+		InGame   string
+	}
+
+	err = dynamodbattribute.UnmarshalMap(output.Item, &item)
+
+	return item.Nickname, item.InGame, err
+}
+
+func updateInGame(ctx context.Context, args Args, host, nickname, inGame string) (prevNickname, prevInGame string, err error) {
+	update := expression.
+		Set(expression.Name(attribNickname), expression.Value(nickname)).
+		Set(expression.Name(attribInGame), expression.Value(inGame))
+
+	output, err := updateItem(ctx, args, host, update, true)
+	if err != nil {
+		return "", "", err
+	}
+
+	var item struct {
+		Nickname string
+		InGame   string
+	}
+
+	err = dynamodbattribute.UnmarshalMap(output.Attributes, &item)
+
+	return item.Nickname, item.InGame, err
+}
+
+func deleteItem(ctx context.Context, args Args, host string) error {
+	_, err := args.DB.DeleteItemWithContext(ctx, &dynamodb.DeleteItemInput{
+		TableName: aws.String(args.TableName),
+		Key:       hostKey(host),
+	})
+	return err
+}
+
 // updateItem wraps dynamodb.UpdateItemWithContext.
-func updateItem(ctx context.Context, args Args, host string, update expression.UpdateBuilder, condition expression.ConditionBuilder, returnOldValues bool) (*dynamodb.UpdateItemOutput, error) {
+func updateItem(ctx context.Context, args Args, host string, update expression.UpdateBuilder, returnOldValues bool) (*dynamodb.UpdateItemOutput, error) {
+	update = update.Set(expression.Name(attribTTL), expression.Value(time.Now().Add(time.Hour).Unix()))
+	builder := expression.NewBuilder().WithUpdate(update)
+	return updateItemWithBuilder(ctx, args, host, builder, returnOldValues)
+}
+
+// updateItemWithCondition wraps dynamodb.UpdateItemWithContext.
+func updateItemWithCondition(ctx context.Context, args Args, host string, update expression.UpdateBuilder, condition expression.ConditionBuilder, returnOldValues bool) (*dynamodb.UpdateItemOutput, error) {
 	update = update.Set(expression.Name(attribTTL), expression.Value(time.Now().Add(time.Hour).Unix()))
 	builder := expression.NewBuilder().WithUpdate(update).WithCondition(condition)
+	return updateItemWithBuilder(ctx, args, host, builder, returnOldValues)
+}
+
+// updateItemWithBuilder wraps dynamodb.UpdateItemWithContext.
+func updateItemWithBuilder(ctx context.Context, args Args, host string, builder expression.Builder, returnOldValues bool) (*dynamodb.UpdateItemOutput, error) {
 	exp, err := builder.Build()
 	if err != nil {
 		return nil, err

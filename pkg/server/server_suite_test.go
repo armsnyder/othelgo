@@ -161,6 +161,10 @@ var _ = Describe("Server", func() {
 			It("should error", func() {
 				Expect(message.Error).NotTo(BeEmpty())
 			})
+
+			It("should not end flame's game", func() {
+				Expect(flame).NotTo(haveReceived(&messages.GameOver{}))
+			})
 		})
 
 		When("craig starts a solo game using flame's nickname", func() {
@@ -171,6 +175,10 @@ var _ = Describe("Server", func() {
 
 			It("should error", func() {
 				Expect(message.Error).NotTo(BeEmpty())
+			})
+
+			It("should not end flame's game", func() {
+				Expect(flame).NotTo(haveReceived(&messages.GameOver{}))
 			})
 		})
 
@@ -192,6 +200,22 @@ var _ = Describe("Server", func() {
 
 			It("should not send zinger any board updates", func() {
 				Expect(zinger).NotTo(haveReceived(&messages.UpdateBoard{}))
+			})
+		})
+
+		When("flame disconnects and reconnects", func() {
+			BeforeEach(func() {
+				flame.close()
+				flame = initClient()
+			})
+
+			When("flame starts another solo game", func() {
+				BeforeEach(clearMessages)
+				BeforeEach(sendMessage(&flame, messages.StartSoloGame{Nickname: "flame"}))
+
+				It("should not error", func() {
+					Expect(flame).NotTo(haveReceived(&messages.Error{}))
+				})
 			})
 		})
 	})
@@ -243,16 +267,30 @@ var _ = Describe("Server", func() {
 					Expect(message.Hosts).To(ConsistOf("flame", "craig"))
 				})
 			})
-		})
 
-		When("craig hosts a game using flame's nickname", func() {
-			BeforeEach(clearMessages)
+			When("zinger joins craig's game", func() {
+				BeforeEach(sendMessage(&zinger, messages.JoinGame{Nickname: "zinger", Host: "craig"}))
 
-			var message messages.Error
-			BeforeEach(sendAndReceiveMessage(&craig, messages.HostGame{Nickname: "flame"}, &message))
+				When("zinger force-joins flame's game", func() {
+					BeforeEach(sendMessage(&zinger, messages.JoinGame{Nickname: "zinger", Host: "flame"}))
 
-			It("should error", func() {
-				Expect(message.Error).NotTo(BeEmpty())
+					It("should notify craig", func() {
+						var message messages.GameOver
+						Expect(craig).To(haveReceived(&message))
+						Expect(message.Message).To(Equal("ZINGER left the game"))
+					})
+				})
+
+				When("craig force-joins flame's game", func() {
+					BeforeEach(sendMessage(&craig, messages.JoinGame{Nickname: "craig", Host: "flame"}))
+
+					It("should notify zinger", func() {
+						var message messages.GameOver
+						Expect(zinger).To(haveReceived(&message))
+						Expect(message.Message).To(Equal("CRAIG left the game"))
+					})
+				})
+
 			})
 		})
 
@@ -378,6 +416,25 @@ var _ = Describe("Server", func() {
 				})
 			})
 
+			When("craig hosts a game using flame's nickname", func() {
+				BeforeEach(clearMessages)
+
+				var message messages.Error
+				BeforeEach(sendAndReceiveMessage(&craig, messages.HostGame{Nickname: "flame"}, &message))
+
+				It("should error", func() {
+					Expect(message.Error).NotTo(BeEmpty())
+				})
+
+				It("should not end flame's game", func() {
+					Expect(flame).NotTo(haveReceived(&messages.GameOver{}))
+				})
+
+				It("should not end zinger's game", func() {
+					Expect(zinger).NotTo(haveReceived(&messages.GameOver{}))
+				})
+			})
+
 			When("zinger impersonates flame and leaves the game", func() {
 				BeforeEach(clearMessages)
 				BeforeEach(sendMessage(&zinger, messages.LeaveGame{Nickname: "flame", Host: "flame"}))
@@ -391,6 +448,75 @@ var _ = Describe("Server", func() {
 					It("should have no open games", func() {
 						Expect(message.Hosts).To(BeEmpty())
 					})
+				})
+			})
+
+			When("flame disconnects", func() {
+				BeforeEach(clearMessages)
+
+				BeforeEach(func(done Done) {
+					flame.close()
+					time.Sleep(100 * time.Millisecond)
+					close(done)
+				})
+
+				It("should notify zinger", func() {
+					var message messages.GameOver
+					Expect(zinger).To(haveReceived(&message))
+					Expect(message.Message).To(Equal("FLAME left the game"))
+				})
+
+				When("flame reconnects", func() {
+					BeforeEach(func() {
+						flame = initClient()
+					})
+
+					When("flame hosts another game", func() {
+						BeforeEach(clearMessages)
+						BeforeEach(sendMessage(&flame, messages.HostGame{Nickname: "flame"}))
+
+						It("should not error", func() {
+							Expect(flame).NotTo(haveReceived(&messages.Error{}))
+						})
+					})
+				})
+			})
+
+			When("zinger disconnects", func() {
+				BeforeEach(clearMessages)
+
+				BeforeEach(func(done Done) {
+					zinger.close()
+					time.Sleep(100 * time.Millisecond)
+					close(done)
+				})
+
+				It("should notify flame", func() {
+					var message messages.GameOver
+					Expect(flame).To(haveReceived(&message))
+					Expect(message.Message).To(Equal("ZINGER left the game"))
+				})
+			})
+
+			When("flame hosts a new game", func() {
+				BeforeEach(clearMessages)
+				BeforeEach(sendMessage(&flame, messages.HostGame{Nickname: "flame"}))
+
+				It("should notify zinger", func() {
+					var message messages.GameOver
+					Expect(zinger).To(haveReceived(&message))
+					Expect(message.Message).To(Equal("FLAME left the game"))
+				})
+			})
+
+			When("zinger hosts a new game", func() {
+				BeforeEach(clearMessages)
+				BeforeEach(sendMessage(&zinger, messages.HostGame{Nickname: "zinger"}))
+
+				It("should notify flame", func() {
+					var message messages.GameOver
+					Expect(flame).To(haveReceived(&message))
+					Expect(message.Message).To(Equal("ZINGER left the game"))
 				})
 			})
 
@@ -564,6 +690,7 @@ func clearOthelgoTable() {
 type clientConnection struct {
 	ws                      *websocket.Conn
 	closed                  chan<- interface{}
+	closedOnce              sync.Once
 	handlerFinishedListener <-chan interface{}
 
 	messagesMu *sync.Mutex
@@ -665,8 +792,10 @@ func (c *clientConnection) reset() {
 
 func (c *clientConnection) close() {
 	if c != nil {
-		close(c.closed)
-		c.ws.Close()
+		c.closedOnce.Do(func() {
+			close(c.closed)
+			c.ws.Close()
+		})
 	}
 }
 

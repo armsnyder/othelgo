@@ -16,3 +16,19 @@ func handleHello(ctx context.Context, req events.APIGatewayWebsocketProxyRequest
 
 	return reply(ctx, req.RequestContext, args, messages.Decorate{Decoration: "🦃🍁🌽🏈🥧🙏"})
 }
+
+func handleDisconnect(ctx context.Context, req events.APIGatewayWebsocketProxyRequest, args Args) error {
+	nickname, inGame, err := getInGame(ctx, args, req.RequestContext.ConnectionID)
+	if err != nil {
+		return err
+	}
+
+	if inGame == "" {
+		return nil
+	}
+
+	return handleLeaveGame(ctx, req, args, &messages.LeaveGame{
+		Nickname: nickname,
+		Host:     inGame,
+	})
+}
