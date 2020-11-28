@@ -38,7 +38,7 @@ type game struct {
 	Player     common.Disk
 }
 
-func getGameAndOpponentAndConnectionIDs(ctx context.Context, args Args, host string) (game, string, []string, error) {
+func getGame(ctx context.Context, args Args, host string) (game, string, map[string]string, error) {
 	// Get the whole item from DynamoDB.
 	output, err := args.DB.GetItemWithContext(ctx, &dynamodb.GetItemInput{
 		TableName: aws.String(args.TableName),
@@ -64,28 +64,23 @@ func getGameAndOpponentAndConnectionIDs(ctx context.Context, args Args, host str
 		return game, "", nil, err
 	}
 
-	// Get just the connection ID values.
-	var connectionIDs []string
-	for _, v := range item.Connections {
-		connectionIDs = append(connectionIDs, v)
-	}
-
-	return game, item.Opponent, connectionIDs, err
+	return game, item.Opponent, item.Connections, err
 }
 
-func updateGame(ctx context.Context, args Args, host string, game game) error {
+func updateGame(ctx context.Context, args Args, host string, game game, connName, connID string) error {
 	gameBytes, err := json.Marshal(&game)
 	if err != nil {
 		return err
 	}
 
 	update := expression.Set(expression.Name(attribGame), expression.Value(gameBytes))
+	condition := expression.Name(attribConnections + "." + connName).Equal(expression.Value(connID))
 
-	_, err = updateItem(ctx, args, host, update, false)
+	_, err = updateItem(ctx, args, host, update, condition, false)
 	return err
 }
 
-func updateGameOpponentSetConnection(ctx context.Context, args Args, host string, game game, opponent, connName, connID string) error {
+func createGame(ctx context.Context, args Args, host string, game game, opponent, connName, connID string) error {
 	gameBytes, err := json.Marshal(&game)
 	if err != nil {
 		return err
@@ -93,10 +88,15 @@ func updateGameOpponentSetConnection(ctx context.Context, args Args, host string
 
 	update := expression.
 		Set(expression.Name(attribGame), expression.Value(gameBytes)).
-		Set(expression.Name(attribOpponent), expression.Value(opponent)).
 		Set(expression.Name(attribConnections), expression.Value(map[string]string{connName: connID}))
 
-	_, err = updateItem(ctx, args, host, update, false)
+	if opponent != "" {
+		update = update.Set(expression.Name(attribOpponent), expression.Value(opponent))
+	}
+
+	condition := expression.Name(attribHost).AttributeNotExists()
+
+	_, err = updateItem(ctx, args, host, update, condition, false)
 	return err
 }
 
@@ -106,7 +106,7 @@ func updateOpponentConnectionGetGameConnectionIDs(ctx context.Context, args Args
 		Set(expression.Name(attribConnections+"."+connName), expression.Value(connID))
 	condition := expression.In(expression.Name(attribOpponent), expression.Value(expectedOpponents[0]), expression.Value(expectedOpponents[1]))
 
-	output, err := updateItemWithCondition(ctx, args, host, update, condition, true)
+	output, err := updateItem(ctx, args, host, update, condition, true)
 	if err != nil {
 		return game{}, nil, err
 	}
@@ -158,11 +158,24 @@ func getHostsByOpponent(ctx context.Context, args Args, opponent string) ([]stri
 	return hosts, nil
 }
 
-func deleteGameGetConnectionIDs(ctx context.Context, args Args, host string) ([]string, error) {
+func deleteGameGetConnectionIDs(ctx context.Context, args Args, host, connName, connID string) ([]string, error) {
+	exp, err := expression.NewBuilder().
+		WithCondition(expression.Or(
+			expression.Name(attribConnections+"."+connName).Equal(expression.Value(connID)),
+			expression.Name(attribHost).AttributeNotExists(),
+		)).
+		Build()
+	if err != nil {
+		return nil, err
+	}
+
 	output, err := args.DB.DeleteItemWithContext(ctx, &dynamodb.DeleteItemInput{
-		TableName:    aws.String(args.TableName),
-		Key:          hostKey(host),
-		ReturnValues: aws.String(dynamodb.ReturnValueAllOld),
+		TableName:                 aws.String(args.TableName),
+		Key:                       hostKey(host),
+		ConditionExpression:       exp.Condition(),
+		ExpressionAttributeNames:  exp.Names(),
+		ExpressionAttributeValues: exp.Values(),
+		ReturnValues:              aws.String(dynamodb.ReturnValueAllOld),
 	})
 	if err != nil {
 		return nil, err
@@ -184,21 +197,9 @@ func deleteGameGetConnectionIDs(ctx context.Context, args Args, host string) ([]
 }
 
 // updateItem wraps dynamodb.UpdateItemWithContext.
-func updateItem(ctx context.Context, args Args, host string, update expression.UpdateBuilder, returnOldValues bool) (*dynamodb.UpdateItemOutput, error) {
-	update = update.Set(expression.Name(attribTTL), expression.Value(time.Now().Add(time.Hour).Unix()))
-	builder := expression.NewBuilder().WithUpdate(update)
-	return updateItemWithBuilder(ctx, args, host, builder, returnOldValues)
-}
-
-// updateItemWithCondition wraps dynamodb.UpdateItemWithContext.
-func updateItemWithCondition(ctx context.Context, args Args, host string, update expression.UpdateBuilder, condition expression.ConditionBuilder, returnOldValues bool) (*dynamodb.UpdateItemOutput, error) {
+func updateItem(ctx context.Context, args Args, host string, update expression.UpdateBuilder, condition expression.ConditionBuilder, returnOldValues bool) (*dynamodb.UpdateItemOutput, error) {
 	update = update.Set(expression.Name(attribTTL), expression.Value(time.Now().Add(time.Hour).Unix()))
 	builder := expression.NewBuilder().WithUpdate(update).WithCondition(condition)
-	return updateItemWithBuilder(ctx, args, host, builder, returnOldValues)
-}
-
-// updateItemWithBuilder wraps dynamodb.UpdateItemWithContext.
-func updateItemWithBuilder(ctx context.Context, args Args, host string, builder expression.Builder, returnOldValues bool) (*dynamodb.UpdateItemOutput, error) {
 	exp, err := builder.Build()
 	if err != nil {
 		return nil, err

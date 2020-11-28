@@ -34,7 +34,7 @@ func reply(ctx context.Context, reqCtx events.APIGatewayWebsocketProxyRequestCon
 
 func sendMessage(ctx context.Context, reqCtx events.APIGatewayWebsocketProxyRequestContext, args Args, connectionID string, message interface{}) func() error {
 	return func() error {
-		log.Printf("Sending message to connection %s", connectionID)
+		log.Printf("Sending message %T to connection %s", message, connectionID)
 
 		data, err := json.Marshal(messages.Wrapper{Message: message})
 		if err != nil {

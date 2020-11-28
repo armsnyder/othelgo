@@ -72,7 +72,7 @@ func handleMessage(ctx context.Context, req events.APIGatewayWebsocketProxyReque
 
 	message := wrapper.Message
 
-	log.Printf("Handling message %T", message)
+	log.Printf("Handling message %T from connection %s", message, req.RequestContext.ConnectionID)
 
 	if err := validate.Struct(message); err != nil {
 		return err

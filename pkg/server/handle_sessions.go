@@ -20,7 +20,7 @@ const waiting = "#waiting"
 func handleHostGame(ctx context.Context, req events.APIGatewayWebsocketProxyRequest, args Args, message *messages.HostGame) error {
 	game := newGame()
 
-	if err := updateGameOpponentSetConnection(ctx, args, message.Nickname, game, waiting, message.Nickname, req.RequestContext.ConnectionID); err != nil {
+	if err := createGame(ctx, args, message.Nickname, game, waiting, message.Nickname, req.RequestContext.ConnectionID); err != nil {
 		return fmt.Errorf("failed to save new game state: %w", err)
 	}
 
@@ -31,7 +31,7 @@ func handleStartSoloGame(ctx context.Context, req events.APIGatewayWebsocketProx
 	game := newGame()
 	game.Difficulty = message.Difficulty
 
-	if err := updateGame(ctx, args, message.Nickname, game); err != nil {
+	if err := createGame(ctx, args, message.Nickname, game, "", message.Nickname, req.RequestContext.ConnectionID); err != nil {
 		return fmt.Errorf("failed to save new game state: %w", err)
 	}
 
@@ -75,7 +75,7 @@ func handleListOpenGames(ctx context.Context, req events.APIGatewayWebsocketProx
 }
 
 func handleLeaveGame(ctx context.Context, req events.APIGatewayWebsocketProxyRequest, args Args, message *messages.LeaveGame) error {
-	connectionIDs, err := deleteGameGetConnectionIDs(ctx, args, message.Host)
+	connectionIDs, err := deleteGameGetConnectionIDs(ctx, args, message.Host, message.Nickname, req.RequestContext.ConnectionID)
 	if err != nil {
 		return err
 	}

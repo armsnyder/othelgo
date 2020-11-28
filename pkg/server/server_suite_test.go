@@ -108,6 +108,12 @@ var _ = Describe("Server", func() {
 		}
 	}
 
+	clearMessages := func() {
+		flame.reset()
+		zinger.reset()
+		craig.reset()
+	}
+
 	// Tests start here.
 
 	When("no games", func() {
@@ -126,6 +132,8 @@ var _ = Describe("Server", func() {
 	})
 
 	When("flame starts a solo game", func() {
+		BeforeEach(clearMessages)
+
 		var message messages.UpdateBoard
 		BeforeEach(sendAndReceiveMessage(&flame, messages.StartSoloGame{Nickname: "flame"}, &message))
 
@@ -134,6 +142,8 @@ var _ = Describe("Server", func() {
 		})
 
 		When("zinger lists open games", func() {
+			BeforeEach(clearMessages)
+
 			var message messages.OpenGames
 			BeforeEach(sendAndReceiveMessage(&zinger, messages.ListOpenGames{}, &message))
 
@@ -142,7 +152,31 @@ var _ = Describe("Server", func() {
 			})
 		})
 
+		When("craig hosts a game using flame's nickname", func() {
+			BeforeEach(clearMessages)
+
+			var message messages.Error
+			BeforeEach(sendAndReceiveMessage(&craig, messages.HostGame{Nickname: "flame"}, &message))
+
+			It("should error", func() {
+				Expect(message.Error).NotTo(BeEmpty())
+			})
+		})
+
+		When("craig starts a solo game using flame's nickname", func() {
+			BeforeEach(clearMessages)
+
+			var message messages.Error
+			BeforeEach(sendAndReceiveMessage(&craig, messages.StartSoloGame{Nickname: "flame"}, &message))
+
+			It("should error", func() {
+				Expect(message.Error).NotTo(BeEmpty())
+			})
+		})
+
 		When("player moves", func() {
+			BeforeEach(clearMessages)
+
 			var message messages.UpdateBoard
 			BeforeEach(sendAndReceiveMessage(&flame, messages.PlaceDisk{Nickname: "flame", Host: "flame", X: 2, Y: 4}, &message))
 
@@ -163,6 +197,8 @@ var _ = Describe("Server", func() {
 	})
 
 	When("flame hosts a game", func() {
+		BeforeEach(clearMessages)
+
 		var message messages.UpdateBoard
 		BeforeEach(sendAndReceiveMessage(&flame, messages.HostGame{Nickname: "flame"}, &message))
 
@@ -188,6 +224,8 @@ var _ = Describe("Server", func() {
 		})
 
 		When("craig hosts a game", func() {
+			BeforeEach(clearMessages)
+
 			var message messages.UpdateBoard
 			BeforeEach(sendAndReceiveMessage(&craig, messages.HostGame{Nickname: "craig"}, &message))
 
@@ -196,6 +234,8 @@ var _ = Describe("Server", func() {
 			})
 
 			When("zinger lists open games", func() {
+				BeforeEach(clearMessages)
+
 				var message messages.OpenGames
 				BeforeEach(sendAndReceiveMessage(&zinger, messages.ListOpenGames{}, &message))
 
@@ -205,7 +245,35 @@ var _ = Describe("Server", func() {
 			})
 		})
 
+		When("craig hosts a game using flame's nickname", func() {
+			BeforeEach(clearMessages)
+
+			var message messages.Error
+			BeforeEach(sendAndReceiveMessage(&craig, messages.HostGame{Nickname: "flame"}, &message))
+
+			It("should error", func() {
+				Expect(message.Error).NotTo(BeEmpty())
+			})
+		})
+
+		When("craig impersonates flame and leaves the game", func() {
+			BeforeEach(clearMessages)
+			BeforeEach(sendMessage(&craig, messages.LeaveGame{Nickname: "flame", Host: "flame"}))
+
+			When("zinger lists open games", func() {
+				BeforeEach(clearMessages)
+
+				var message messages.OpenGames
+				BeforeEach(sendAndReceiveMessage(&zinger, messages.ListOpenGames{}, &message))
+
+				It("should show flame's game is open", func() {
+					Expect(message.Hosts).To(Equal([]string{"flame"}))
+				})
+			})
+		})
+
 		When("flame leaves the game", func() {
+			BeforeEach(clearMessages)
 			BeforeEach(sendMessage(&flame, messages.LeaveGame{Nickname: "flame", Host: "flame"}))
 
 			When("zinger lists open games", func() {
@@ -219,6 +287,8 @@ var _ = Describe("Server", func() {
 		})
 
 		When("zinger lists open games", func() {
+			BeforeEach(clearMessages)
+
 			var message messages.OpenGames
 			BeforeEach(sendAndReceiveMessage(&zinger, messages.ListOpenGames{}, &message))
 
@@ -228,6 +298,8 @@ var _ = Describe("Server", func() {
 		})
 
 		When("craig lists open games", func() {
+			BeforeEach(clearMessages)
+
 			var message messages.OpenGames
 			BeforeEach(sendAndReceiveMessage(&craig, messages.ListOpenGames{}, &message))
 
@@ -237,6 +309,8 @@ var _ = Describe("Server", func() {
 		})
 
 		When("zinger joins the game with an illegal nickname", func() {
+			BeforeEach(clearMessages)
+
 			var message messages.Error
 			BeforeEach(sendAndReceiveMessage(&zinger, messages.JoinGame{Nickname: "#waiting", Host: "flame"}, &message))
 
@@ -245,7 +319,25 @@ var _ = Describe("Server", func() {
 			})
 		})
 
+		When("zinger joins the game using flame's nickname", func() {
+			BeforeEach(clearMessages)
+			BeforeEach(sendMessage(&zinger, messages.JoinGame{Nickname: "flame", Host: "flame"}))
+
+			When("craig lists open games", func() {
+				BeforeEach(clearMessages)
+
+				var message messages.OpenGames
+				BeforeEach(sendAndReceiveMessage(&craig, messages.ListOpenGames{}, &message))
+
+				It("should show flame's game is open", func() {
+					Expect(message.Hosts).To(Equal([]string{"flame"}))
+				})
+			})
+		})
+
 		When("zinger joins the game", func() {
+			BeforeEach(clearMessages)
+
 			var (
 				zingerMessage messages.UpdateBoard
 				flameMessage  messages.Joined
@@ -267,6 +359,8 @@ var _ = Describe("Server", func() {
 			})
 
 			When("craig lists open games", func() {
+				BeforeEach(clearMessages)
+
 				var message messages.OpenGames
 				BeforeEach(sendAndReceiveMessage(&craig, messages.ListOpenGames{}, &message))
 
@@ -276,6 +370,7 @@ var _ = Describe("Server", func() {
 			})
 
 			When("craig tries to join the game anyway", func() {
+				BeforeEach(clearMessages)
 				BeforeEach(sendMessage(&craig, messages.JoinGame{Nickname: "craig", Host: "flame"}))
 
 				It("should receive error message", func() {
@@ -283,7 +378,24 @@ var _ = Describe("Server", func() {
 				})
 			})
 
+			When("zinger impersonates flame and leaves the game", func() {
+				BeforeEach(clearMessages)
+				BeforeEach(sendMessage(&zinger, messages.LeaveGame{Nickname: "flame", Host: "flame"}))
+
+				When("craig lists open games", func() {
+					BeforeEach(clearMessages)
+
+					var message messages.OpenGames
+					BeforeEach(sendAndReceiveMessage(&craig, messages.ListOpenGames{}, &message))
+
+					It("should have no open games", func() {
+						Expect(message.Hosts).To(BeEmpty())
+					})
+				})
+			})
+
 			When("flame makes the first move", func() {
+				BeforeEach(clearMessages)
 				BeforeEach(sendMessage(&flame, messages.PlaceDisk{Nickname: "flame", Host: "flame", X: 2, Y: 4}))
 
 				expectedBoardAfterFirstMove := buildBoard(
@@ -322,7 +434,17 @@ var _ = Describe("Server", func() {
 				})
 			})
 
+			When("zinger impersonates flame to take flame's turn", func() {
+				BeforeEach(clearMessages)
+				BeforeEach(sendMessage(&zinger, messages.PlaceDisk{Nickname: "flame", Host: "flame", X: 2, Y: 4}))
+
+				It("should not update the board", func() {
+					Expect(flame).NotTo(haveReceived(&messages.UpdateBoard{}))
+				})
+			})
+
 			When("flame leaves the game", func() {
+				BeforeEach(clearMessages)
 				BeforeEach(sendMessage(&flame, messages.LeaveGame{Nickname: "flame", Host: "flame"}))
 
 				var message messages.GameOver
@@ -333,6 +455,7 @@ var _ = Describe("Server", func() {
 				})
 
 				When("zinger leaves the game", func() {
+					BeforeEach(clearMessages)
 					BeforeEach(sendMessage(&zinger, messages.LeaveGame{Nickname: "zinger", Host: "flame"}))
 
 					It("should not error", func() {
@@ -342,6 +465,7 @@ var _ = Describe("Server", func() {
 			})
 
 			When("zinger leaves the game", func() {
+				BeforeEach(clearMessages)
 				BeforeEach(sendMessage(&zinger, messages.LeaveGame{Nickname: "zinger", Host: "flame"}))
 
 				var message messages.GameOver
@@ -511,6 +635,8 @@ outer:
 		}
 	}
 
+	c.reset()
+
 	// Send a message, which will invoke the handler.
 	err := c.ws.WriteJSON(messages.Wrapper{Message: message})
 
@@ -529,6 +655,12 @@ func (c *clientConnection) messagesSafe() []interface{} {
 	result = append(result, *c.messages...)
 
 	return result
+}
+
+func (c *clientConnection) reset() {
+	c.messagesMu.Lock()
+	*c.messages = []interface{}{}
+	c.messagesMu.Unlock()
 }
 
 func (c *clientConnection) close() {

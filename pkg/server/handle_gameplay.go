@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -17,9 +18,26 @@ import (
 // Handlers for messages pertaining to gameplay.
 
 func handlePlaceDisk(ctx context.Context, req events.APIGatewayWebsocketProxyRequest, args Args, message *messages.PlaceDisk) error {
-	game, opponent, connectionIDs, err := getGameAndOpponentAndConnectionIDs(ctx, args, message.Host)
+	game, opponent, connections, err := getGame(ctx, args, message.Host)
 	if err != nil {
 		return fmt.Errorf("failed to load game state: %w", err)
+	}
+
+	authorized := false
+	for k, v := range connections {
+		if k == message.Nickname && v == req.RequestContext.ConnectionID {
+			authorized = true
+			break
+		}
+	}
+
+	if !authorized {
+		return errors.New("unauthorized")
+	}
+
+	var connectionIDs []string
+	for _, v := range connections {
+		connectionIDs = append(connectionIDs, v)
 	}
 
 	if opponent == "" {
@@ -41,7 +59,7 @@ func handlePlaceDiskSolo(ctx context.Context, reqCtx events.APIGatewayWebsocketP
 		game.Player = game.Player%2 + 1
 	}
 
-	if err := updateGame(ctx, args, message.Host, game); err != nil {
+	if err := updateGame(ctx, args, message.Host, game, message.Nickname, reqCtx.ConnectionID); err != nil {
 		return fmt.Errorf("failed to save updated game state: %w", err)
 	}
 
@@ -65,7 +83,7 @@ func handlePlaceDiskSolo(ctx context.Context, reqCtx events.APIGatewayWebsocketP
 			game.Player = 1
 		}
 
-		if err := updateGame(ctx, args, message.Host, game); err != nil {
+		if err := updateGame(ctx, args, message.Host, game, message.Nickname, reqCtx.ConnectionID); err != nil {
 			return fmt.Errorf("failed to save updated game state: %w", err)
 		}
 
@@ -94,7 +112,7 @@ func handlePlaceDiskMultiplayer(ctx context.Context, reqCtx events.APIGatewayWeb
 		game.Player = player%2 + 1
 	}
 
-	if err := updateGame(ctx, args, message.Host, game); err != nil {
+	if err := updateGame(ctx, args, message.Host, game, message.Nickname, reqCtx.ConnectionID); err != nil {
 		return fmt.Errorf("failed to save updated game state: %w", err)
 	}
 
