@@ -8,6 +8,7 @@ import (
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
+	"github.com/go-playground/validator/v10"
 
 	"github.com/armsnyder/othelgo/pkg/messages"
 )
@@ -31,6 +32,14 @@ func DefaultHandler(ctx context.Context, req events.APIGatewayWebsocketProxyRequ
 	}
 
 	return Handle(ctx, req, defaultArgs)
+}
+
+// validate is a single instance of Validate; it caches struct info.
+var validate *validator.Validate
+
+func init() {
+	validate = validator.New()
+	messages.RegisterCustomValidations(validate)
 }
 
 // Handle is the main entrypoint of the server logic. It looks similar to an AWS Lambda handler
@@ -64,6 +73,10 @@ func handleMessage(ctx context.Context, req events.APIGatewayWebsocketProxyReque
 	message := wrapper.Message
 
 	log.Printf("Handling message %T", message)
+
+	if err := validate.Struct(message); err != nil {
+		return err
+	}
 
 	switch m := message.(type) {
 	case *messages.HostGame:

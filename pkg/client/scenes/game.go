@@ -128,7 +128,7 @@ func (g *Game) Tick() bool {
 func (g *Game) Draw() {
 	g.drawYouAre()
 	g.drawScore()
-	draw.Draw(draw.TopRight, draw.Normal, fmt.Sprintf("Your name is %s!", g.nickname))
+	draw.Draw(draw.TopRight, draw.Normal, fmt.Sprintf("Your name is %s!", strings.ToUpper(g.nickname)))
 	draw.Draw(draw.BotRight, draw.Normal, "[M] MENU  [Q] QUIT")
 	drawBoardOutline()
 	g.drawDisks()

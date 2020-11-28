@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/armsnyder/othelgo/pkg/common"
 
@@ -79,5 +80,5 @@ func handleLeaveGame(ctx context.Context, req events.APIGatewayWebsocketProxyReq
 		return err
 	}
 
-	return broadcast(ctx, req.RequestContext, args, messages.GameOver{Message: fmt.Sprintf("%s left the game", message.Nickname)}, connectionIDs)
+	return broadcast(ctx, req.RequestContext, args, messages.GameOver{Message: fmt.Sprintf("%s left the game", strings.ToUpper(message.Nickname))}, connectionIDs)
 }

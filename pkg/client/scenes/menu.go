@@ -2,6 +2,7 @@ package scenes
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/nsf/termbox-go"
 
@@ -89,7 +90,7 @@ func (m *Menu) OnTerminalEvent(event termbox.Event) error {
 func (m *Menu) Draw() {
 	drawSplash()
 
-	draw.Draw(draw.TopRight, draw.Normal, fmt.Sprintf("Did you know? Your name is %s!", m.nickname))
+	draw.Draw(draw.TopRight, draw.Normal, fmt.Sprintf("Did you know? Your name is %s!", strings.ToUpper(m.nickname)))
 
 	buttonColors := [6]draw.Color{draw.Normal, draw.Normal, draw.Normal, draw.Normal, draw.Normal, draw.Normal}
 	buttonColors[m.button] = draw.Inverted

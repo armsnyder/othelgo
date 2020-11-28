@@ -57,7 +57,7 @@ var _ = Describe("Server", func() {
 
 		initClient = func() *clientConnection {
 			client := newClientConnection(addr, addHandlerFinishedListener)
-			client.sendMessage(messages.Hello{})
+			client.sendMessage(messages.Hello{Version: "v0.0.0"})
 			return client
 		}
 	})
@@ -236,6 +236,15 @@ var _ = Describe("Server", func() {
 			})
 		})
 
+		When("zinger joins the game with an illegal nickname", func() {
+			var message messages.Error
+			BeforeEach(sendAndReceiveMessage(&zinger, messages.JoinGame{Nickname: "#waiting", Host: "flame"}, &message))
+
+			It("should error", func() {
+				Expect(message.Error).NotTo(BeEmpty())
+			})
+		})
+
 		When("zinger joins the game", func() {
 			var (
 				zingerMessage messages.UpdateBoard
@@ -320,7 +329,7 @@ var _ = Describe("Server", func() {
 				BeforeEach(receiveMessage(&zinger, &message))
 
 				It("zinger is notified", func() {
-					Expect(message.Message).To(Equal("flame left the game"))
+					Expect(message.Message).To(Equal("FLAME left the game"))
 				})
 
 				When("zinger leaves the game", func() {
@@ -339,7 +348,7 @@ var _ = Describe("Server", func() {
 				BeforeEach(receiveMessage(&flame, &message))
 
 				It("flame is notified", func() {
-					Expect(message.Message).To(Equal("zinger left the game"))
+					Expect(message.Message).To(Equal("ZINGER left the game"))
 				})
 			})
 		})

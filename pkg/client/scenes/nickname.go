@@ -88,7 +88,7 @@ func (n *Nickname) OnTerminalEvent(event termbox.Event) error {
 
 func getLetter(ch rune) rune {
 	if unicode.IsLetter(ch) {
-		return unicode.ToUpper(ch)
+		return unicode.ToLower(ch)
 	}
 
 	return 0
@@ -100,7 +100,7 @@ func (n *Nickname) Draw() {
 	draw.Draw(draw.Offset(draw.Center, 0, 2), draw.Normal, "Enter your name:")
 
 	var sb strings.Builder
-	sb.WriteString(n.nickname)
+	sb.WriteString(strings.ToUpper(n.nickname))
 	for i := len(n.nickname); i < maxNicknameLen; i++ {
 		sb.WriteRune('_')
 	}
@@ -126,7 +126,7 @@ func (n *Nickname) load() error {
 		return nil
 	}
 
-	n.nickname = string(nicknameBytes)
+	n.nickname = strings.ToLower(string(nicknameBytes))
 
 	return err
 }

@@ -22,21 +22,21 @@ var manifest = []interface{}{
 }
 
 type Hello struct {
-	Version string `json:"version"`
+	Version string `json:"version" validate:"semver"`
 }
 
 type HostGame struct {
-	Nickname string `json:"nickname"`
+	Nickname string `json:"nickname" validate:"required,max=10,alphanumspace,lowercase"`
 }
 
 type StartSoloGame struct {
-	Nickname   string `json:"nickname"`
-	Difficulty int    `json:"difficulty"`
+	Nickname   string `json:"nickname" validate:"required,max=10,alphanumspace,lowercase"`
+	Difficulty int    `json:"difficulty" validate:"oneof=0 1 2"`
 }
 
 type JoinGame struct {
-	Nickname string `json:"nickname"`
-	Host     string `json:"host"`
+	Nickname string `json:"nickname" validate:"required,max=10,alphanumspace,lowercase,nefield=Host"`
+	Host     string `json:"host" validate:"required,max=10,alphanumspace,lowercase"`
 }
 
 type Joined struct {
@@ -44,8 +44,8 @@ type Joined struct {
 }
 
 type LeaveGame struct {
-	Nickname string `json:"nickname"`
-	Host     string `json:"host"`
+	Nickname string `json:"nickname" validate:"required,max=10,alphanumspace,lowercase"`
+	Host     string `json:"host" validate:"required,max=10,alphanumspace,lowercase"`
 }
 
 type GameOver struct {
@@ -59,10 +59,10 @@ type OpenGames struct {
 }
 
 type PlaceDisk struct {
-	Nickname string `json:"nickname"`
-	Host     string `json:"host"`
-	X        int    `json:"x"`
-	Y        int    `json:"y"`
+	Nickname string `json:"nickname" validate:"required,max=10,alphanumspace,lowercase"`
+	Host     string `json:"host" validate:"required,max=10,alphanumspace,lowercase"`
+	X        int    `json:"x" validate:"min=0,max=7"`
+	Y        int    `json:"y" validate:"min=0,max=7"`
 }
 
 type UpdateBoard struct {

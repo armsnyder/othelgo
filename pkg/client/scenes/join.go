@@ -2,6 +2,7 @@ package scenes
 
 import (
 	"fmt"
+	"strings"
 	"unicode"
 
 	"github.com/armsnyder/othelgo/pkg/client/draw"
@@ -55,7 +56,7 @@ func (j *Join) OnTerminalEvent(event termbox.Event) error {
 }
 
 func (j *Join) Draw() {
-	draw.Draw(draw.TopRight, draw.Normal, fmt.Sprintf("Your name is %s!", j.nickname))
+	draw.Draw(draw.TopRight, draw.Normal, fmt.Sprintf("Your name is %s!", strings.ToUpper(j.nickname)))
 	draw.Draw(draw.BotRight, draw.Normal, "[M] MENU  [Q] QUIT")
 
 	if len(j.hosts) > 0 {
@@ -67,7 +68,7 @@ func (j *Join) Draw() {
 		draw.Draw(draw.Offset(draw.CenterRight, -9, 0), draw.Normal, "=== OPEN GAMES ===")
 		for i, h := range j.hosts {
 			os := -(len(h) + 4) / 2
-			draw.Draw(draw.Offset(draw.CenterRight, os, i*2+2), buttonColors[i], fmt.Sprintf("[ %s ]", h))
+			draw.Draw(draw.Offset(draw.CenterRight, os, i*2+2), buttonColors[i], fmt.Sprintf("[ %s ]", strings.ToUpper(h)))
 		}
 	} else {
 		draw.Draw(draw.CenterTop, draw.Normal, "MORE LIKE \"NO GAME\"")
