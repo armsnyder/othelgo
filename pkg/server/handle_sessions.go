@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"fmt"
+	"log"
 	"strings"
 
 	"github.com/armsnyder/othelgo/pkg/common"
@@ -18,6 +19,8 @@ import (
 const waiting = "#waiting"
 
 func handleHostGame(ctx context.Context, req events.APIGatewayWebsocketProxyRequest, args Args, message *messages.HostGame) error {
+	log.Printf("User %q is hosting a new game", message.Nickname)
+
 	prevNickname, prevInGame, err := updateInGame(ctx, args, req.RequestContext.ConnectionID, message.Nickname, message.Nickname)
 	if err != nil {
 		return err
@@ -43,6 +46,8 @@ func handleHostGame(ctx context.Context, req events.APIGatewayWebsocketProxyRequ
 }
 
 func handleStartSoloGame(ctx context.Context, req events.APIGatewayWebsocketProxyRequest, args Args, message *messages.StartSoloGame) error {
+	log.Printf("User %q is starting a new solo game", message.Nickname)
+
 	prevNickname, prevInGame, err := updateInGame(ctx, args, req.RequestContext.ConnectionID, message.Nickname, message.Nickname)
 	if err != nil {
 		return err
@@ -83,6 +88,8 @@ func newGame() game {
 }
 
 func handleJoinGame(ctx context.Context, req events.APIGatewayWebsocketProxyRequest, args Args, message *messages.JoinGame) error {
+	log.Printf("User %q is joining user %q's game", message.Nickname, message.Host)
+
 	prevNickname, prevInGame, err := updateInGame(ctx, args, req.RequestContext.ConnectionID, message.Nickname, message.Host)
 	if err != nil {
 		return err
@@ -120,6 +127,8 @@ func handleListOpenGames(ctx context.Context, req events.APIGatewayWebsocketProx
 }
 
 func handleLeaveGame(ctx context.Context, req events.APIGatewayWebsocketProxyRequest, args Args, message *messages.LeaveGame) error {
+	log.Printf("User %q is leaving user %q's game", message.Nickname, message.Host)
+
 	connectionIDs, err := deleteGameGetConnectionIDs(ctx, args, message.Host, message.Nickname, req.RequestContext.ConnectionID)
 	if err != nil {
 		return err

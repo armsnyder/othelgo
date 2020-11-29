@@ -340,7 +340,11 @@ func EnsureTable(ctx context.Context, db *dynamodb.DynamoDB, name string) error 
 		},
 	})
 
-	return err
+	if err != nil && !strings.Contains(err.Error(), "TimeToLive is already enabled") {
+		return err
+	}
+
+	return nil
 }
 
 func defaultDB() *dynamodb.DynamoDB {
