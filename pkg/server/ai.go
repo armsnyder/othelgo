@@ -9,8 +9,9 @@ import (
 // doAIPlayerMove takes a turn as the AI player.
 func doAIPlayerMove(board common.Board, difficulty int) common.Board {
 	aiState := &aiGameState{
-		board:  board,
-		player: 2,
+		board:            board,
+		maximizingPlayer: 2,
+		turn:             2,
 	}
 
 	var depth int
@@ -27,15 +28,37 @@ func doAIPlayerMove(board common.Board, difficulty int) common.Board {
 	return aiState.moves[move]
 }
 
+func scorePossibleMoves(board common.Board, player common.Disk) map[string]float64 {
+	aiState := &aiGameState{
+		board:            board,
+		turn:             player,
+		maximizingPlayer: player,
+	}
+
+	result := make(map[string]float64)
+
+	for i, score := range scoreMovesUsingMinimax(aiState, 4) {
+		result[moveToKey(aiState.moveLocations[i])] = score
+	}
+
+	return result
+}
+
 // aiGameState implements the othelgo domain-specific logic needed by the AI.
 type aiGameState struct {
-	board  common.Board
-	player common.Disk
-	moves  []common.Board
+	board            common.Board
+	turn             common.Disk
+	maximizingPlayer common.Disk
+	moves            []common.Board
+	moveLocations    [][2]int
 }
 
 func (a *aiGameState) Score() float64 {
 	p1, p2 := common.KeepScore(a.board)
+
+	if a.maximizingPlayer == 1 {
+		p1, p2 = p2, p1
+	}
 
 	if common.GameOver(a.board) {
 		switch {
@@ -108,7 +131,7 @@ func (a *aiGameState) percentFull() float64 {
 }
 
 func (a *aiGameState) AITurn() bool {
-	return a.player == 2
+	return a.turn == a.maximizingPlayer
 }
 
 func (a *aiGameState) MoveCount() int {
@@ -116,8 +139,9 @@ func (a *aiGameState) MoveCount() int {
 		a.moves = []common.Board{}
 		for x := 0; x < common.BoardSize; x++ {
 			for y := 0; y < common.BoardSize; y++ {
-				if board, updated := common.ApplyMove(a.board, x, y, a.player); updated {
+				if board, updated := common.ApplyMove(a.board, x, y, a.turn); updated {
 					a.moves = append(a.moves, board)
+					a.moveLocations = append(a.moveLocations, [2]int{x, y})
 				}
 			}
 		}
@@ -130,12 +154,12 @@ func (a *aiGameState) Move(i int) AIGameState {
 	a.MoveCount() // Lazy initialize moves
 
 	nextState := &aiGameState{
-		board:  a.moves[i],
-		player: a.player,
+		board: a.moves[i],
+		turn:  a.turn,
 	}
 
-	if common.HasMoves(a.moves[i], a.player%2+1) {
-		nextState.player = a.player%2 + 1
+	if common.HasMoves(a.moves[i], a.turn%2+1) {
+		nextState.turn = a.turn%2 + 1
 	}
 
 	return nextState

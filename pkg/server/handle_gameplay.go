@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"sort"
 	"time"
 
 	"github.com/armsnyder/othelgo/pkg/common"
@@ -63,7 +64,11 @@ func handlePlaceDiskSolo(ctx context.Context, reqCtx events.APIGatewayWebsocketP
 		return fmt.Errorf("failed to save updated game state: %w", err)
 	}
 
-	if err := reply(ctx, reqCtx, args, messages.UpdateBoard{Board: board, Player: game.Player}); err != nil {
+	if err := reply(ctx, reqCtx, args, messages.UpdateBoard{
+		Board:    board,
+		Player:   game.Player,
+		Feedback: judgeMove([2]int{message.X, message.Y}, game.NextMoveScores),
+	}); err != nil {
 		return err
 	}
 
@@ -92,7 +97,10 @@ func handlePlaceDiskSolo(ctx context.Context, reqCtx events.APIGatewayWebsocketP
 		}
 	}
 
-	return nil
+	game.Player = 1
+	game.NextMoveScores = scorePossibleMoves(game.Board, game.Player)
+
+	return updateGame(ctx, args, message.Host, game, message.Nickname, reqCtx.ConnectionID)
 }
 
 func handlePlaceDiskMultiplayer(ctx context.Context, reqCtx events.APIGatewayWebsocketProxyRequestContext, args Args, message *messages.PlaceDisk, game game, opponent string, connectionIDs []string) error {
@@ -116,5 +124,60 @@ func handlePlaceDiskMultiplayer(ctx context.Context, reqCtx events.APIGatewayWeb
 		return fmt.Errorf("failed to save updated game state: %w", err)
 	}
 
-	return broadcast(ctx, reqCtx, args, messages.UpdateBoard{Board: board, Player: game.Player}, connectionIDs)
+	if err := broadcast(ctx, reqCtx, args, messages.UpdateBoard{
+		Board:    board,
+		Player:   game.Player,
+		Feedback: judgeMove([2]int{message.X, message.Y}, game.NextMoveScores),
+	}, connectionIDs); err != nil {
+		return err
+	}
+
+	game.NextMoveScores = scorePossibleMoves(game.Board, game.Player)
+
+	return updateGame(ctx, args, message.Host, game, message.Nickname, reqCtx.ConnectionID)
+}
+
+func judgeMove(move [2]int, moveScores map[string]float64) string {
+	log.Printf("Judging move %v out of %v\n", move, moveScores)
+
+	var scores []float64
+	for _, score := range moveScores {
+		scores = append(scores, score)
+	}
+
+	if len(scores) == 0 {
+		return "perfect" // Maybe it's the first turn.
+	}
+
+	moveScore, ok := moveScores[moveToKey(move)]
+	if !ok {
+		return "perfect" // Move wasn't an even option. Let's be nice.
+	}
+
+	sort.Float64s(scores)
+
+	top := scores[len(scores)-1]
+	bottom := scores[0]
+
+	// Avoid divide-by-zero.
+	if top == bottom {
+		return "perfect"
+	}
+
+	howYaDid := (moveScore - bottom) / (top - bottom)
+
+	log.Printf("How ya did: %f", howYaDid)
+
+	switch {
+	case howYaDid > 0.95:
+		return "perfect"
+	case howYaDid > 0.3:
+		return "cool"
+	default:
+		return "boo"
+	}
+}
+
+func moveToKey(move [2]int) string {
+	return fmt.Sprintf("%d,%d", move[0], move[1])
 }
