@@ -67,7 +67,7 @@ func handlePlaceDiskSolo(ctx context.Context, reqCtx events.APIGatewayWebsocketP
 		return err
 	}
 
-	for game.Player == 2 && common.HasMoves(game.Board, 2) {
+	for game.Player == 2 {
 		log.Println("Taking AI turn")
 
 		turnStartedAt := time.Now()
