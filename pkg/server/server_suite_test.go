@@ -70,41 +70,25 @@ var _ = Describe("Server", func() {
 		When("zinger lists open games", func() {
 			BeforeEach(Send(&zinger, messages.ListOpenGames{}))
 
-			It("should have no open games", func() {
-				var message messages.OpenGames
-				Expect(zinger).To(HaveReceived(&message))
-				Expect(message.Hosts).To(BeEmpty())
-			})
+			It("should have no open games", testutil.ExpectNoOpenGames(&zinger))
 		})
 	})
 
 	When("flame starts a solo game", func() {
 		BeforeEach(Send(&flame, messages.StartSoloGame{Nickname: "flame"}))
 
-		It("should send flame a new game board", func() {
-			var message messages.UpdateBoard
-			Expect(flame).To(HaveReceived(&message))
-			Expect(message.Board).To(Equal(testutil.NewGameBoard()))
-		})
+		It("should send a new game board to flame", testutil.ExpectNewGameBoard(&flame))
 
 		When("zinger lists open games", func() {
 			BeforeEach(Send(&zinger, messages.ListOpenGames{}))
 
-			It("should have no open games", func() {
-				var message messages.OpenGames
-				Expect(zinger).To(HaveReceived(&message))
-				Expect(message.Hosts).To(BeEmpty())
-			})
+			It("should have no open games", testutil.ExpectNoOpenGames(&zinger))
 		})
 
 		When("craig hosts a game using flame's nickname", func() {
 			BeforeEach(Send(&craig, messages.HostGame{Nickname: "flame"}))
 
-			It("should error", func() {
-				var message messages.Error
-				Expect(craig).To(HaveReceived(&message))
-				Expect(message.Error).NotTo(BeEmpty())
-			})
+			It("should error", testutil.ExpectError(&craig))
 
 			It("should not end flame's game", func() {
 				Expect(flame).NotTo(HaveReceived(&messages.GameOver{}))
@@ -114,11 +98,7 @@ var _ = Describe("Server", func() {
 		When("craig starts a solo game using flame's nickname", func() {
 			BeforeEach(Send(&craig, messages.StartSoloGame{Nickname: "flame"}))
 
-			It("should error", func() {
-				var message messages.Error
-				Expect(craig).To(HaveReceived(&message))
-				Expect(message.Error).NotTo(BeEmpty())
-			})
+			It("should error", testutil.ExpectError(&craig))
 
 			It("should not end flame's game", func() {
 				Expect(flame).NotTo(HaveReceived(&messages.GameOver{}))
@@ -136,11 +116,7 @@ var _ = Describe("Server", func() {
 				Expect(totalDisks).To(Equal(6))
 			})
 
-			It("should be flame's turn", func() {
-				var message messages.UpdateBoard
-				Expect(flame).To(HaveReceived(&message))
-				Expect(message.Player).To(Equal(common.Player1))
-			})
+			It("should be flame's turn", testutil.ExpectTurn(&flame, 1))
 
 			It("should not send zinger any board updates", func() {
 				Expect(zinger).NotTo(HaveReceived(&messages.UpdateBoard{}))
@@ -166,29 +142,17 @@ var _ = Describe("Server", func() {
 	When("flame hosts a game", func() {
 		BeforeEach(Send(&flame, messages.HostGame{Nickname: "flame"}))
 
-		It("should send flame a new game board", func() {
-			var message messages.UpdateBoard
-			Expect(flame).To(HaveReceived(&message))
-			Expect(message.Board).To(Equal(testutil.NewGameBoard()))
-		})
+		It("should send a new game board to flame", testutil.ExpectNewGameBoard(&flame))
 
 		When("craig hosts a game", func() {
 			BeforeEach(Send(&craig, messages.HostGame{Nickname: "craig"}))
 
-			It("should send craig a new game board", func() {
-				var message messages.UpdateBoard
-				Expect(craig).To(HaveReceived(&message))
-				Expect(message.Board).To(Equal(testutil.NewGameBoard()))
-			})
+			It("should send a new game board to craig", testutil.ExpectNewGameBoard(&craig))
 
 			When("zinger lists open games", func() {
 				BeforeEach(Send(&zinger, messages.ListOpenGames{}))
 
-				It("should show both flame and craig's games are open", func() {
-					var message messages.OpenGames
-					Expect(zinger).To(HaveReceived(&message))
-					Expect(message.Hosts).To(ConsistOf("flame", "craig"))
-				})
+				It("should show flame and craig's games are open", testutil.ExpectOpenGames(&zinger, "flame", "craig"))
 			})
 
 			When("zinger joins craig's game", func() {
@@ -197,21 +161,13 @@ var _ = Describe("Server", func() {
 				When("zinger force-joins flame's game", func() {
 					BeforeEach(Send(&zinger, messages.JoinGame{Nickname: "zinger", Host: "flame"}))
 
-					It("should notify craig", func() {
-						var message messages.GameOver
-						Expect(craig).To(HaveReceived(&message))
-						Expect(message.Message).To(Equal("ZINGER left the game"))
-					})
+					It("should notify craig that zinger left", testutil.ExpectPlayerLeft(&craig, "zinger"))
 				})
 
 				When("craig force-joins flame's game", func() {
 					BeforeEach(Send(&craig, messages.JoinGame{Nickname: "craig", Host: "flame"}))
 
-					It("should notify zinger", func() {
-						var message messages.GameOver
-						Expect(zinger).To(HaveReceived(&message))
-						Expect(message.Message).To(Equal("CRAIG left the game"))
-					})
+					It("should notify zinger that craig left", testutil.ExpectPlayerLeft(&zinger, "craig"))
 				})
 
 			})
@@ -223,11 +179,7 @@ var _ = Describe("Server", func() {
 			When("zinger lists open games", func() {
 				BeforeEach(Send(&zinger, messages.ListOpenGames{}))
 
-				It("should show flame's game is open", func() {
-					var message messages.OpenGames
-					Expect(zinger).To(HaveReceived(&message))
-					Expect(message.Hosts).To(Equal([]string{"flame"}))
-				})
+				It("should show flame's game is open", testutil.ExpectOpenGames(&zinger, "flame"))
 			})
 		})
 
@@ -237,42 +189,26 @@ var _ = Describe("Server", func() {
 			When("zinger lists open games", func() {
 				BeforeEach(Send(&zinger, messages.ListOpenGames{}))
 
-				It("should have no open games", func() {
-					var message messages.OpenGames
-					Expect(zinger).To(HaveReceived(&message))
-					Expect(message.Hosts).To(BeEmpty())
-				})
+				It("should have no open games", testutil.ExpectNoOpenGames(&zinger))
 			})
 		})
 
 		When("zinger lists open games", func() {
 			BeforeEach(Send(&zinger, messages.ListOpenGames{}))
 
-			It("should show flame's game is open", func() {
-				var message messages.OpenGames
-				Expect(zinger).To(HaveReceived(&message))
-				Expect(message.Hosts).To(Equal([]string{"flame"}))
-			})
+			It("should show flame's game is open", testutil.ExpectOpenGames(&zinger, "flame"))
 		})
 
 		When("craig lists open games", func() {
 			BeforeEach(Send(&craig, messages.ListOpenGames{}))
 
-			It("should show flame's game is open", func() {
-				var message messages.OpenGames
-				Expect(craig).To(HaveReceived(&message))
-				Expect(message.Hosts).To(Equal([]string{"flame"}))
-			})
+			It("should show flame's game is open", testutil.ExpectOpenGames(&craig, "flame"))
 		})
 
 		When("zinger joins the game with an illegal nickname", func() {
 			BeforeEach(Send(&zinger, messages.JoinGame{Nickname: "#waiting", Host: "flame"}))
 
-			It("should error", func() {
-				var message messages.Error
-				Expect(zinger).To(HaveReceived(&message))
-				Expect(message.Error).NotTo(BeEmpty())
-			})
+			It("should error", testutil.ExpectError(&zinger))
 		})
 
 		When("zinger joins the game using flame's nickname", func() {
@@ -281,22 +217,14 @@ var _ = Describe("Server", func() {
 			When("craig lists open games", func() {
 				BeforeEach(Send(&craig, messages.ListOpenGames{}))
 
-				It("should show flame's game is open", func() {
-					var message messages.OpenGames
-					Expect(craig).To(HaveReceived(&message))
-					Expect(message.Hosts).To(Equal([]string{"flame"}))
-				})
+				It("should show flame's game is open", testutil.ExpectOpenGames(&craig, "flame"))
 			})
 		})
 
 		When("zinger joins the game", func() {
 			BeforeEach(Send(&zinger, messages.JoinGame{Nickname: "zinger", Host: "flame"}))
 
-			It("should send a new game board to zinger", func() {
-				var message messages.UpdateBoard
-				Expect(zinger).To(HaveReceived(&message))
-				Expect(message.Board).To(Equal(testutil.NewGameBoard()))
-			})
+			It("should send a new game board to zinger", testutil.ExpectNewGameBoard(&zinger))
 
 			It("should notify flame", func() {
 				var message messages.Joined
@@ -307,11 +235,7 @@ var _ = Describe("Server", func() {
 			When("craig lists open games", func() {
 				BeforeEach(Send(&craig, messages.ListOpenGames{}))
 
-				It("should have no open games", func() {
-					var message messages.OpenGames
-					Expect(craig).To(HaveReceived(&message))
-					Expect(message.Hosts).To(BeEmpty())
-				})
+				It("should have no open games", testutil.ExpectNoOpenGames(&craig))
 			})
 
 			When("craig tries to join the game anyway", func() {
@@ -325,11 +249,7 @@ var _ = Describe("Server", func() {
 			When("craig hosts a game using flame's nickname", func() {
 				BeforeEach(Send(&craig, messages.HostGame{Nickname: "flame"}))
 
-				It("should error", func() {
-					var message messages.Error
-					Expect(craig).To(HaveReceived(&message))
-					Expect(message.Error).NotTo(BeEmpty())
-				})
+				It("should error", testutil.ExpectError(&craig))
 
 				It("should not end flame's game", func() {
 					Expect(flame).NotTo(HaveReceived(&messages.GameOver{}))
@@ -346,11 +266,7 @@ var _ = Describe("Server", func() {
 				When("craig lists open games", func() {
 					BeforeEach(Send(&craig, messages.ListOpenGames{}))
 
-					It("should have no open games", func() {
-						var message messages.OpenGames
-						Expect(craig).To(HaveReceived(&message))
-						Expect(message.Hosts).To(BeEmpty())
-					})
+					It("should have no open games", testutil.ExpectNoOpenGames(&craig))
 				})
 			})
 
@@ -359,11 +275,7 @@ var _ = Describe("Server", func() {
 					flame.Disconnect()
 				})
 
-				It("should notify zinger", func() {
-					var message messages.GameOver
-					Expect(zinger).To(HaveReceived(&message))
-					Expect(message.Message).To(Equal("FLAME left the game"))
-				})
+				It("should notify zinger that flame left", testutil.ExpectPlayerLeft(&zinger, "flame"))
 
 				When("flame reconnects", func() {
 					BeforeEach(func() {
@@ -385,31 +297,19 @@ var _ = Describe("Server", func() {
 					zinger.Disconnect()
 				})
 
-				It("should notify flame", func() {
-					var message messages.GameOver
-					Expect(flame).To(HaveReceived(&message))
-					Expect(message.Message).To(Equal("ZINGER left the game"))
-				})
+				It("should notify flame that zinger left", testutil.ExpectPlayerLeft(&flame, "zinger"))
 			})
 
 			When("flame hosts a new game", func() {
 				BeforeEach(Send(&flame, messages.HostGame{Nickname: "flame"}))
 
-				It("should notify zinger", func() {
-					var message messages.GameOver
-					Expect(zinger).To(HaveReceived(&message))
-					Expect(message.Message).To(Equal("FLAME left the game"))
-				})
+				It("should notify zinger that flame left", testutil.ExpectPlayerLeft(&zinger, "flame"))
 			})
 
 			When("zinger hosts a new game", func() {
 				BeforeEach(Send(&zinger, messages.HostGame{Nickname: "zinger"}))
 
-				It("should notify flame", func() {
-					var message messages.GameOver
-					Expect(flame).To(HaveReceived(&message))
-					Expect(message.Message).To(Equal("ZINGER left the game"))
-				})
+				It("should notify flame that zinger left", testutil.ExpectPlayerLeft(&flame, "zinger"))
 			})
 
 			When("flame makes the first move", func() {
@@ -430,11 +330,7 @@ var _ = Describe("Server", func() {
 					Expect(message.Board).To(Equal(expectedBoardAfterFirstMove))
 				})
 
-				It("should show flame it is player 2's turn", func() {
-					var message messages.UpdateBoard
-					Expect(flame).To(HaveReceived(&message))
-					Expect(message.Player).To(Equal(common.Player2))
-				})
+				It("should show flame it is player 2's turn", testutil.ExpectTurn(&flame, 2))
 
 				It("should send zinger the updated board", func() {
 					var message messages.UpdateBoard
@@ -442,31 +338,19 @@ var _ = Describe("Server", func() {
 					Expect(message.Board).To(Equal(expectedBoardAfterFirstMove))
 				})
 
-				It("should show zinger it is player 2's turn", func() {
-					var message messages.UpdateBoard
-					Expect(zinger).To(HaveReceived(&message))
-					Expect(message.Player).To(Equal(common.Player2))
-				})
+				It("should show zinger it is player 2's turn", testutil.ExpectTurn(&zinger, 2))
 			})
 
 			When("zinger impersonates flame to take flame's turn", func() {
 				BeforeEach(Send(&zinger, messages.PlaceDisk{Nickname: "flame", Host: "flame", X: 2, Y: 4}))
 
-				It("should still be flame's turn", func() {
-					var message messages.UpdateBoard
-					Expect(flame).To(HaveReceived(&message))
-					Expect(message.Player).To(Equal(common.Player1))
-				})
+				It("should still be flame's turn", testutil.ExpectTurn(&flame, 1))
 			})
 
 			When("flame leaves the game", func() {
 				BeforeEach(Send(&flame, messages.LeaveGame{Nickname: "flame", Host: "flame"}))
 
-				It("zinger is notified", func() {
-					var message messages.GameOver
-					Expect(zinger).To(HaveReceived(&message))
-					Expect(message.Message).To(Equal("FLAME left the game"))
-				})
+				It("should notify zinger that flame left", testutil.ExpectPlayerLeft(&zinger, "flame"))
 
 				When("zinger leaves the game", func() {
 					BeforeEach(Send(&zinger, messages.LeaveGame{Nickname: "zinger", Host: "flame"}))
@@ -480,11 +364,7 @@ var _ = Describe("Server", func() {
 			When("zinger leaves the game", func() {
 				BeforeEach(Send(&zinger, messages.LeaveGame{Nickname: "zinger", Host: "flame"}))
 
-				It("flame is notified", func() {
-					var message messages.GameOver
-					Expect(flame).To(HaveReceived(&message))
-					Expect(message.Message).To(Equal("ZINGER left the game"))
-				})
+				It("should notify flame that zinger left", testutil.ExpectPlayerLeft(&flame, "zinger"))
 			})
 		})
 	})

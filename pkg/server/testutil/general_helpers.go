@@ -14,10 +14,6 @@ func DumpTableOnFailure() {
 	}
 }
 
-func NewGameBoard() common.Board {
-	return BuildBoard([]Move{{3, 3}, {4, 4}}, []Move{{3, 4}, {4, 3}})
-}
-
 type Move [2]int
 
 func BuildBoard(p1, p2 []Move) (board common.Board) {
