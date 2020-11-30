@@ -66,8 +66,9 @@ type PlaceDisk struct {
 }
 
 type UpdateBoard struct {
-	Board  common.Board `json:"board"`
-	Player common.Disk  `json:"player"`
+	Board    common.Board `json:"board"`
+	Player   common.Disk  `json:"player"`
+	Feedback string       `json:"feedback"`
 }
 
 type Error struct {

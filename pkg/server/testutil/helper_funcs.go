@@ -1,6 +1,7 @@
 package testutil
 
 import (
+	"github.com/armsnyder/othelgo/pkg/messages"
 	"github.com/onsi/ginkgo"
 
 	"github.com/armsnyder/othelgo/pkg/common"
@@ -34,5 +35,15 @@ func BuildBoard(p1, p2 []Move) (board common.Board) {
 func Send(client **Client, messageToSend interface{}) func() {
 	return func() {
 		(*client).Send(messageToSend)
+	}
+}
+
+func MakeaBunchaMoves(host string, player1 *Client, player1Name string, player2 *Client, player2Name string, moves []Move) {
+	players := []*Client{player1, player2}
+	playerNames := []string{player1Name, player2Name}
+	for i, m := range moves {
+		player := players[i%2]
+		name := playerNames[i%2]
+		player.Send(messages.PlaceDisk{Nickname: name, Host: host, X: m[0], Y: m[1]})
 	}
 }

@@ -38,9 +38,10 @@ const (
 const indexByOpponent = "ByOpponent"
 
 type game struct {
-	Board      common.Board
-	Difficulty int
-	Player     common.Disk
+	Board          common.Board
+	Difficulty     int
+	Player         common.Disk
+	NextMoveScores map[string]float64
 }
 
 func getGame(ctx context.Context, args Args, host string) (game, string, map[string]string, error) {

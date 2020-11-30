@@ -29,6 +29,7 @@ type Game struct {
 	multiplayer  bool
 	difficulty   int
 	alertMessage string
+	feedback     string
 }
 
 func (g *Game) Setup(changeScene ChangeScene, sendMessage SendMessage) error {
@@ -60,6 +61,7 @@ func (g *Game) OnMessage(message interface{}) error {
 		g.board = m.Board
 		g.whoseTurn = m.Player
 		g.p1Score, g.p2Score = common.KeepScore(g.board)
+		g.feedback = m.Feedback
 	case *messages.GameOver:
 		g.alertMessage = m.Message
 	case *messages.Joined:
@@ -148,6 +150,8 @@ func (g *Game) drawYouAre() {
 	youAreText := "You are: "
 	draw.Draw(draw.TopLeft, draw.Normal, youAreText)
 	drawDisk(draw.Offset(draw.TopLeft, len(youAreText), 0), g.player)
+
+	draw.Draw(draw.Offset(draw.TopLeft, 0, 2), draw.Normal, strings.ToUpper(g.feedback))
 }
 
 var (

@@ -492,6 +492,82 @@ var _ = Describe("Server", func() {
 					Expect(message.Message).To(Equal("ZINGER left the game"))
 				})
 			})
+
+			When("game progresses", func() {
+				BeforeEach(func() {
+					testutil.MakeaBunchaMoves("flame", flame, "flame", zinger, "zinger",
+						[]testutil.Move{{4, 2}, {3, 2}, {2, 4}, {5, 4}, {3, 1}, {1, 4}})
+				})
+
+				When("flame makes a blunder", func() {
+					BeforeEach(Send(&flame, messages.PlaceDisk{Host: "flame", Nickname: "flame", X: 1, Y: 5}))
+
+					It("should give feedback", func() {
+						var message messages.UpdateBoard
+						Expect(flame).To(HaveReceived(&message))
+						Expect(message.Feedback).To(Equal("boo"))
+					})
+				})
+
+				//When("flame plays perfectly", func() {
+				//	BeforeEach(clearMessages)
+				//	BeforeEach(sendMessage(&flame, messages.PlaceDisk{Host: "flame", Nickname: "flame", X: 4, Y: 5}))
+				//
+				//	It("should give feedback", func() {
+				//		var message messages.UpdateBoard
+				//		Expect(flame).To(haveReceived(&message))
+				//		Expect(message.Feedback).To(Equal("perfect"))
+				//	})
+				//})
+				//
+				//When("flame plays ok", func() {
+				//	BeforeEach(clearMessages)
+				//	BeforeEach(sendMessage(&flame, messages.PlaceDisk{Host: "flame", Nickname: "flame", X: 3, Y: 5}))
+				//
+				//	It("should give feedback", func() {
+				//		var message messages.UpdateBoard
+				//		Expect(flame).To(haveReceived(&message))
+				//		Expect(message.Feedback).To(Equal("cool"))
+				//	})
+				//})
+
+				//When("now it's zinger's turn", func() {
+				//	BeforeEach(sendMessage(&flame, messages.PlaceDisk{Host: "flame", Nickname: "flame", X: 4, Y: 5}))
+				//
+				//	When("zinger makes a blunder", func() {
+				//		BeforeEach(clearMessages)
+				//		BeforeEach(sendMessage(&zinger, messages.PlaceDisk{Host: "flame", Nickname: "zinger", X: 5, Y: 1}))
+				//
+				//		It("should give feedback", func() {
+				//			var message messages.UpdateBoard
+				//			Expect(zinger).To(haveReceived(&message))
+				//			Expect(message.Feedback).To(Equal("boo"))
+				//		})
+				//	})
+				//
+				//	When("zinger plays perfectly", func() {
+				//		BeforeEach(clearMessages)
+				//		BeforeEach(sendMessage(&zinger, messages.PlaceDisk{Host: "flame", Nickname: "zinger", X: 3, Y: 0}))
+				//
+				//		It("should give feedback", func() {
+				//			var message messages.UpdateBoard
+				//			Expect(zinger).To(haveReceived(&message))
+				//			Expect(message.Feedback).To(Equal("perfect"))
+				//		})
+				//	})
+				//
+				//	When("zinger plays ok", func() {
+				//		BeforeEach(clearMessages)
+				//		BeforeEach(sendMessage(&zinger, messages.PlaceDisk{Host: "flame", Nickname: "zinger", X: 3, Y: 6}))
+				//
+				//		It("should give feedback", func() {
+				//			var message messages.UpdateBoard
+				//			Expect(zinger).To(haveReceived(&message))
+				//			Expect(message.Feedback).To(Equal("cool"))
+				//		})
+				//	})
+				//})
+			})
 		})
 	})
 })

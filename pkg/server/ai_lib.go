@@ -24,21 +24,33 @@ type AIGameState interface {
 func findMoveUsingMinimax(state AIGameState, depth int) int {
 	log.Printf("Running findMoveUsingMinimax using depth=%d", depth)
 
+	moveScores := scoreMovesUsingMinimax(state, depth)
+
 	bestMove := 0
 	bestScore := math.Inf(-1)
 
-	for i := 0; i < state.MoveCount(); i++ {
-		moveScore := minimax(state.Move(i), depth, math.Inf(-1), math.Inf(1))
-
-		if moveScore > bestScore {
+	for i, score := range moveScores {
+		if score > bestScore {
 			bestMove = i
-			bestScore = moveScore
+			bestScore = score
 		}
 	}
 
 	log.Printf("findMoveUsingMinimax bestMove=%d, bestScore=%f, depth=%d", bestMove, bestScore, depth)
 
 	return bestMove
+}
+
+// scoreMovesUsingMinimax invokes minimax using the specified depth and then returns the possible
+// next moves and their scores.
+func scoreMovesUsingMinimax(state AIGameState, depth int) []float64 {
+	result := make([]float64, state.MoveCount())
+
+	for i := 0; i < state.MoveCount(); i++ {
+		result[i] = minimax(state.Move(i), depth, math.Inf(-1), math.Inf(1))
+	}
+
+	return result
 }
 
 // minimax is the minimax adversarial search algorithm. It returns the score for an AIGameState
