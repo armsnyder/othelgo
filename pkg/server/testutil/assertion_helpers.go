@@ -38,14 +38,6 @@ func ExpectOpenGames(client **Client, hosts ...string) func() {
 	}
 }
 
-func ExpectError(client **Client) func() {
-	return func() {
-		var message messages.Error
-		Expect(*client).To(HaveReceived(&message))
-		Expect(message.Error).NotTo(BeEmpty())
-	}
-}
-
 func ExpectPlayerLeft(client **Client, player string) func() {
 	return func() {
 		var message messages.GameOver

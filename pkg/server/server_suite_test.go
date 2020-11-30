@@ -88,7 +88,9 @@ var _ = Describe("Server", func() {
 		When("craig hosts a game using flame's nickname", func() {
 			BeforeEach(Send(&craig, messages.HostGame{Nickname: "flame"}))
 
-			It("should error", testutil.ExpectError(&craig))
+			It("should not send any board to craig", func() {
+				Expect(craig).NotTo(HaveReceived(&messages.UpdateBoard{}))
+			})
 
 			It("should not end flame's game", func() {
 				Expect(flame).NotTo(HaveReceived(&messages.GameOver{}))
@@ -98,7 +100,9 @@ var _ = Describe("Server", func() {
 		When("craig starts a solo game using flame's nickname", func() {
 			BeforeEach(Send(&craig, messages.StartSoloGame{Nickname: "flame"}))
 
-			It("should error", testutil.ExpectError(&craig))
+			It("should not send any board to craig", func() {
+				Expect(craig).NotTo(HaveReceived(&messages.UpdateBoard{}))
+			})
 
 			It("should not end flame's game", func() {
 				Expect(flame).NotTo(HaveReceived(&messages.GameOver{}))
@@ -132,9 +136,7 @@ var _ = Describe("Server", func() {
 			When("flame starts another solo game", func() {
 				BeforeEach(Send(&flame, messages.StartSoloGame{Nickname: "flame"}))
 
-				It("should not error", func() {
-					Expect(flame).NotTo(HaveReceived(&messages.Error{}))
-				})
+				It("should send a new game board to flame", testutil.ExpectNewGameBoard(&flame))
 			})
 		})
 	})
@@ -208,7 +210,9 @@ var _ = Describe("Server", func() {
 		When("zinger joins the game with an illegal nickname", func() {
 			BeforeEach(Send(&zinger, messages.JoinGame{Nickname: "#waiting", Host: "flame"}))
 
-			It("should error", testutil.ExpectError(&zinger))
+			It("should not send any board to zinger", func() {
+				Expect(zinger).NotTo(HaveReceived(&messages.UpdateBoard{}))
+			})
 		})
 
 		When("zinger joins the game using flame's nickname", func() {
@@ -241,15 +245,17 @@ var _ = Describe("Server", func() {
 			When("craig tries to join the game anyway", func() {
 				BeforeEach(Send(&craig, messages.JoinGame{Nickname: "craig", Host: "flame"}))
 
-				It("should receive error message", func() {
-					Expect(craig).To(HaveReceived(&messages.Error{}))
+				It("should not send any board to craig", func() {
+					Expect(craig).NotTo(HaveReceived(&messages.UpdateBoard{}))
 				})
 			})
 
 			When("craig hosts a game using flame's nickname", func() {
 				BeforeEach(Send(&craig, messages.HostGame{Nickname: "flame"}))
 
-				It("should error", testutil.ExpectError(&craig))
+				It("should not send any board to craig", func() {
+					Expect(craig).NotTo(HaveReceived(&messages.UpdateBoard{}))
+				})
 
 				It("should not end flame's game", func() {
 					Expect(flame).NotTo(HaveReceived(&messages.GameOver{}))
@@ -285,9 +291,7 @@ var _ = Describe("Server", func() {
 					When("flame hosts another game", func() {
 						BeforeEach(Send(&flame, messages.HostGame{Nickname: "flame"}))
 
-						It("should not error", func() {
-							Expect(flame).NotTo(HaveReceived(&messages.Error{}))
-						})
+						It("should send a new game board to flame", testutil.ExpectNewGameBoard(&flame))
 					})
 				})
 			})
