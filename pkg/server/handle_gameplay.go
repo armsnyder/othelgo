@@ -116,5 +116,5 @@ func handlePlaceDiskMultiplayer(ctx context.Context, reqCtx events.APIGatewayWeb
 		return fmt.Errorf("failed to save updated game state: %w", err)
 	}
 
-	return broadcast(ctx, reqCtx, args, messages.UpdateBoard{Board: board, Player: game.Player}, connectionIDs)
+	return broadcast(ctx, reqCtx, args, messages.UpdateBoard{Board: board, Player: game.Player, X: message.X, Y: message.Y}, connectionIDs)
 }

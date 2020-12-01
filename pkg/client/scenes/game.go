@@ -30,6 +30,8 @@ type Game struct {
 	multiplayer  bool
 	difficulty   int
 	alertMessage string
+	prevX        int
+	prevY        int
 }
 
 func (g *Game) Setup(changeScene ChangeScene, sendMessage SendMessage) error {
@@ -61,6 +63,8 @@ func (g *Game) OnMessage(message interface{}) error {
 		g.board = m.Board
 		g.whoseTurn = m.Player
 		g.p1Score, g.p2Score = common.KeepScore(g.board)
+		g.prevX = m.X
+		g.prevY = m.Y
 	case *messages.GameOver:
 		g.alertMessage = m.Message
 	case *messages.Joined:
@@ -139,6 +143,9 @@ func (g *Game) Draw() {
 	g.drawCursor()
 	g.confetti.draw()
 	g.drawAlert()
+	if g.player == g.whoseTurn && g.multiplayer && (g.p1Score+g.p2Score > 4) {
+		g.highlightMove(g.prevX, g.prevY)
+	}
 }
 
 var playerColors = map[common.Disk]draw.Color{1: draw.Magenta, 2: draw.Green}
@@ -146,6 +153,13 @@ var playerColors = map[common.Disk]draw.Color{1: draw.Magenta, 2: draw.Green}
 func drawDisk(anchor draw.Anchor, player common.Disk) {
 	// The extra space prevents a half-circle on some terminals.
 	draw.Draw(anchor, playerColors[player], "⬤ ")
+}
+
+func (g *Game) highlightMove(x, y int) {
+	// x := (i+1-common.BoardSize/2)*squareWidth - 2
+	// y := (j + 1 - common.BoardSize/2) * squareHeight
+	draw.Draw(draw.Offset(draw.Center, ((x+1-common.BoardSize/2)*squareWidth)-4, (y+1-common.BoardSize/2)*squareHeight), draw.Normal, "[")
+	draw.Draw(draw.Offset(draw.Center, ((x+1-common.BoardSize/2)*squareWidth)-1, (y+1-common.BoardSize/2)*squareHeight), draw.Normal, "]")
 }
 
 func (g *Game) drawYouAre() {
