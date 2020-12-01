@@ -25,7 +25,7 @@ func BenchmarkMiniMax(b *testing.B) {
 				state.board[2][4] = 1
 
 				// Now it's player 2's turn (the AI player).
-				state.player = 2
+				state.turn = 2
 
 				// Do the thing being benchmarked.
 				minimax(&state, depth, math.Inf(-1), math.Inf(1))

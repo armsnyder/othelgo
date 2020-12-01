@@ -63,8 +63,10 @@ func (g *Game) OnMessage(message interface{}) error {
 		g.board = m.Board
 		g.whoseTurn = m.Player
 		g.p1Score, g.p2Score = common.KeepScore(g.board)
-		g.prevX = m.X
-		g.prevY = m.Y
+		if m.X >= 0 && m.Y >= 0 {
+			g.prevX = m.X
+			g.prevY = m.Y
+		}
 	case *messages.GameOver:
 		g.alertMessage = m.Message
 	case *messages.Joined:
@@ -143,7 +145,7 @@ func (g *Game) Draw() {
 	g.drawCursor()
 	g.confetti.draw()
 	g.drawAlert()
-	if g.player == g.whoseTurn && g.multiplayer && (g.p1Score+g.p2Score > 4) {
+	if g.player == g.whoseTurn && (g.p1Score+g.p2Score > 4) {
 		g.highlightMove(g.prevX, g.prevY)
 	}
 }
@@ -201,7 +203,6 @@ func (g *Game) drawScore() {
 		}
 		draw.Draw(draw.Offset(draw.MiddleLeft, 4, yOffset), draw.Normal, "﹌")
 	}
-
 }
 
 func drawBoardOutline() {

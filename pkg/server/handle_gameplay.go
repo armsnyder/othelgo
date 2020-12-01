@@ -50,7 +50,7 @@ func handlePlaceDisk(ctx context.Context, req events.APIGatewayWebsocketProxyReq
 func handlePlaceDiskSolo(ctx context.Context, reqCtx events.APIGatewayWebsocketProxyRequestContext, args Args, message *messages.PlaceDisk, game game) error {
 	board, updated := common.ApplyMove(game.Board, message.X, message.Y, 1)
 	if !updated {
-		return reply(ctx, reqCtx, args, messages.UpdateBoard{Board: board, Player: game.Player})
+		return reply(ctx, reqCtx, args, messages.UpdateBoard{Board: board, Player: game.Player, X: -1, Y: -1})
 	}
 
 	game.Board = board
@@ -63,7 +63,7 @@ func handlePlaceDiskSolo(ctx context.Context, reqCtx events.APIGatewayWebsocketP
 		return fmt.Errorf("failed to save updated game state: %w", err)
 	}
 
-	if err := reply(ctx, reqCtx, args, messages.UpdateBoard{Board: board, Player: game.Player}); err != nil {
+	if err := reply(ctx, reqCtx, args, messages.UpdateBoard{Board: board, Player: game.Player, X: message.X, Y: message.Y}); err != nil {
 		return err
 	}
 
@@ -71,7 +71,10 @@ func handlePlaceDiskSolo(ctx context.Context, reqCtx events.APIGatewayWebsocketP
 		log.Println("Taking AI turn")
 
 		turnStartedAt := time.Now()
-		game.Board = doAIPlayerMove(game.Board, game.Difficulty)
+
+		var coordinates [2]int
+
+		game.Board, coordinates = doAIPlayerMove(game.Board, game.Difficulty)
 
 		// Pad the turn time in case the AI was very quick, so the player doesn't stress or know
 		// they're losing. (Sleep is disabled during tests.)
@@ -87,7 +90,7 @@ func handlePlaceDiskSolo(ctx context.Context, reqCtx events.APIGatewayWebsocketP
 			return fmt.Errorf("failed to save updated game state: %w", err)
 		}
 
-		if err := reply(ctx, reqCtx, args, messages.UpdateBoard{Board: game.Board, Player: game.Player}); err != nil {
+		if err := reply(ctx, reqCtx, args, messages.UpdateBoard{Board: game.Board, Player: game.Player, X: coordinates[0], Y: coordinates[1]}); err != nil {
 			return err
 		}
 	}
@@ -103,7 +106,7 @@ func handlePlaceDiskMultiplayer(ctx context.Context, reqCtx events.APIGatewayWeb
 
 	board, updated := common.ApplyMove(game.Board, message.X, message.Y, player)
 	if !updated {
-		return reply(ctx, reqCtx, args, messages.UpdateBoard{Board: board, Player: game.Player})
+		return reply(ctx, reqCtx, args, messages.UpdateBoard{Board: board, Player: game.Player, X: -1, Y: -1})
 	}
 
 	game.Board = board
