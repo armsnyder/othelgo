@@ -39,7 +39,7 @@ func (j *Join) OnMessage(message interface{}) error {
 
 func (j *Join) OnTerminalEvent(event termbox.Event) error {
 	if event.Key == termbox.KeyEnter && len(j.hosts) > 0 {
-		return j.ChangeScene(&Game{player: 2, multiplayer: true, nickname: j.nickname, host: j.hosts[j.selected]})
+		return j.ChangeScene(&Game{player: 2, multiplayer: true, nickname: j.nickname, host: j.hosts[j.selected], opponent: j.hosts[j.selected]})
 	}
 	_, dy := getDirectionPressed(event)
 	switch {

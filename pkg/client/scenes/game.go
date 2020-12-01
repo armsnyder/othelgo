@@ -25,6 +25,7 @@ type Game struct {
 	confetti     confetti
 	nickname     string
 	host         string
+	opponent     string
 	whoseTurn    common.Disk
 	multiplayer  bool
 	difficulty   int
@@ -64,6 +65,9 @@ func (g *Game) OnMessage(message interface{}) error {
 		g.alertMessage = m.Message
 	case *messages.Joined:
 		g.alertMessage = ""
+		if g.nickname == g.host {
+			g.opponent = m.Nickname
+		}
 	}
 
 	return nil
@@ -156,28 +160,34 @@ var (
 )
 
 func (g *Game) drawScore() {
-	// Text.
-	scoreText := "Score: "
-	draw.Draw(draw.Offset(draw.MiddleRight, len(scoreText)-20, 0), draw.Normal, scoreText)
+	var p1Name, p2Name string
+	if g.player == 1 {
+		p1Name = strings.ToUpper(g.nickname)
+		p2Name = strings.ToUpper(g.opponent)
+	} else {
+		p1Name = strings.ToUpper(g.opponent)
+		p2Name = strings.ToUpper(g.nickname)
+	}
 
-	// P1 score.
-	drawDisk(draw.Offset(draw.MiddleRight, -10, 0), 1)
-	draw.Draw(draw.Offset(draw.MiddleRight, -7, 0), draw.Normal, fmt.Sprintf("%-2d", g.p1Score))
+	// P1 Name and Score
+	drawDisk(draw.Offset(draw.MiddleLeft, 4, -1), 1)
+	draw.Draw(draw.Offset(draw.MiddleLeft, 7, -1), draw.Normal, fmt.Sprintf("%s: %-2d", p1Name, g.p1Score))
 
-	// P2 score.
-	drawDisk(draw.Offset(draw.MiddleRight, -3, 0), 2)
-	draw.Draw(draw.MiddleRight, draw.Normal, fmt.Sprintf("%-2d", g.p2Score))
+	// P2 Name and Score
+	drawDisk(draw.Offset(draw.MiddleLeft, 4, 1), 2)
+	draw.Draw(draw.Offset(draw.MiddleLeft, 7, 1), draw.Normal, fmt.Sprintf("%s: %-2d", p2Name, g.p2Score))
 
 	// Current turn indicator
 	if !common.GameOver(g.board) {
-		var xOffset int
+		var yOffset int
 		if g.whoseTurn == 1 {
-			xOffset = -11
+			yOffset = 0
 		} else {
-			xOffset = -4
+			yOffset = 2
 		}
-		draw.Draw(draw.Offset(draw.MiddleRight, xOffset, 1), draw.Normal, "﹌")
+		draw.Draw(draw.Offset(draw.MiddleLeft, 4, yOffset), draw.Normal, "﹌")
 	}
+
 }
 
 func drawBoardOutline() {
