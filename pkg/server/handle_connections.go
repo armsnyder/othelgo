@@ -14,7 +14,7 @@ import (
 func handleHello(ctx context.Context, req events.APIGatewayWebsocketProxyRequest, args Args, message *messages.Hello) error {
 	log.Printf("client version: %s", message.Version)
 
-	return reply(ctx, req.RequestContext, args, messages.Decorate{Decoration: "🦃🍁🌽🏈🥧🙏"})
+	return reply(ctx, req.RequestContext, args, messages.Decorate{Decoration: "🎁🔔🔴🎄🧦🦌🌟🎅🍪"})
 }
 
 func handleDisconnect(ctx context.Context, req events.APIGatewayWebsocketProxyRequest, args Args) error {
