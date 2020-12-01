@@ -136,7 +136,6 @@ func (g *Game) Tick() bool {
 }
 
 func (g *Game) Draw() {
-	g.drawYouAre()
 	g.drawScore()
 	draw.Draw(draw.TopRight, draw.Normal, fmt.Sprintf("Your name is %s!", strings.ToUpper(g.nickname)))
 	draw.Draw(draw.BotRight, draw.Normal, "[M] MENU  [Q] QUIT")
@@ -158,16 +157,8 @@ func drawDisk(anchor draw.Anchor, player common.Disk) {
 }
 
 func (g *Game) highlightMove(x, y int) {
-	// x := (i+1-common.BoardSize/2)*squareWidth - 2
-	// y := (j + 1 - common.BoardSize/2) * squareHeight
 	draw.Draw(draw.Offset(draw.Center, ((x+1-common.BoardSize/2)*squareWidth)-4, (y+1-common.BoardSize/2)*squareHeight), draw.Normal, "[")
 	draw.Draw(draw.Offset(draw.Center, ((x+1-common.BoardSize/2)*squareWidth)-1, (y+1-common.BoardSize/2)*squareHeight), draw.Normal, "]")
-}
-
-func (g *Game) drawYouAre() {
-	youAreText := "You are: "
-	draw.Draw(draw.TopLeft, draw.Normal, youAreText)
-	drawDisk(draw.Offset(draw.TopLeft, len(youAreText), 0), g.player)
 }
 
 var (
