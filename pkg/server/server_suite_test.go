@@ -120,6 +120,13 @@ var _ = Describe("Server", func() {
 				Expect(totalDisks).To(Equal(6))
 			})
 
+			It("should include the AI's last move coordinates in the UpdateBoard message", func() {
+				var message messages.UpdateBoard
+				Expect(flame).To(HaveReceived(&message))
+				Expect(message.X).To(BeNumerically(">", 0))
+				Expect(message.Y).To(BeNumerically(">", 0))
+			})
+
 			It("should be flame's turn", testutil.ExpectTurn(&flame, 1))
 
 			It("should not send zinger any board updates", func() {
@@ -340,6 +347,13 @@ var _ = Describe("Server", func() {
 					var message messages.UpdateBoard
 					Expect(zinger).To(HaveReceived(&message))
 					Expect(message.Board).To(Equal(expectedBoardAfterFirstMove))
+				})
+
+				It("should include the previous move coordinates in the UpdateBoard message", func() {
+					var message messages.UpdateBoard
+					Expect(zinger).To(HaveReceived(&message))
+					Expect(message.X).To(Equal(2))
+					Expect(message.Y).To(Equal(4))
 				})
 
 				It("should show zinger it is player 2's turn", testutil.ExpectTurn(&zinger, 2))
