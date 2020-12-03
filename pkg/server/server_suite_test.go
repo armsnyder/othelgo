@@ -127,6 +127,13 @@ var _ = Describe("Server", func() {
 				Expect(message.Y).To(BeNumerically(">", 0))
 			})
 
+			It("should include the board score in the UpdateBoard message", func() {
+				var message messages.UpdateBoard
+				Expect(flame).To(HaveReceived(&message))
+				Expect(message.P1Score).To(BeNumerically("==", 3))
+				Expect(message.P2Score).To(BeNumerically("==", 3))
+			})
+
 			It("should be flame's turn", testutil.ExpectTurn(&flame, 1))
 
 			It("should not send zinger any board updates", func() {
@@ -341,6 +348,20 @@ var _ = Describe("Server", func() {
 					Expect(message.Board).To(Equal(expectedBoardAfterFirstMove))
 				})
 
+				It("should include the previous move coordinates in the UpdateBoard message", func() {
+					var message messages.UpdateBoard
+					Expect(flame).To(HaveReceived(&message))
+					Expect(message.X).To(Equal(2))
+					Expect(message.Y).To(Equal(4))
+				})
+
+				It("should include the board score in the UpdateBoard message", func() {
+					var message messages.UpdateBoard
+					Expect(flame).To(HaveReceived(&message))
+					Expect(message.P1Score).To(BeNumerically("==", 4))
+					Expect(message.P2Score).To(BeNumerically("==", 1))
+				})
+
 				It("should show flame it is player 2's turn", testutil.ExpectTurn(&flame, 2))
 
 				It("should send zinger the updated board", func() {
@@ -354,6 +375,13 @@ var _ = Describe("Server", func() {
 					Expect(zinger).To(HaveReceived(&message))
 					Expect(message.X).To(Equal(2))
 					Expect(message.Y).To(Equal(4))
+				})
+
+				It("should include the board score in the UpdateBoard message", func() {
+					var message messages.UpdateBoard
+					Expect(zinger).To(HaveReceived(&message))
+					Expect(message.P1Score).To(BeNumerically("==", 4))
+					Expect(message.P2Score).To(BeNumerically("==", 1))
 				})
 
 				It("should show zinger it is player 2's turn", testutil.ExpectTurn(&zinger, 2))
