@@ -49,8 +49,17 @@ func handlePlaceDisk(ctx context.Context, req events.APIGatewayWebsocketProxyReq
 
 func handlePlaceDiskSolo(ctx context.Context, reqCtx events.APIGatewayWebsocketProxyRequestContext, args Args, message *messages.PlaceDisk, game game) error {
 	board, updated := common.ApplyMove(game.Board, message.X, message.Y, 1)
+	p1Score, p2Score := common.KeepScore(board)
+
 	if !updated {
-		return reply(ctx, reqCtx, args, messages.UpdateBoard{Board: board, Player: game.Player, X: -1, Y: -1})
+		return reply(ctx, reqCtx, args, messages.UpdateBoard{
+			Board:   board,
+			Player:  game.Player,
+			X:       -1,
+			Y:       -1,
+			P1Score: p1Score,
+			P2Score: p2Score,
+		})
 	}
 
 	game.Board = board
@@ -63,11 +72,18 @@ func handlePlaceDiskSolo(ctx context.Context, reqCtx events.APIGatewayWebsocketP
 		return fmt.Errorf("failed to save updated game state: %w", err)
 	}
 
-	if err := reply(ctx, reqCtx, args, messages.UpdateBoard{Board: board, Player: game.Player, X: message.X, Y: message.Y}); err != nil {
+	if err := reply(ctx, reqCtx, args, messages.UpdateBoard{
+		Board:   board,
+		Player:  game.Player,
+		X:       message.X,
+		Y:       message.Y,
+		P1Score: p1Score,
+		P2Score: p2Score,
+	}); err != nil {
 		return err
 	}
 
-	for game.Player == 2 {
+	for game.Player == 2 && common.HasMoves(game.Board, 2) {
 		log.Println("Taking AI turn")
 
 		turnStartedAt := time.Now()
@@ -75,6 +91,8 @@ func handlePlaceDiskSolo(ctx context.Context, reqCtx events.APIGatewayWebsocketP
 		var coordinates [2]int
 
 		game.Board, coordinates = doAIPlayerMove(game.Board, game.Difficulty)
+
+		p1Score, p2Score = common.KeepScore(game.Board)
 
 		// Pad the turn time in case the AI was very quick, so the player doesn't stress or know
 		// they're losing. (Sleep is disabled during tests.)
@@ -90,7 +108,14 @@ func handlePlaceDiskSolo(ctx context.Context, reqCtx events.APIGatewayWebsocketP
 			return fmt.Errorf("failed to save updated game state: %w", err)
 		}
 
-		if err := reply(ctx, reqCtx, args, messages.UpdateBoard{Board: game.Board, Player: game.Player, X: coordinates[0], Y: coordinates[1]}); err != nil {
+		if err := reply(ctx, reqCtx, args, messages.UpdateBoard{
+			Board:   game.Board,
+			Player:  game.Player,
+			X:       coordinates[0],
+			Y:       coordinates[1],
+			P1Score: p1Score,
+			P2Score: p2Score,
+		}); err != nil {
 			return err
 		}
 	}
@@ -105,8 +130,16 @@ func handlePlaceDiskMultiplayer(ctx context.Context, reqCtx events.APIGatewayWeb
 	}
 
 	board, updated := common.ApplyMove(game.Board, message.X, message.Y, player)
+	p1Score, p2Score := common.KeepScore(board)
 	if !updated {
-		return reply(ctx, reqCtx, args, messages.UpdateBoard{Board: board, Player: game.Player, X: -1, Y: -1})
+		return reply(ctx, reqCtx, args, messages.UpdateBoard{
+			Board:   board,
+			Player:  game.Player,
+			X:       -1,
+			Y:       -1,
+			P1Score: p1Score,
+			P2Score: p2Score,
+		})
 	}
 
 	game.Board = board
@@ -119,5 +152,12 @@ func handlePlaceDiskMultiplayer(ctx context.Context, reqCtx events.APIGatewayWeb
 		return fmt.Errorf("failed to save updated game state: %w", err)
 	}
 
-	return broadcast(ctx, reqCtx, args, messages.UpdateBoard{Board: board, Player: game.Player, X: message.X, Y: message.Y}, connectionIDs)
+	return broadcast(ctx, reqCtx, args, messages.UpdateBoard{
+		Board:   board,
+		Player:  game.Player,
+		X:       message.X,
+		Y:       message.Y,
+		P1Score: p1Score,
+		P2Score: p2Score,
+	}, connectionIDs)
 }

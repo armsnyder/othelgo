@@ -62,7 +62,8 @@ func (g *Game) OnMessage(message interface{}) error {
 	case *messages.UpdateBoard:
 		g.board = m.Board
 		g.whoseTurn = m.Player
-		g.p1Score, g.p2Score = common.KeepScore(g.board)
+		g.p1Score = m.P1Score
+		g.p2Score = m.P2Score
 		if m.X >= 0 && m.Y >= 0 {
 			g.prevX = m.X
 			g.prevY = m.Y

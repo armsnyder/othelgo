@@ -42,7 +42,14 @@ func handleHostGame(ctx context.Context, req events.APIGatewayWebsocketProxyRequ
 		return fmt.Errorf("failed to save new game state: %w", err)
 	}
 
-	return reply(ctx, req.RequestContext, args, messages.UpdateBoard{Board: game.Board, Player: game.Player})
+	return reply(ctx, req.RequestContext, args, messages.UpdateBoard{
+		Board:   game.Board,
+		Player:  game.Player,
+		X:       -1,
+		Y:       -1,
+		P1Score: 2,
+		P2Score: 2,
+	})
 }
 
 func handleStartSoloGame(ctx context.Context, req events.APIGatewayWebsocketProxyRequest, args Args, message *messages.StartSoloGame) error {
@@ -70,7 +77,14 @@ func handleStartSoloGame(ctx context.Context, req events.APIGatewayWebsocketProx
 		return fmt.Errorf("failed to save new game state: %w", err)
 	}
 
-	return reply(ctx, req.RequestContext, args, messages.UpdateBoard{Board: game.Board, Player: game.Player})
+	return reply(ctx, req.RequestContext, args, messages.UpdateBoard{
+		Board:   game.Board,
+		Player:  game.Player,
+		X:       -1,
+		Y:       -1,
+		P1Score: 2,
+		P2Score: 2,
+	})
 }
 
 func newGame() game {
@@ -110,7 +124,14 @@ func handleJoinGame(ctx context.Context, req events.APIGatewayWebsocketProxyRequ
 		return err
 	}
 
-	if err := reply(ctx, req.RequestContext, args, messages.UpdateBoard{Board: game.Board, Player: game.Player}); err != nil {
+	if err := reply(ctx, req.RequestContext, args, messages.UpdateBoard{
+		Board:   game.Board,
+		Player:  game.Player,
+		X:       -1,
+		Y:       -1,
+		P1Score: 2,
+		P2Score: 2,
+	}); err != nil {
 		return err
 	}
 
