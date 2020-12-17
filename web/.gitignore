@@ -1,0 +1,12 @@
+# Svelte build artifacts
+public/build/
+
+# Yarn without zero-installs
+# (zero-installs doesn't seem to work with Svelte)
+# https://yarnpkg.com/getting-started/qa#which-files-should-be-gitignored
+.yarn/*
+!.yarn/releases
+!.yarn/plugins
+!.yarn/sdks
+!.yarn/versions
+.pnp.*
