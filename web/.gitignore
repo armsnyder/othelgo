@@ -10,3 +10,4 @@ public/build/
 !.yarn/sdks
 !.yarn/versions
 .pnp.*
+node_modules
