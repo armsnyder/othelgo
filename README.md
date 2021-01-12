@@ -25,3 +25,13 @@ In a second and third terminal window, start the client in local mode with `make
 ```sh
 $ make playlocal
 ```
+
+## Web Client (Experimental)
+
+Requires [Yarn](https://yarnpkg.com/getting-started/install)
+
+```sh
+$ cd web
+$ yarn      # install dependencies
+$ yarn dev  # start local dev server
+```
