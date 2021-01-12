@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from "svelte";
+  import Board from "./Board.svelte";
   import type { Decorate } from "./messageTypes";
   import { createMessageReceiver, sendMessage } from "./websocket";
 
@@ -9,3 +10,5 @@
 </script>
 
 <p>{$message?.decoration ?? 'Waiting to be decorated...'}</p>
+
+<Board />
