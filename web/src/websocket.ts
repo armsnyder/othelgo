@@ -27,9 +27,9 @@ socket.addEventListener("message", ({ data }) => {
 
 // Function for sending messages over the websocket connection.
 export const sendMessage = (message: OutboundMessage) => {
-  if (socket.readyState == 0) {
+  if (socket.readyState == socket.CONNECTING) {
     outboundQueue.push(message);
-  } else if (socket.readyState == 1) {
+  } else if (socket.readyState == socket.OPEN) {
     socket.send(JSON.stringify(message));
   } else {
     throw new Error(`Websocket readystate is ${socket.readyState}`);
@@ -39,12 +39,14 @@ export const sendMessage = (message: OutboundMessage) => {
 // Create a readable store that receives a specific message type.
 // Svelte components can use the $ shorthand to auto-subscribe to the latest value.
 export const createMessageReceiver = <T extends InboundMessage>(
-  action: string
-): Readable<T | null> => ({
-  subscribe: (run, invalidate) =>
-    messageStore.subscribe((value) => {
-      if (!value || value.action === action) {
-        run(value as T | null);
+  initialValue: T
+): Readable<T> => ({
+  subscribe: (run, invalidate) => {
+    run(initialValue);
+    return messageStore.subscribe((value) => {
+      if (value && value.action === initialValue.action) {
+        run(value as T);
       }
-    }, invalidate),
+    }, invalidate);
+  },
 });

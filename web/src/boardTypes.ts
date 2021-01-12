@@ -1,3 +1,5 @@
-export type Disk = 0 | 1 | 2;
+export type Player = 1 | 2;
 
-export type Board = Disk[][];
+export type Cell = Player | 0;
+
+export type Board = Cell[][];

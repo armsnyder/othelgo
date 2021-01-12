@@ -7,10 +7,12 @@
 
   onMount(() => sendMessage({ action: "hello", version: "0.0.0" }));
 
-  const decorate = createMessageReceiver<Decorate>("decorate");
+  const decorate = createMessageReceiver<Decorate>({
+    action: "decorate",
+    decoration: "",
+  });
 
-  const error = createMessageReceiver<Error>("error");
-  $: errorMessage = $error?.error ?? "";
+  const error = createMessageReceiver<Error>({ action: "error", error: "" });
 </script>
 
 <style>
@@ -19,10 +21,10 @@
   }
 </style>
 
-{#if errorMessage}
-  <Alert>Error from server: {errorMessage}</Alert>
+{#if $error.error}
+  <Alert>Error from server: {$error.error}</Alert>
 {/if}
 
-<p>{$decorate?.decoration ?? 'Waiting to be decorated...'}</p>
+<p>{$decorate.decoration || 'Waiting to be decorated...'}</p>
 
 <Board />

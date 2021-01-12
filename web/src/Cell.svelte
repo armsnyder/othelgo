@@ -1,6 +1,6 @@
 <script lang="ts">
-  import type { Disk } from "./boardTypes";
-  export let disk: Disk = 0;
+  import type { Cell } from "./boardTypes";
+  export let value: Cell = 0;
 </script>
 
 <style>
@@ -18,4 +18,4 @@
     }
 </style>
 
-<div class="player-{disk}">⬤</div>
+<div class="player-{value}">⬤</div>

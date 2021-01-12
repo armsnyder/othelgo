@@ -1,4 +1,4 @@
-import type { Board, Disk } from "./boardTypes";
+import type { Board, Player } from "./boardTypes";
 
 export type OutboundMessage =
   | Hello
@@ -75,7 +75,7 @@ export interface PlaceDisk {
 export interface UpdateBoard {
   action: "updateBoard";
   board: Board;
-  player: Disk;
+  player: Player;
   x: number;
   y: number;
   p1score: number;

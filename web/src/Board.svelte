@@ -7,7 +7,15 @@
 
   onMount(() => sendMessage({ action: "hostGame", nickname: "adam" }));
 
-  const boardUpdate = createMessageReceiver<UpdateBoard>("updateBoard");
+  const boardUpdate = createMessageReceiver<UpdateBoard>({
+    action: "updateBoard",
+    board: [],
+    player: 1,
+    p1score: 0,
+    p2score: 0,
+    x: 0,
+    y: 0,
+  });
 </script>
 
 <style>
@@ -28,11 +36,11 @@
 </style>
 
 <table>
-  {#each $boardUpdate?.board ?? [] as row}
+  {#each $boardUpdate.board as row}
     <tr>
-      {#each row as disk}
+      {#each row as value}
         <td>
-          <Cell {disk} />
+          <Cell {value} />
         </td>
       {/each}
     </tr>
