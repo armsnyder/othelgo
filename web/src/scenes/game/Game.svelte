@@ -30,6 +30,16 @@
   function changeNickname() {
     dispatch("changeNickname");
   }
+
+  function handleClickCell(event: { detail: { x: number; y: number; }; }) {
+    sendMessage({
+      action: "placeDisk",
+      nickname,
+      host: nickname,
+      x: event.detail.x,
+      y: event.detail.y,
+    });
+  }
 </script>
 
 <Text alignEnd>
@@ -37,4 +47,4 @@
   <Uppercase>{nickname}</Uppercase>!
 </Text>
 <Button alignEnd on:click={changeNickname}>CHANGE NICKNAME</Button>
-<Board data={$boardUpdate.board} />
+<Board data={$boardUpdate.board} on:clickCell={handleClickCell} />

@@ -26,4 +26,5 @@
   }
 </style>
 
-<div class="player-{value}" />
+<!-- https://svelte.dev/tutorial/event-forwarding -->
+<div class="player-{value}" on:click/> 
