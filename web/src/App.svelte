@@ -1,30 +1,40 @@
 <script lang="ts">
+  import type { Error } from "./types/messageTypes";
   import { onMount } from "svelte";
-  import Board from "./Board.svelte";
-  import Alert from "./Alert.svelte";
-  import type { Decorate, Error } from "./messageTypes";
-  import { createMessageReceiver, sendMessage } from "./websocket";
+  import { createMessageReceiver, sendMessage } from "./stores/websocket";
+  import Title from "./lib/Title.svelte";
+  import Text from "./lib/Text.svelte";
+  import CenterLayout from "./lib/CenterLayout.svelte";
+  import SceneRouter from "./SceneRouter.svelte";
 
   onMount(() => sendMessage({ action: "hello", version: "0.0.0" }));
-
-  const decorate = createMessageReceiver<Decorate>({
-    action: "decorate",
-    decoration: "",
-  });
 
   const error = createMessageReceiver<Error>({ action: "error", error: "" });
 </script>
 
-<style>
-  :root {
-    font-family: Arial, sans-serif;
+<style lang="less">
+  .app {
+    display: flex;
+    justify-content: center;
+    height: 100%;
+    font-size: 14pt;
+    background: var(--bg-color);
+    color: var(--fg-color);
+    font-family: "Source Code Pro", monospace;
   }
 </style>
 
-{#if $error.error}
-  <Alert>Error from server: {$error.error}</Alert>
-{/if}
+<div class="app">
+  <CenterLayout>
+    <Title />
 
-<p>{$decorate.decoration || 'Waiting to be decorated...'}</p>
+    {#if $error.error}
+      <Text color="palevioletred" bold>
+        Error from server:
+        {$error.error}
+      </Text>
+    {/if}
 
-<Board />
+    <SceneRouter />
+  </CenterLayout>
+</div>

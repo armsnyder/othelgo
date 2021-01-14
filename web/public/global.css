@@ -1,0 +1,20 @@
+/* Global variables */
+:root {
+  --bg-color: #170f2b;
+  --fg-color: rgb(146, 146, 146);
+  --accent-color: gainsboro;
+  --default-margin: 1em;
+}
+
+/* Styles common to all elements */
+* {
+  cursor: default;
+  user-select: none;
+}
+
+/* Styles for elements outside of the Svelete app */
+html,
+body {
+  margin: 0;
+  height: 100%;
+}

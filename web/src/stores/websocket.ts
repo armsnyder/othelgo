@@ -1,5 +1,5 @@
 import { Readable, writable } from "svelte/store";
-import type { InboundMessage, OutboundMessage } from "./messageTypes";
+import type { InboundMessage, OutboundMessage } from "../types/messageTypes";
 
 // Initialize a Svelte store. Writing to the store will notify all subscribers.
 const messageStore = writable<InboundMessage | null>(null);
