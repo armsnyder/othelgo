@@ -35,6 +35,22 @@ func handlePlaceDisk(ctx context.Context, req events.APIGatewayWebsocketProxyReq
 		return errors.New("unauthorized")
 	}
 
+	var player common.Disk = 1
+	if message.Host != message.Nickname {
+		player = 2
+	}
+	if player != game.Player {
+		p1Score, p2Score := common.KeepScore(game.Board)
+		return reply(ctx, req.RequestContext, args, messages.UpdateBoard{
+			Board:   game.Board,
+			Player:  game.Player,
+			X:       -1,
+			Y:       -1,
+			P1Score: p1Score,
+			P2Score: p2Score,
+		})
+	}
+
 	var connectionIDs []string
 	for _, v := range connections {
 		connectionIDs = append(connectionIDs, v)

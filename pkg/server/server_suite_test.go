@@ -385,6 +385,16 @@ var _ = Describe("Server", func() {
 				})
 
 				It("should show zinger it is player 2's turn", testutil.ExpectTurn(&zinger, 2))
+
+				When("flame moves when it isn't his turn", func() {
+					BeforeEach(Send(&flame, messages.PlaceDisk{Nickname: "flame", Host: "flame", X: 5, Y: 3}))
+
+					It("should not have changed the board", func() {
+						var message messages.UpdateBoard
+						Expect(flame).To(HaveReceived(&message))
+						Expect(message.Board).To(Equal(expectedBoardAfterFirstMove))
+					})
+				})
 			})
 
 			When("zinger impersonates flame to take flame's turn", func() {
