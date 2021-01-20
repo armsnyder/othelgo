@@ -1,19 +1,16 @@
 <script lang="ts">
-  import { onMount, onDestroy, createEventDispatcher } from "svelte";
+  import { onDestroy, createEventDispatcher } from "svelte";
   import type { UpdateBoard } from "../../types/messageTypes";
   import { createMessageReceiver, sendMessage } from "../../stores/websocket";
   import Board from "./Board.svelte";
   import Text from "../../lib/Text.svelte";
   import Button from "../../lib/Button.svelte";
-  import Uppercase from "../../lib/Uppercase.svelte";
 
   export let nickname: string;
+  export let host: string;
+  export let opponent: string;
 
-  onMount(() => sendMessage({ action: "hostGame", nickname }));
-
-  onDestroy(() =>
-    sendMessage({ action: "leaveGame", nickname, host: nickname })
-  );
+  onDestroy(() => sendMessage({ action: "leaveGame", nickname, host }));
 
   const boardUpdate = createMessageReceiver<UpdateBoard>({
     action: "updateBoard",
@@ -27,24 +24,20 @@
 
   const dispatch = createEventDispatcher();
 
-  function changeNickname() {
-    dispatch("changeNickname");
-  }
-
-  function handleClickCell(event: { detail: { x: number; y: number; }; }) {
+  function handleClickCell(event: { detail: { x: number; y: number } }) {
     sendMessage({
       action: "placeDisk",
       nickname,
-      host: nickname,
+      host,
       x: event.detail.x,
       y: event.detail.y,
     });
   }
 </script>
 
-<Text alignEnd>
-  Did you know? Your name is
-  <Uppercase>{nickname}</Uppercase>!
-</Text>
-<Button alignEnd on:click={changeNickname}>CHANGE NICKNAME</Button>
+<Text alignEnd>Did you know? Your name is {nickname.toUpperCase()}!</Text>
+<Text alignStart>Opponent: {opponent}</Text>
+<Button alignEnd on:click={() => dispatch('changeNickname')}>
+  CHANGE NICKNAME
+</Button>
 <Board data={$boardUpdate.board} on:clickCell={handleClickCell} />

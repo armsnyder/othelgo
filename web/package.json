@@ -3,9 +3,10 @@
   "version": "1.0.0",
   "scripts": {
     "build": "rollup -c",
-    "dev": "rollup -c -w",
+    "dev": "HOST=0.0.0.0 rollup -c -w",
     "start": "sirv public",
-    "validate": "svelte-check"
+    "validate": "svelte-check",
+    "format": "pretty-quick"
   },
   "devDependencies": {
     "@rollup/plugin-commonjs": "^16.0.0",
