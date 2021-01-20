@@ -143,6 +143,9 @@ func handleListOpenGames(ctx context.Context, req events.APIGatewayWebsocketProx
 	if err != nil {
 		return err
 	}
+	if hosts == nil {
+		hosts = []string{}
+	}
 
 	return reply(ctx, req.RequestContext, args, messages.OpenGames{Hosts: hosts})
 }
