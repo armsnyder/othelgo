@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { onDestroy } from "svelte";
   import type { Joined, UpdateBoard } from "../../types/messageTypes";
   import { createMessageReceiver, sendMessage } from "../../stores/websocket";
   import Board from "./Board.svelte";
@@ -9,10 +8,6 @@
   let isHost = $host === $nickname;
 
   export let opponent = isHost ? "" : $host;
-
-  onDestroy(() =>
-    sendMessage({ action: "leaveGame", nickname: $nickname, host: $host })
-  );
 
   const joined = createMessageReceiver<Joined>({
     action: "joined",
