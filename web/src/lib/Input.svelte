@@ -42,7 +42,7 @@
 
     // Emit an event for the enter key.
     if (e.key === "Enter") {
-      dispatch("enter");
+      dispatch("submit");
     }
   }
 

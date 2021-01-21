@@ -3,6 +3,7 @@
   export let bold = false;
   export let alignStart = false;
   export let alignEnd = false;
+  export let header = false;
 </script>
 
 <style lang="less">
@@ -12,6 +13,13 @@
       margin-block-start: var(--default-margin);
     }
     color: var(--color);
+  }
+
+  .header {
+    &:not(:first-child) {
+      margin-block-start: calc(2 * var(--default-margin));
+    }
+    text-decoration: underline;
   }
 
   .bold {
@@ -27,6 +35,11 @@
   }
 </style>
 
-<p class:bold class:alignStart class:alignEnd style="--color: {color}">
+<p
+  class:header
+  class:bold
+  class:alignStart
+  class:alignEnd
+  style="--color: {color}">
   <slot />
 </p>

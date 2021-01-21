@@ -1,16 +1,25 @@
 <script lang="ts">
-  import { onDestroy, createEventDispatcher } from "svelte";
-  import type { UpdateBoard } from "../../types/messageTypes";
+  import { onDestroy } from "svelte";
+  import type { Joined, UpdateBoard } from "../../types/messageTypes";
   import { createMessageReceiver, sendMessage } from "../../stores/websocket";
   import Board from "./Board.svelte";
   import Text from "../../lib/Text.svelte";
-  import Button from "../../lib/Button.svelte";
+  import { host, nickname } from "../../stores/global";
 
-  export let nickname: string;
-  export let host: string;
-  export let opponent: string;
+  let isHost = $host === $nickname;
 
-  onDestroy(() => sendMessage({ action: "leaveGame", nickname, host }));
+  export let opponent = isHost ? "" : $host;
+
+  onDestroy(() =>
+    sendMessage({ action: "leaveGame", nickname: $nickname, host: $host })
+  );
+
+  const joined = createMessageReceiver<Joined>({
+    action: "joined",
+    nickname: "",
+  });
+
+  $: opponent ||= $joined.nickname;
 
   const boardUpdate = createMessageReceiver<UpdateBoard>({
     action: "updateBoard",
@@ -22,22 +31,29 @@
     y: 0,
   });
 
-  const dispatch = createEventDispatcher();
+  $: yourScore = isHost ? $boardUpdate.p1score : $boardUpdate.p2score;
+  $: opponentScore = isHost ? $boardUpdate.p2score : $boardUpdate.p1score;
 
-  function handleClickCell(event: { detail: { x: number; y: number } }) {
+  function handleClickCell(event: CustomEvent<{ x: number; y: number }>) {
     sendMessage({
       action: "placeDisk",
-      nickname,
-      host,
+      nickname: $nickname,
+      host: $host,
       x: event.detail.x,
       y: event.detail.y,
     });
   }
 </script>
 
-<Text alignEnd>Did you know? Your name is {nickname.toUpperCase()}!</Text>
-<Text alignStart>Opponent: {opponent}</Text>
-<Button alignEnd on:click={() => dispatch('changeNickname')}>
-  CHANGE NICKNAME
-</Button>
+{#if !opponent}
+  <Text color="lightgreen">Waiting for opponent to join...</Text>
+{/if}
+
+<Text alignStart>{$nickname.toUpperCase()}: {yourScore}</Text>
+
+<Text alignStart>
+  {opponent.toUpperCase() || '[OPPONENT]'}:
+  {opponentScore}
+</Text>
+
 <Board data={$boardUpdate.board} on:clickCell={handleClickCell} />

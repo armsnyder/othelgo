@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "scripts": {
     "build": "rollup -c",
-    "dev": "HOST=0.0.0.0 rollup -c -w",
-    "start": "sirv public",
+    "dev": "rollup -c -w",
+    "start": "sirv public --host",
     "validate": "svelte-check",
     "format": "pretty-quick"
   },
