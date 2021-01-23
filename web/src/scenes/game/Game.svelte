@@ -7,7 +7,7 @@
 
   let isHost = $host === $nickname;
 
-  export let opponent = isHost ? "" : $host;
+  let opponent = isHost ? "" : $host;
 
   const joined = createMessageReceiver<Joined>({
     action: "joined",
