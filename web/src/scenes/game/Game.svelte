@@ -1,9 +1,10 @@
 <script lang="ts">
-  import type { Joined, UpdateBoard } from "../../types/messageTypes";
+  import type { GameOver, Joined, UpdateBoard } from "../../types/messageTypes";
   import { createMessageReceiver, sendMessage } from "../../stores/websocket";
   import Board from "./Board.svelte";
   import Text from "../../lib/Text.svelte";
-  import { host, nickname } from "../../stores/global";
+  import { host, nickname, currentScene } from "../../stores/global";
+  import Button from "../../lib/Button.svelte";
 
   let isHost = $host === $nickname;
 
@@ -38,6 +39,19 @@
       y: event.detail.y,
     });
   }
+
+  function handleClickQuit() {
+    sendMessage({ action: "leaveGame", nickname: $nickname, host: $host });
+  }
+
+  const gameOver = createMessageReceiver<GameOver>({
+    action: "gameOver",
+    message: "",
+  });
+
+  $: if ($gameOver.message) {
+    currentScene.set("join");
+  }
 </script>
 
 {#if !opponent}
@@ -52,3 +66,5 @@
 </Text>
 
 <Board data={$boardUpdate.board} on:clickCell={handleClickCell} />
+
+<Button on:click={handleClickQuit} alignEnd>LEAVE GAME</Button>
